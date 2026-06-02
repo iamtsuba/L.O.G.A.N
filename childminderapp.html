@@ -1218,7 +1218,7 @@ function showPage(p) {
 async function loadNounous() {
   // Pas de filtre user_id : la RLS Supabase renvoie les nounous possédées ET partagées avec moi
   const { data, error } = await sbClient.from('childminderapp_nounous')
-    .select('*, childminderapp_contrats(*)')
+    .select('*, contrats:childminderapp_contrats(*)')
     .order('prenom');
   if (error) {
     const container = document.getElementById('nounous-list');
@@ -1508,7 +1508,6 @@ async function saveContrat() {
   }
   const row = {
     nounou_id: nounouId,
-    user_id: currentUser.id,
     date_debut: debut,
     date_fin: document.getElementById('c-fin').value || null,
     jours_contrat: parseInt(document.getElementById('c-jours-contrat').value) || 178,
