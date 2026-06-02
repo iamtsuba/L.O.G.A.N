@@ -428,6 +428,12 @@
   const GITHUB_BRANCH   = 'main';
   /* ══════════════════════════════════════════ */
 
+  // Use Google's favicon service — no CORS issues
+  function getAppIconUrl(path) {
+    const pageUrl = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/${path}`;
+    return `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(pageUrl)}`;
+  }
+
   // Fetch favicon from a GitHub Pages HTML file
   async function fetchAppIcon(path) {
     try {
@@ -585,27 +591,15 @@
     const res = await fetch(url);
     if (!res.ok) throw new Error('Impossible de charger le dépôt GitHub (statut ' + res.status + ').');
     const data = await res.json();
-    const apps = (data.tree || [])
+    return (data.tree || [])
       .filter(f => f.type === 'blob' && f.path.endsWith('.html'))
       .map((f, i) => {
         const raw  = f.path.replace(/\.html$/, '').split('/').pop();
         const name = raw.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        const url  = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/${f.path}`;
-        return { id: f.path, name, url, emoji: EMOJIS[i % EMOJIS.length], icon: null, path: f.path };
+        const appUrl = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/${f.path}`;
+        const icon = getAppIconUrl(f.path);
+        return { id: f.path, name, url: appUrl, emoji: EMOJIS[i % EMOJIS.length], icon, path: f.path };
       });
-    // Fetch icons in background (non-blocking)
-    apps.forEach(app => {
-      fetchAppIcon(app.path).then(iconUrl => {
-        if (iconUrl) {
-          app.icon = iconUrl;
-          // Re-render if already displayed
-          const safeId = 'card-' + app.id.replace(/[^a-z0-9]/gi, '-');
-          const imgEl = document.querySelector(`#${safeId} .app-icon-img, #dash-${safeId} .app-icon-img`);
-          if (imgEl) imgEl.src = iconUrl;
-        }
-      });
-    });
-    return apps;
   }
 
   /* ── Supabase user_apps ── */
@@ -640,11 +634,13 @@
   }
 
   function appIconHtml(app, size = 36) {
-    const safeId = 'card-' + app.id.replace(/[^a-z0-9]/gi, '-');
     if (app.icon) {
-      return `<img class="app-icon-img" src="${app.icon}" alt="${app.name}" style="width:${size}px;height:${size}px;border-radius:8px;object-fit:contain;" />`;
+      return `<img class="app-icon-img" src="${app.icon}" alt="${app.name}"
+        style="width:${size}px;height:${size}px;border-radius:8px;object-fit:contain;background:var(--bg);"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='inline';" />
+        <span style="display:none;font-size:${Math.round(size*0.6)}px;line-height:1;">${app.emoji}</span>`;
     }
-    return `<span class="app-icon-img" style="font-size:${size * 0.6}px;line-height:1;">${app.emoji}</span>`;
+    return `<span style="font-size:${Math.round(size*0.6)}px;line-height:1;">${app.emoji}</span>`;
   }
 
   function renderDashboard() {
