@@ -479,11 +479,16 @@ function connecterSupabase(){
 
 // ── DATA 
 async function loadData(){
-  // Récupérer le user_id depuis user_apps (app = 'holidays')
   if(!currentUserId){
-    var uR=await sbClient.from('user_apps').select('user_id').contains('app_ids',JSON.stringify(['Holidays App.html'])).single();
-    if(uR.error||!uR.data)return toast('Utilisateur non trouvé dans user_apps','error');
-    currentUserId=uR.data.user_id;
+    // 1. Injecté par LOGAN directement
+    if(window.LOGAN_USER_ID){
+      currentUserId=window.LOGAN_USER_ID;
+    } else {
+      // 2. Lecture dans user_apps — prend le premier match
+      var uR=await sbClient.from('user_apps').select('user_id').contains('app_ids',['Holidays App.html']);
+      if(uR.error||!uR.data||!uR.data.length)return toast('Utilisateur non trouvé dans user_apps','error');
+      currentUserId=uR.data[0].user_id;
+    }
   }
   var pR=await sbClient.from('holidaysapp_profiles').select('*').eq('user_id',currentUserId).order('name');
   var eR=await sbClient.from('holidaysapp_envelopes').select('*').order('start_date');
