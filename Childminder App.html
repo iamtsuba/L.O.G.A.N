@@ -811,12 +811,12 @@
 
     #print-area {
       position: absolute;
-      top: 0; left: 0;
-      /* zoom: fiche = ~1537px haute, A4 = 1123px → 1123/1537 = 0.731 */
-      /* On prend 0.71 pour avoir une petite marge de sécurité */
-      zoom: 0.71;
-      width: calc(210mm / 0.71);   /* compense le zoom pour occuper toute la largeur A4 */
-      max-height: calc(297mm / 0.71);
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      zoom: 1;
+      width: 210mm;
+      max-height: 297mm;
       overflow: hidden;
       border-radius: 0;
       box-shadow: none;
