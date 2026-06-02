@@ -793,79 +793,41 @@
   }
 
   @media print {
-    @page { size: A4 portrait; margin: 5mm; }
+    @page { size: A4 portrait; margin: 0; }
+
+    /* Masque tout sauf la fiche */
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
+
+    /* Forçage couleurs */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* La fiche occupe exactement une page A4 par transformation */
     #print-area {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      box-shadow: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 794px;          /* A4 à 96dpi = 794px */
+      max-width: 794px;
       border-radius: 0;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      font-size: 8px;
+      box-shadow: none;
+      overflow: hidden;
+      /* Scale pour tenir en hauteur A4 (1123px) */
+      transform-origin: top left;
+      transform: scale(0.72);
     }
 
-    /* ── Tout sur une page — aucun saut forcé ── */
-    #print-area * { page-break-before: avoid !important; break-before: avoid !important; }
-    .fiche-section.recap-section { page-break-before: avoid !important; break-before: avoid !important; }
-    .fiche-grand-table, .fiche-recap-table,
-    .fiche-header, .fiche-nanny-bar, .fiche-total-bar {
-      page-break-inside: avoid; break-inside: avoid;
+    /* Aucun saut de page */
+    #print-area * {
+      page-break-before: avoid !important;
+      break-before: avoid !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
 
-    /* ── En-tête très compact ── */
-    #print-area .fiche-header { padding: 3px 10px; }
-    #print-area .fiche-employer-name { font-size: 11px; }
-    #print-area .fiche-period { font-size: 13px; margin-top: 1px; }
-    #print-area .fiche-employer, #print-area .fiche-title { font-size: 6px; }
-    #print-area .fiche-nanny-bar { padding: 2px 10px; }
-    #print-area .fiche-nanny-name { font-size: 11px; }
-    #print-area .fiche-nanny-bar div { font-size: 7px; }
-
-    /* ── Sections compactes ── */
-    #print-area .fiche-section { padding: 3px 10px; }
-    #print-area .fiche-section-title { font-size: 6px; margin-bottom: 2px; letter-spacing: 1px; }
-
-    /* ── Total compact ── */
-    #print-area .fiche-total-bar { padding: 3px 10px; }
-    #print-area .fiche-total-label { font-size: 7px; }
-    #print-area .fiche-total-amount { font-size: 15px; }
-
-    /* ── Tableau récap mois ── */
-    #print-area .fiche-recap-table { font-size: 7.5px; }
-    #print-area .fiche-recap-table thead th { font-size: 6px; padding: 1px 3px; }
-    #print-area .fiche-recap-table tbody th { font-size: 7.5px; padding: 1px 5px; white-space: nowrap; }
-    #print-area .fiche-recap-table tbody td { padding: 1px 3px; white-space: nowrap; }
-    #print-area .fiche-recap-table tr.row-highlight td { font-size: 8px; }
-
-    /* ── Calendrier annuel — taille optimisée pour tenir en bas ── */
-    #print-area .fiche-grand-table { font-size: 6px; border-spacing: 0; width: 100%; }
-    #print-area .fiche-grand-table thead th { font-size: 6px; padding: 1px; }
-    #print-area .cal-cell { height: 9px; font-size: 4.5px; line-height: 1; border-radius: 1px; }
-    #print-area .cal-row th.cal-day { font-size: 4.5px; padding: 0 1px; }
-    #print-area .grand-spacer td { height: 1px; }
-    #print-area .data-row th.data-label { font-size: 6px; padding: 1px; }
-    #print-area .data-row td { font-size: 6px; padding: 1px; }
-    #print-area .data-row.d-highlight td { font-size: 6.5px; font-weight: 700; }
-
-    /* ── Légendes ── */
-    #print-area .fiche-cal-color-legend { font-size: 5.5px; gap: 5px; margin-bottom: 2px; }
-    #print-area .fiche-cal-color-legend .dot { width: 5px; height: 5px; }
-    #print-area .fiche-letter-legend { font-size: 5.5px; gap: 1px 6px; margin-top: 3px; }
-    #print-area [style*="font-size:10px"] { font-size: 6px !important; margin-bottom: 2px !important; }
-
-    /* ── Forçage couleurs ── */
-    .cal-cell, .data-row th, .data-row td,
-    .fiche-grand-table thead th,
-    .fiche-header, .fiche-nanny-bar, .fiche-total-bar,
-    .fiche-recap-table thead th,
-    .fiche-recap-table tr.row-highlight th,
-    .fiche-recap-table tr.row-highlight td {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
     .no-print { display: none !important; }
   }
 
