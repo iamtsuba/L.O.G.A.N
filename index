@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tableau de bord</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f6f3;
+      --surface: #ffffff;
+      --surface-hover: #f2f1ee;
+      --border: rgba(0,0,0,0.1);
+      --border-strong: rgba(0,0,0,0.2);
+      --text: #1a1a18;
+      --text-muted: #6b6b66;
+      --text-faint: #a0a09a;
+      --accent: #1a1a18;
+      --danger: #c0392b;
+      --danger-bg: #fdf0ef;
+      --success: #27774a;
+      --success-bg: #edf7f2;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Auth layout ── */
+    .auth-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    .auth-logo {
+      width: 48px; height: 48px;
+      background: var(--accent);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    .auth-logo i { font-size: 24px; color: #fff; }
+
+    .auth-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 24px; font-weight: 400;
+      text-align: center; margin-bottom: 4px;
+    }
+    .auth-sub {
+      font-size: 13px; color: var(--text-muted);
+      text-align: center; margin-bottom: 1.75rem;
+    }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--text-muted); display: block; margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .form-input {
+      width: 100%; padding: 11px 14px;
+      border: 0.5px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: var(--accent); background: var(--surface); }
+
+    .btn-primary {
+      width: 100%; padding: 12px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: opacity 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: transparent; border: 0.5px solid var(--border-strong);
+      border-radius: var(--radius-sm); padding: 9px 16px;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+      color: var(--text); cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-ghost:hover { background: var(--surface-hover); }
+    .btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .auth-switch {
+      text-align: center; font-size: 12px;
+      color: var(--text-muted); margin-top: 1.25rem;
+    }
+    .auth-switch span { color: var(--text); cursor: pointer; text-decoration: underline; }
+
+    .msg { font-size: 12px; min-height: 18px; margin-top: 8px; padding: 0 2px; }
+    .msg.error { color: var(--danger); }
+    .msg.success { color: var(--success); }
+
+    /* ── App layout ── */
+    .app-layout { min-height: 100vh; }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 0.5px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .topbar-logo {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .topbar-logo i { font-size: 18px; color: #fff; }
+    .topbar-title { font-family: 'DM Serif Display', serif; font-size: 18px; font-weight: 400; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .user-badge {
+      font-size: 12px; color: var(--text-muted);
+      padding: 4px 10px;
+      background: var(--surface-hover);
+      border-radius: 20px;
+      border: 0.5px solid var(--border);
+    }
+
+    .main-content { max-width: 860px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+    .section-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
+    }
+    .section-title { font-family: 'DM Serif Display', serif; font-size: 22px; font-weight: 400; }
+    .section-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── App grid ── */
+    .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 12px; }
+
+    .app-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1rem;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      position: relative;
+      text-align: center;
+      user-select: none;
+    }
+    .app-card:hover { border-color: var(--border-strong); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .app-card.selected { border: 1.5px solid var(--accent); }
+
+    .app-check {
+      position: absolute; top: 10px; right: 10px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; opacity: 0; transition: opacity 0.15s;
+    }
+    .app-card.selected .app-check { opacity: 1; }
+
+    .app-emoji {
+      font-size: 28px; line-height: 1;
+      width: 52px; height: 52px;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      border: 0.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 10px;
+    }
+    .app-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+    .app-path { font-size: 11px; color: var(--text-faint); word-break: break-all; }
+
+    /* ── Dashboard cards ── */
+    .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+
+    .dash-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .dash-card:hover { border-color: var(--border-strong); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+
+    .dash-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .dash-card-emoji { font-size: 24px; line-height: 1; }
+    .dash-card-name { font-size: 14px; font-weight: 500; }
+    .dash-card-path { font-size: 11px; color: var(--text-faint); margin-top: 1px; word-break: break-all; }
+
+    .open-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; color: var(--text-muted);
+      text-decoration: none;
+      padding: 6px 12px;
+      border: 0.5px solid var(--border);
+      border-radius: 20px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .open-link:hover { background: var(--bg); color: var(--text); }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center; padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+    .empty-state i { font-size: 40px; display: block; margin-bottom: 12px; opacity: 0.3; }
+    .empty-state p { font-size: 14px; margin-bottom: 1rem; }
+
+    /* ── Loading skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, var(--surface-hover) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: var(--radius-sm);
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    .skel-card {
+      background: var(--surface); border: 0.5px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1rem;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+    }
+    .spinner.dark {
+      border-color: rgba(0,0,0,0.15);
+      border-top-color: var(--text);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Notice bar ── */
+    .notice {
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      font-size: 13px; display: flex; align-items: center; gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+    .notice.info { background: #eef4ff; color: #2b5bb8; border: 0.5px solid #c0d4f5; }
+    .notice.warn { background: #fff8ed; color: #9a6100; border: 0.5px solid #f5d990; }
+
+    /* ── Responsive ── */
+    @media (max-width: 540px) {
+      .topbar { padding: 0 1rem; }
+      .main-content { padding: 1.5rem 1rem; }
+      .user-badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════ SCREEN: LOGIN ════════════════════ -->
+<div id="screen-login" class="screen active">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><i class="ti ti-layout-dashboard"></i></div>
+      <h1 class="auth-title">Connexion</h1>
+      <p class="auth-sub">Accédez à votre tableau de bord</p>
+
+      <div class="form-group">
+        <label class="form-label" for="login-email">Adresse email</label>
+        <input class="form-input" type="email" id="login-email" placeholder="vous@exemple.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-password">Mot de passe</label>
+        <input class="form-input" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <div id="login-msg" class="msg error"></div>
+      <button class="btn-primary" id="btn-login" onclick="handleLogin()">
+        Se connecter
+      </button>
+      <p class="auth-switch">Pas encore de compte ? <span onclick="showScreen('register')">Créer un compte</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ SCREEN: REGISTER ════════════════════ -->
+<div id="screen-register" class="screen">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><i class="ti ti-layout-dashboard"></i></div>
+      <h1 class="auth-title">Créer un compte</h1>
+      <p class="auth-sub">Rejoignez le tableau de bord</p>
+
+      <div class="form-group">
+        <label class="form-label" for="reg-email">Adresse email</label>
+        <input class="form-input" type="email" id="reg-email" placeholder="vous@exemple.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="reg-password">Mot de passe</label>
+        <input class="form-input" type="password" id="reg-password" placeholder="Minimum 8 caractères" autocomplete="new-password" />
+      </div>
+      <div id="register-msg" class="msg"></div>
+      <button class="btn-primary" id="btn-register" onclick="handleRegister()">
+        Créer le compte
+      </button>
+      <p class="auth-switch">Déjà un compte ? <span onclick="showScreen('login')">Se connecter</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ SCREEN: CATALOG ════════════════════ -->
+<div id="screen-catalog" class="screen">
+  <div class="app-layout">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-logo"><i class="ti ti-layout-dashboard"></i></div>
+        <span class="topbar-title">Tableau de bord</span>
+      </div>
+      <div class="topbar-right">
+        <span class="user-badge" id="catalog-user-label"></span>
+        <button class="btn-ghost" onclick="showScreen('dashboard')">
+          <i class="ti ti-arrow-left"></i> Retour
+        </button>
+        <button class="btn-ghost" id="btn-save" onclick="saveSelection()">
+          Enregistrer <span id="sel-count">0</span> app(s)
+        </button>
+      </div>
+    </header>
+    <main class="main-content">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Catalogue des apps</h2>
+          <p class="section-sub">Sélectionnez les apps à afficher dans votre tableau de bord</p>
+        </div>
+      </div>
+      <div id="catalog-notice" class="notice info" style="display:none;"></div>
+      <div id="catalog-loading" style="display:flex; align-items:center; gap:10px; color:var(--text-muted); font-size:13px; padding: 8px 0 1rem;">
+        <span class="spinner dark"></span> Chargement des apps depuis GitHub…
+      </div>
+      <div id="app-grid" class="app-grid"></div>
+    </main>
+  </div>
+</div>
+
+<!-- ════════════════════ SCREEN: DASHBOARD ════════════════════ -->
+<div id="screen-dashboard" class="screen">
+  <div class="app-layout">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-logo"><i class="ti ti-layout-dashboard"></i></div>
+        <span class="topbar-title">Tableau de bord</span>
+      </div>
+      <div class="topbar-right">
+        <span class="user-badge" id="dash-user-label"></span>
+        <button class="btn-ghost" onclick="goToCatalog()">
+          <i class="ti ti-apps"></i> Gérer
+        </button>
+        <button class="btn-ghost" onclick="handleLogout()">
+          <i class="ti ti-logout"></i> Déconnexion
+        </button>
+      </div>
+    </header>
+    <main class="main-content">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Mes apps</h2>
+          <p class="section-sub">Cliquez sur une app pour l'ouvrir</p>
+        </div>
+      </div>
+      <div id="dash-grid" class="dash-grid"></div>
+      <div id="dash-empty" class="empty-state" style="display:none;">
+        <i class="ti ti-apps"></i>
+        <p>Aucune app sélectionnée pour le moment.</p>
+        <button class="btn-ghost" onclick="goToCatalog()">
+          <i class="ti ti-plus"></i> Parcourir le catalogue
+        </button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  /* ══════════════════════════════════════════
+     CONFIGURATION — À modifier
+  ══════════════════════════════════════════ */
+  const SUPABASE_URL    = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
+  const SUPABASE_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
+  const GITHUB_USER     = 'iamtsuba';
+  const GITHUB_REPO     = 'L.O.G.A.N';
+  const GITHUB_BRANCH   = 'main';
+  /* ══════════════════════════════════════════ */
+
+  const EMOJIS = ['🎯','🚀','⚡','🎨','🛠️','📊','🔮','🌐','🧩','💡','🗂️','🔧'];
+
+  let currentUser  = null;
+  let userToken    = null;
+  let selectedApps = new Set();
+  let availableApps = [];
+
+  /* ── Screens ── */
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+  }
+
+  /* ── Supabase helper ── */
+  async function sb(method, path, body, token) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + (token || SUPABASE_KEY),
+    };
+    if (method === 'POST') headers['Prefer'] = 'return=representation,resolution=merge-duplicates';
+    const res = await fetch(SUPABASE_URL + path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error_description || JSON.stringify(data));
+    return data;
+  }
+
+  /* ── Auth ── */
+  async function handleLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pwd   = document.getElementById('login-password').value;
+    const msgEl = document.getElementById('login-msg');
+    msgEl.textContent = '';
+    if (!email || !pwd) { msgEl.textContent = 'Veuillez remplir tous les champs.'; return; }
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Connexion…';
+    try {
+      const data = await sb('POST', '/auth/v1/token?grant_type=password', { email, password: pwd });
+      currentUser = data.user;
+      userToken   = data.access_token;
+      document.getElementById('dash-user-label').textContent    = email;
+      document.getElementById('catalog-user-label').textContent = email;
+      await loadDashboard();
+    } catch(e) {
+      msgEl.textContent = e.message.includes('Invalid') ? 'Email ou mot de passe incorrect.' : e.message;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Se connecter';
+    }
+  }
+
+  async function handleRegister() {
+    const email = document.getElementById('reg-email').value.trim();
+    const pwd   = document.getElementById('reg-password').value;
+    const msgEl = document.getElementById('register-msg');
+    msgEl.className = 'msg';
+    msgEl.textContent = '';
+    if (!email || !pwd) { msgEl.className = 'msg error'; msgEl.textContent = 'Veuillez remplir tous les champs.'; return; }
+    if (pwd.length < 8)  { msgEl.className = 'msg error'; msgEl.textContent = 'Le mot de passe doit contenir au moins 8 caractères.'; return; }
+    const btn = document.getElementById('btn-register');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Création…';
+    try {
+      await sb('POST', '/auth/v1/signup', { email, password: pwd });
+      msgEl.className   = 'msg success';
+      msgEl.textContent = '✓ Compte créé ! Vérifiez vos emails pour confirmer votre inscription.';
+    } catch(e) {
+      msgEl.className   = 'msg error';
+      msgEl.textContent = e.message;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Créer le compte';
+    }
+  }
+
+  function handleLogout() {
+    currentUser = userToken = null;
+    selectedApps.clear();
+    availableApps = [];
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-password').value = '';
+    showScreen('login');
+  }
+
+  /* ── GitHub ── */
+  async function fetchGithubApps() {
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/git/trees/${GITHUB_BRANCH}?recursive=1`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Impossible de charger le dépôt GitHub (statut ' + res.status + ').');
+    const data = await res.json();
+    return (data.tree || [])
+      .filter(f => f.type === 'blob' && f.path.endsWith('.html'))
+      .map((f, i) => {
+        const raw  = f.path.replace(/\.html$/, '').split('/').pop();
+        const name = raw.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const url  = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/${f.path}`;
+        return { id: f.path, name, url, emoji: EMOJIS[i % EMOJIS.length], path: f.path };
+      });
+  }
+
+  /* ── Supabase user_apps ── */
+  async function loadUserApps() {
+    try {
+      const rows = await sb('GET', `/rest/v1/user_apps?user_id=eq.${currentUser.id}&select=app_ids`, null, userToken);
+      if (rows && rows[0] && rows[0].app_ids) selectedApps = new Set(rows[0].app_ids);
+    } catch(e) { console.warn('Impossible de charger les apps sauvegardées :', e); }
+  }
+
+  async function saveUserApps() {
+    await fetch(SUPABASE_URL + '/rest/v1/user_apps', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + userToken,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ user_id: currentUser.id, app_ids: Array.from(selectedApps) })
+    });
+  }
+
+  /* ── Dashboard ── */
+  async function loadDashboard() {
+    showScreen('dashboard');
+    await loadUserApps();
+    if (!availableApps.length) {
+      try { availableApps = await fetchGithubApps(); } catch(e) { console.warn(e); }
+    }
+    renderDashboard();
+  }
+
+  function renderDashboard() {
+    const grid  = document.getElementById('dash-grid');
+    const empty = document.getElementById('dash-empty');
+    const myApps = availableApps.filter(a => selectedApps.has(a.id));
+    if (!myApps.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    grid.innerHTML = myApps.map(app => `
+      <div class="dash-card">
+        <div class="dash-card-top">
+          <span class="dash-card-emoji">${app.emoji}</span>
+          <div>
+            <div class="dash-card-name">${app.name}</div>
+            <div class="dash-card-path">${app.path}</div>
+          </div>
+        </div>
+        <a class="open-link" href="${app.url}" target="_blank" rel="noopener">
+          <i class="ti ti-external-link" style="font-size:13px;"></i> Ouvrir
+        </a>
+      </div>
+    `).join('');
+  }
+
+  /* ── Catalog ── */
+  async function goToCatalog() {
+    showScreen('catalog');
+    const loadEl  = document.getElementById('catalog-loading');
+    const noticeEl = document.getElementById('catalog-notice');
+    loadEl.style.display  = 'flex';
+    noticeEl.style.display = 'none';
+    document.getElementById('app-grid').innerHTML = '';
+    try {
+      if (!availableApps.length) availableApps = await fetchGithubApps();
+      if (!availableApps.length) {
+        noticeEl.className = 'notice warn';
+        noticeEl.innerHTML = '<i class="ti ti-alert-triangle" style="font-size:16px;"></i> Aucune page HTML trouvée dans le dépôt.';
+        noticeEl.style.display = 'flex';
+      }
+      renderCatalog();
+    } catch(e) {
+      noticeEl.className = 'notice warn';
+      noticeEl.innerHTML = '<i class="ti ti-alert-triangle" style="font-size:16px;"></i> ' + e.message;
+      noticeEl.style.display = 'flex';
+    } finally {
+      loadEl.style.display = 'none';
+    }
+  }
+
+  function renderCatalog() {
+    const grid = document.getElementById('app-grid');
+    updateSelCount();
+    grid.innerHTML = availableApps.map(app => {
+      const safeId = 'card-' + app.id.replace(/[^a-z0-9]/gi, '-');
+      return `
+        <div class="app-card ${selectedApps.has(app.id) ? 'selected' : ''}"
+             id="${safeId}"
+             onclick="toggleApp('${app.id.replace(/'/g,"\\'")}')">
+          <div class="app-check"><i class="ti ti-check" style="font-size:10px;"></i></div>
+          <div class="app-emoji">${app.emoji}</div>
+          <div class="app-name">${app.name}</div>
+          <div class="app-path">${app.path}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function toggleApp(id) {
+    if (selectedApps.has(id)) selectedApps.delete(id);
+    else selectedApps.add(id);
+    const safeId = 'card-' + id.replace(/[^a-z0-9]/gi, '-');
+    const card = document.getElementById(safeId);
+    if (card) card.classList.toggle('selected', selectedApps.has(id));
+    updateSelCount();
+  }
+
+  function updateSelCount() {
+    document.getElementById('sel-count').textContent = selectedApps.size;
+  }
+
+  async function saveSelection() {
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner dark"></span> Enregistrement…';
+    try {
+      await saveUserApps();
+      await loadDashboard();
+    } catch(e) {
+      alert('Erreur lors de la sauvegarde : ' + e.message);
+      showScreen('catalog');
+    } finally {
+      btn.disabled = false;
+      updateSelCount();
+      btn.innerHTML = 'Enregistrer <span id="sel-count">' + selectedApps.size + '</span> app(s)';
+    }
+  }
+
+  /* ── Enter key on login ── */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const active = document.querySelector('.screen.active');
+    if (active && active.id === 'screen-login')    handleLogin();
+    if (active && active.id === 'screen-register') handleRegister();
+  });
+</script>
+</body>
+</html>
