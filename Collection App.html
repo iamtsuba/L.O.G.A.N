@@ -465,16 +465,36 @@ async function deleteCollection(id) {
   renderCollectionsView();
 }
 
-async function createProduct(collectionId, name, buyPrice, imageUrl, sellPrice) {
+async function createProduct(collectionId, name, searchName, buyPrice, imageUrl, sellPrice) {
   const sell = sellPrice ? parseFloat(sellPrice) : null;
   const { data, error } = await db
     .from('collectapp_products')
-    .insert({ collection_id: collectionId, name, buy_price: parseFloat(buyPrice)||0, image_url: imageUrl||null, sell_price_ebay: (sell && sell > 0) ? sell : null })
+    .insert({ collection_id: collectionId, name, search_name: searchName || name, buy_price: parseFloat(buyPrice)||0, image_url: imageUrl||null, sell_price_ebay: (sell && sell > 0) ? sell : null })
     .select().single();
   if (error) { toast('Erreur: ' + error.message, 'error'); return; }
   products.unshift(data);
   toast('Produit ajouté !', 'success');
   closeModal();
+  renderProductsView();
+}
+
+async function duplicateProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const { data, error } = await db
+    .from('collectapp_products')
+    .insert({
+      collection_id: p.collection_id,
+      name: p.name + ' (copie)',
+      search_name: p.search_name || p.name,
+      buy_price: p.buy_price || 0,
+      image_url: p.image_url || null,
+      sell_price_ebay: p.sell_price_ebay ?? null
+    })
+    .select().single();
+  if (error) { toast('Erreur: ' + error.message, 'error'); return; }
+  products.unshift(data);
+  toast('Produit dupliqué', 'success');
   renderProductsView();
 }
 
@@ -511,22 +531,23 @@ function vintedUrl(name) {
 function openPriceSources(productId) {
   const p = products.find(x => x.id === productId);
   if (!p) return;
+  const sq = p.search_name || p.name;
   document.getElementById('modal-content').innerHTML = `
     <h2>💶 Prix de revente</h2>
     <p style="color:var(--muted);font-size:0.9rem;margin-bottom:16px">
-      Consultez les ventes réelles pour « ${escHtml(p.name)} », puis saisissez la moyenne.
+      Recherche basée sur : « ${escHtml(sq)} ». Consultez les ventes, puis saisissez la moyenne.
     </p>
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
       <a class="btn btn-ghost" style="text-decoration:none;display:flex;align-items:center;gap:10px;justify-content:flex-start"
-         href="${ebayUrl(p.name)}" target="_blank" rel="noopener">
+         href="${ebayUrl(sq)}" target="_blank" rel="noopener">
         📦 eBay — ventes réussies
       </a>
       <a class="btn btn-ghost" style="text-decoration:none;display:flex;align-items:center;gap:10px;justify-content:flex-start"
-         href="${point130Url(p.name)}" target="_blank" rel="noopener">
+         href="${point130Url(sq)}" target="_blank" rel="noopener">
         📊 130point — historique des ventes
       </a>
       <a class="btn btn-ghost" style="text-decoration:none;display:flex;align-items:center;gap:10px;justify-content:flex-start"
-         href="${vintedUrl(p.name)}" target="_blank" rel="noopener">
+         href="${vintedUrl(sq)}" target="_blank" rel="noopener">
         👕 Vinted — articles en vente (indicatif)
       </a>
     </div>
@@ -575,6 +596,7 @@ function renderCollectionsView() {
       </div>
     </div>`;
   document.getElementById('main-content').innerHTML = html;
+  loadCollectionStats();
 }
 
 function renderCollectionCard(c) {
@@ -614,7 +636,7 @@ async function loadCollectionStats() {
     const elSell = document.getElementById('col-sell-' + c.id);
     if (elCount) elCount.textContent = count;
     if (elBuy) { elBuy.textContent = '€' + totalBuy.toFixed(0); elBuy.style.color = 'var(--accent2)'; }
-    if (elSell) { elSell.textContent = totalSell > 0 ? '€' + totalSell.toFixed(0) : '?'; elSell.style.color = 'var(--accent3)'; }
+    if (elSell) { elSell.textContent = totalSell > 0 ? '€' + totalSell.toFixed(0) : '–'; elSell.style.color = 'var(--accent3)'; }
   }
 }
 
@@ -686,6 +708,7 @@ function renderProductCard(p) {
       ${imgHtml}
       <div class="product-info">
         <div class="product-name">${escHtml(p.name)}</div>
+        ${(p.search_name && p.search_name !== p.name) ? `<div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">🔍 ${escHtml(p.search_name)}</div>` : ''}
         <div class="product-prices">
           <div class="price-chip">
             <span class="price-chip-label">Achat</span>
@@ -704,6 +727,7 @@ function renderProductCard(p) {
       <div class="product-actions">
         <button class="icon-btn" onclick="openPriceSources('${p.id}')" title="Prix de revente">💶</button>
         <button class="icon-btn" onclick="openEditProductModal('${p.id}')" title="Modifier">✏️</button>
+        <button class="icon-btn" onclick="duplicateProduct('${p.id}')" title="Dupliquer">📋</button>
         <button class="icon-btn danger" onclick="deleteProduct('${p.id}')" title="Supprimer">🗑</button>
       </div>
     </div>`;
@@ -728,7 +752,6 @@ function updateRecapBanner() {
 
 function goBack() {
   renderCollectionsView();
-  setTimeout(loadCollectionStats, 100);
 }
 
 // ============================================================
@@ -782,8 +805,13 @@ function openNewProductModal() {
   document.getElementById('modal-content').innerHTML = `
     <h2>📦 Nouveau Produit</h2>
     <div class="form-group">
-      <label>Nom du produit</label>
-      <input type="text" id="prod-name" placeholder="Ex: Funko POP Pikachu #553" autofocus>
+      <label>Nom du produit (affiché)</label>
+      <input type="text" id="prod-name" placeholder="Ex: Pikachu V Full Art" autofocus>
+    </div>
+    <div class="form-group">
+      <label>Nom de recherche (eBay / 130point / Vinted)</label>
+      <input type="text" id="prod-search" placeholder="Ex: Pikachu V 188/185 Vivid Voltage PSA 10">
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:4px">Laissez vide pour utiliser le nom du produit.</div>
     </div>
     <div class="form-group">
       <label>Prix d'achat (€)</label>
@@ -835,10 +863,11 @@ async function handleImageUpload(input, previewId = 'img-preview') {
 
 async function submitNewProduct() {
   const name = document.getElementById('prod-name').value.trim();
+  const searchName = document.getElementById('prod-search').value.trim();
   const buy = document.getElementById('prod-buy').value;
   const sell = document.getElementById('prod-sell').value;
   if (!name) { toast('Nom requis', 'error'); return; }
-  await createProduct(currentCollection.id, name, buy, pendingImageBase64, sell);
+  await createProduct(currentCollection.id, name, searchName, buy, pendingImageBase64, sell);
 }
 
 // ── ÉDITION D'UN PRODUIT ──
@@ -849,8 +878,12 @@ function openEditProductModal(productId) {
   document.getElementById('modal-content').innerHTML = `
     <h2>✏️ Modifier le produit</h2>
     <div class="form-group">
-      <label>Nom du produit</label>
+      <label>Nom du produit (affiché)</label>
       <input type="text" id="edit-name" value="${escHtml(p.name)}">
+    </div>
+    <div class="form-group">
+      <label>Nom de recherche (eBay / 130point / Vinted)</label>
+      <input type="text" id="edit-search" value="${escHtml(p.search_name || '')}" placeholder="Laissez vide = nom du produit">
     </div>
     <div class="form-group">
       <label>Prix d'achat (€)</label>
