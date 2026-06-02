@@ -451,102 +451,16 @@ var currentView='mensuel';
 var navState={mensuel:new Date(),annuel:new Date(),cp:new Date(),nounou:new Date()};
 var editingProfile=null,editingEnvelope=null,editingLeave=null;
 
-// ══════════════════════════════════════════════════════════════
-//  INIT — SESSION LOGAN (pas de connexion propre)
-// ══════════════════════════════════════════════════════════════
-// Cette app est une sous-app de LOGAN.
-// Elle reçoit la session Supabase via :
-//   1. window.LOGAN_SESSION  (injection directe par LOGAN)
-//   2. localStorage['logan_session']  (fallback cross-page)
-// Elle n'affiche JAMAIS d'écran de connexion mot de passe.
-
+// ── INIT
 function initSupabase(){
   var lib=window.supabase||window.supabaseJs;
-  if(!lib||!lib.createClient){showFallbackLogin('SDK Supabase non chargé');return;}
+  if(!lib||!lib.createClient)return;
   sbClient=lib.createClient(SB_URL,SB_KEY);
-  checkSession();
-}
-
-async function checkSession(){
-  // 1. Session injectée directement par LOGAN dans la même page
-  if(window.LOGAN_SESSION){
-    var r1=await sbClient.auth.setSession(window.LOGAN_SESSION);
-    if(!r1.error&&r1.data&&r1.data.user){
-      startApp();return;
-    }
-  }
-
-  // 2. Session stockée dans localStorage par LOGAN
-  try{
-    var raw=localStorage.getItem('logan_session');
-    if(raw){
-      var parsed=JSON.parse(raw);
-      var r2=await sbClient.auth.setSession(parsed);
-      if(!r2.error&&r2.data&&r2.data.user){
-        startApp();return;
-      }
-    }
-  }catch(_){}
-
-  // 3. Session Supabase déjà active (même domaine / storage partagé)
-  var r3=await sbClient.auth.getSession();
-  if(r3.data&&r3.data.session){
-    startApp();return;
-  }
-
-  // Aucune session LOGAN → fallback email/mot de passe
-  showFallbackLogin();
-}
-
-function startApp(){
   document.getElementById('app').style.display='block';
   loadData().then(render);
 }
 
-async function doLogout(){
-  await sbClient.auth.signOut();
-  if(window.LOGAN_LOGOUT){
-    window.LOGAN_LOGOUT();
-  } else {
-    document.getElementById('app').style.display='none';
-    showFallbackLogin();
-  }
-}
-
-// ── FALLBACK LOGIN (si pas de session LOGAN)
-function showFallbackLogin(errMsg){
-  document.getElementById('app').style.display='none';
-  var existing=document.getElementById('fallback-login');
-  if(existing){existing.style.display='flex';return;}
-  document.body.insertAdjacentHTML('beforeend',
-    '<div id="fallback-login" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1F2937,#374151);z-index:9999;">'
-    +'<div style="background:#fff;border-radius:20px;padding:2.5rem;width:380px;box-shadow:0 8px 32px rgba(0,0,0,.2);text-align:center;">'
-    +'<div style="width:56px;height:56px;background:var(--coral);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 1.25rem;">🗓</div>'
-    +'<h1 style="font-family:\'Playfair Display\',serif;font-size:1.6rem;color:#111827;margin-bottom:.35rem;">Holidays App</h1>'
-    +'<p style="color:#9CA3AF;font-size:.85rem;margin-bottom:1.75rem;">Connexion</p>'
-    +'<div id="fallback-err" style="color:#DC2626;font-size:.82rem;margin-bottom:.75rem;min-height:1.2em;">'+(errMsg||'')+'</div>'
-    +'<div style="margin-bottom:.85rem;"><input type="email" id="fallback-email" placeholder="votre@email.fr" style="width:100%;padding:.75rem 1rem;border:1.5px solid #E5E7EB;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.9rem;outline:none;margin-bottom:.6rem;"/>'
-    +'<input type="password" id="fallback-pass" placeholder="Mot de passe" style="width:100%;padding:.75rem 1rem;border:1.5px solid #E5E7EB;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.9rem;outline:none;"/></div>'
-    +'<button onclick="fallbackLogin()" style="width:100%;padding:.82rem;background:var(--coral);color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;">Accéder →</button>'
-    +'<div style="margin-top:1rem;font-size:.72rem;color:#9CA3AF;">Session automatique si lancé depuis LOGAN</div>'
-    +'<div style="margin-top:.5rem;font-size:.72rem;color:#D1D5DB;">version <span style="font-family:\'Courier New\',monospace">'+APP_VERSION+'</span></div>'
-    +'</div></div>'
-  );
-  document.getElementById('fallback-pass').addEventListener('keydown',function(e){if(e.key==='Enter')fallbackLogin();});
-  document.getElementById('fallback-email').addEventListener('keydown',function(e){if(e.key==='Enter')fallbackLogin();});
-}
-
-async function fallbackLogin(){
-  var email=document.getElementById('fallback-email').value.trim();
-  var pass=document.getElementById('fallback-pass').value;
-  var errEl=document.getElementById('fallback-err');
-  if(!email||!pass){errEl.textContent='Email et mot de passe requis.';return;}
-  errEl.textContent='Connexion...';
-  var r=await sbClient.auth.signInWithPassword({email:email,password:pass});
-  if(r.error){errEl.textContent=r.error.message;return;}
-  document.getElementById('fallback-login').style.display='none';
-  startApp();
-}
+function doLogout(){}
 
 // ── LEGACY CONFIG (kept for manual override if needed) 
 function connecterSupabase(){
