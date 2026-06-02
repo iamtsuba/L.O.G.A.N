@@ -650,12 +650,19 @@
     /* Grand table combinée (calendrier + données) */
     #print-area .fiche-grand-table { font-size: 7px; border-spacing: 0; }
     #print-area .fiche-grand-table thead th { font-size: 7px; padding: 2px 1px; }
-    #print-area .cal-cell { height: 5px; font-size: 4px; line-height: 1; border-radius: 1px; }
+    #print-area .cal-cell { height: 14px; font-size: 5px; line-height: 1; border-radius: 1px; }
     #print-area .cal-row th.cal-day { font-size: 5px; }
-    #print-area .grand-spacer td { height: 2px; }
-    #print-area .data-row th.data-label { font-size: 7px; padding: 1px; }
-    #print-area .data-row td { font-size: 7px; padding: 1px 2px; }
+    #print-area .grand-spacer td { height: 4px; }
+    #print-area .data-row th.data-label { font-size: 7px; padding: 2px 1px; }
+    #print-area .data-row td { font-size: 7px; padding: 2px 2px; }
     #print-area .data-row.d-highlight td { font-size: 7px; }
+    /* Calendrier remplit la page 1 — évite le saut de page en plein milieu */
+    #print-area .fiche-grand-table {
+      width: 100%;
+    }
+    #print-area .fiche-section.recap-section {
+      page-break-before: always;
+    }
     /* Légende couleurs */
     #print-area .fiche-cal-color-legend { font-size: 6px; gap: 6px; margin-bottom: 3px; }
     #print-area .fiche-cal-color-legend .dot { width: 6px; height: 6px; }
@@ -2084,8 +2091,7 @@ async function generateFiche() {
     </div>
 
     <!-- ─ Section 2 : Calendrier annuel + Récapitulatif combinés ─ -->
-    <div class="fiche-section">
-      <div class="fiche-section-title">Calendrier &amp; récapitulatif annuel</div>
+    <div class="fiche-section recap-section">
       <div style="font-size:10px;color:var(--mid);margin-bottom:6px;">
         Période : ${fmtDate(contrat.date_debut)} → ${contrat.date_fin ? fmtDate(contrat.date_fin) : 'indéterminée'}
         · Total prévu : <strong>${joursContratAnnuel} jours</strong>
