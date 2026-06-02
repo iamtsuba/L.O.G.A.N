@@ -465,18 +465,17 @@ async function deleteCollection(id) {
   renderCollectionsView();
 }
 
-async function createProduct(collectionId, name, buyPrice, imageUrl) {
+async function createProduct(collectionId, name, buyPrice, imageUrl, sellPrice) {
+  const sell = sellPrice ? parseFloat(sellPrice) : null;
   const { data, error } = await db
     .from('collectapp_products')
-    .insert({ collection_id: collectionId, name, buy_price: parseFloat(buyPrice)||0, image_url: imageUrl||null, sell_price_ebay: null })
+    .insert({ collection_id: collectionId, name, buy_price: parseFloat(buyPrice)||0, image_url: imageUrl||null, sell_price_ebay: (sell && sell > 0) ? sell : null })
     .select().single();
   if (error) { toast('Erreur: ' + error.message, 'error'); return; }
   products.unshift(data);
   toast('Produit ajouté !', 'success');
   closeModal();
   renderProductsView();
-  // Fetch eBay price async
-  fetchEbayPrice(data.id, name);
 }
 
 async function deleteProduct(id) {
@@ -488,48 +487,30 @@ async function deleteProduct(id) {
 }
 
 // ============================================================
-// EBAY PRICE (via Claude API - web search)
+// PRIX DE REVENTE (eBay manuel)
 // ============================================================
-async function fetchEbayPrice(productId, productName) {
-  const el = document.getElementById('sell-' + productId);
-  if (el) { el.innerHTML = '<span class="price-chip-val loading">⏳ eBay...</span>'; }
+// L'API eBay nécessite une clé serveur, impossible depuis un navigateur.
+// On ouvre les ventes terminées eBay et on laisse l'utilisateur saisir la moyenne.
+function openEbaySearch(productName) {
+  const q = encodeURIComponent(productName);
+  // LH_Sold=1 & LH_Complete=1 = annonces vendues / terminées
+  const url = `https://www.ebay.fr/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1&_sop=13`;
+  window.open(url, '_blank');
+}
 
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 200,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: "Tu es un assistant qui cherche des prix sur eBay. Réponds UNIQUEMENT avec un nombre décimal représentant le prix moyen en euros (ex: 24.50). Rien d'autre.",
-        messages: [{
-          role: 'user',
-          content: `Cherche sur eBay les 5 dernières ventes réussies de "${productName}" et donne-moi la moyenne des prix en euros. Réponds uniquement avec le nombre, sans symbole ni texte.`
-        }]
-      })
-    });
-    
-    const data = await response.json();
-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    const price = parseFloat(text.replace(',', '.').replace(/[^0-9.]/g, ''));
-    
-    if (!isNaN(price) && price > 0) {
-      await db.from('collectapp_products').update({ sell_price_ebay: price }).eq('id', productId);
-      const p = products.find(x => x.id === productId);
-      if (p) p.sell_price_ebay = price;
-      if (el) {
-        const profit = price - (products.find(x=>x.id===productId)?.buy_price||0);
-        el.innerHTML = `<span class="price-chip-val sell">€${price.toFixed(2)}</span>
-          <span class="ebay-badge">📦 eBay moy.</span>`;
-      }
-      updateRecapBanner();
-    } else {
-      if (el) el.innerHTML = '<span class="price-chip-val loading">Non trouvé</span>';
-    }
-  } catch(e) {
-    if (el) el.innerHTML = '<span class="price-chip-val loading">Erreur</span>';
-  }
+async function editSellPrice(productId) {
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  const current = p.sell_price_ebay != null ? p.sell_price_ebay : '';
+  const val = prompt(`Prix de revente pour "${p.name}" (€)\n\nAstuce : ouvrez les ventes eBay pour voir la moyenne.`, current);
+  if (val === null) return; // annulé
+  const price = parseFloat(String(val).replace(',', '.'));
+  if (isNaN(price) || price < 0) { toast('Prix invalide', 'error'); return; }
+  const { error } = await db.from('collectapp_products').update({ sell_price_ebay: price }).eq('id', productId);
+  if (error) { toast('Erreur: ' + error.message, 'error'); return; }
+  p.sell_price_ebay = price;
+  toast('Prix mis à jour', 'success');
+  renderProductsView();
 }
 
 // ============================================================
@@ -668,17 +649,18 @@ function renderProductCard(p) {
             <span class="price-chip-val buy">€${(p.buy_price||0).toFixed(2)}</span>
           </div>
           <div class="price-chip" id="sell-${p.id}">
-            <span class="price-chip-label">Revente eBay</span>
-            ${p.sell_price_ebay
-              ? `<span class="price-chip-val sell">€${p.sell_price_ebay.toFixed(2)}</span><span class="ebay-badge">📦 eBay moy.</span>`
-              : `<span class="price-chip-val loading" style="cursor:pointer" onclick="fetchEbayPrice('${p.id}','${escHtml(p.name)}')">⏳ Calculer</span>`
+            <span class="price-chip-label">Revente</span>
+            ${p.sell_price_ebay != null
+              ? `<span class="price-chip-val sell" style="cursor:pointer" onclick="editSellPrice('${p.id}')">€${p.sell_price_ebay.toFixed(2)} ✏️</span>`
+              : `<span class="price-chip-val loading" style="cursor:pointer" onclick="editSellPrice('${p.id}')">＋ Saisir</span>`
             }
           </div>
         </div>
         ${profitBadge}
       </div>
       <div class="product-actions">
-        <button class="icon-btn" onclick="fetchEbayPrice('${p.id}','${escHtml(p.name)}')" title="Refresh eBay">🔄</button>
+        <button class="icon-btn" onclick="openEbaySearch('${escHtml(p.name)}')" title="Voir ventes eBay">🔍</button>
+        <button class="icon-btn" onclick="openEditProductModal('${p.id}')" title="Modifier">✏️</button>
         <button class="icon-btn danger" onclick="deleteProduct('${p.id}')" title="Supprimer">🗑</button>
       </div>
     </div>`;
@@ -768,12 +750,16 @@ function openNewProductModal() {
       <label>Photo</label>
       <div class="img-upload-area" id="img-upload-area" onclick="document.getElementById('img-file-input').click()">
         <p>📷 Cliquez pour ajouter une photo</p>
-        <p style="font-size:0.75rem;margin-top:4px">Appareil photo ou galerie</p>
+        <p style="font-size:0.75rem;margin-top:4px">Galerie ou appareil photo</p>
         <div id="img-preview"></div>
       </div>
-      <input type="file" id="img-file-input" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(this)">
+      <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
     </div>
-    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px">💡 Le prix de revente eBay sera calculé automatiquement.</div>
+    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px">💡 Saisissez le prix de revente, ou laissez vide pour le renseigner plus tard.</div>
+    <div class="form-group">
+      <label>Prix de revente eBay (€) — optionnel</label>
+      <input type="number" id="prod-sell" placeholder="0.00" min="0" step="0.01">
+    </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
       <button class="btn btn-primary" onclick="submitNewProduct()">Ajouter</button>
@@ -781,14 +767,15 @@ function openNewProductModal() {
   document.getElementById('modal-overlay').style.display = 'flex';
 }
 
-async function handleImageUpload(input) {
+async function handleImageUpload(input, previewId = 'img-preview') {
   const file = input.files[0];
   if (!file) return;
   
   const reader = new FileReader();
   reader.onload = async (e) => {
     const base64 = e.target.result;
-    document.getElementById('img-preview').innerHTML = `<img src="${base64}" style="max-height:100px;border-radius:8px;margin-top:8px">`;
+    const prev = document.getElementById(previewId);
+    if (prev) prev.innerHTML = `<img src="${base64}" style="max-height:100px;border-radius:8px;margin-top:8px">`;
     
     // Upload to Supabase Storage
     const filename = `${currentUser.id}/${Date.now()}_${file.name}`;
@@ -806,8 +793,68 @@ async function handleImageUpload(input) {
 async function submitNewProduct() {
   const name = document.getElementById('prod-name').value.trim();
   const buy = document.getElementById('prod-buy').value;
+  const sell = document.getElementById('prod-sell').value;
   if (!name) { toast('Nom requis', 'error'); return; }
-  await createProduct(currentCollection.id, name, buy, pendingImageBase64);
+  await createProduct(currentCollection.id, name, buy, pendingImageBase64, sell);
+}
+
+// ── ÉDITION D'UN PRODUIT ──
+function openEditProductModal(productId) {
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  pendingImageBase64 = null; // null = on garde l'image existante sauf si modifiée
+  document.getElementById('modal-content').innerHTML = `
+    <h2>✏️ Modifier le produit</h2>
+    <div class="form-group">
+      <label>Nom du produit</label>
+      <input type="text" id="edit-name" value="${escHtml(p.name)}">
+    </div>
+    <div class="form-group">
+      <label>Prix d'achat (€)</label>
+      <input type="number" id="edit-buy" value="${p.buy_price ?? ''}" min="0" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>Prix de revente (€)</label>
+      <input type="number" id="edit-sell" value="${p.sell_price_ebay ?? ''}" min="0" step="0.01" placeholder="vide = non renseigné">
+    </div>
+    <div class="form-group">
+      <label>Photo</label>
+      <div class="img-upload-area" onclick="document.getElementById('edit-file-input').click()">
+        <p>📷 Cliquez pour changer la photo</p>
+        <p style="font-size:0.75rem;margin-top:4px">Galerie ou appareil photo</p>
+        <div id="edit-img-preview">${p.image_url ? `<img src="${p.image_url}" style="max-height:100px;border-radius:8px;margin-top:8px">` : ''}</div>
+      </div>
+      <input type="file" id="edit-file-input" accept="image/*" style="display:none" onchange="handleImageUpload(this, 'edit-img-preview')">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="submitEditProduct('${p.id}')">Enregistrer</button>
+    </div>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+async function submitEditProduct(productId) {
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  const name = document.getElementById('edit-name').value.trim();
+  const buy = document.getElementById('edit-buy').value;
+  const sell = document.getElementById('edit-sell').value;
+  if (!name) { toast('Nom requis', 'error'); return; }
+
+  const updates = {
+    name,
+    buy_price: parseFloat(buy) || 0,
+    sell_price_ebay: (sell !== '' && !isNaN(parseFloat(sell))) ? parseFloat(sell) : null,
+  };
+  // Si une nouvelle image a été choisie
+  if (pendingImageBase64) updates.image_url = pendingImageBase64;
+
+  const { error } = await db.from('collectapp_products').update(updates).eq('id', productId);
+  if (error) { toast('Erreur: ' + error.message, 'error'); return; }
+  Object.assign(p, updates);
+  toast('Produit modifié', 'success');
+  closeModal();
+  renderProductsView();
 }
 
 function closeModal() {
