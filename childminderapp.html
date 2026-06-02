@@ -1103,20 +1103,93 @@ async function checkSession() {
     return;
   }
 
-  // Aucune session trouvée
-  showFatalError("Aucune session active. Connectez-vous depuis l'application LOGAN.");
+  // Aucune session LOGAN trouvée → fallback : mini formulaire de connexion
+  showFallbackLogin();
 }
 
 // logout() : on déconnecte et on notifie LOGAN si possible
 async function logout() {
   await sbClient.auth.signOut();
   currentUser = null;
-  // Notifier LOGAN (si intégré dans le même contexte)
   if (window.LOGAN_LOGOUT) {
     window.LOGAN_LOGOUT();
   } else {
-    showFatalError("Session terminée. Reconnectez-vous depuis l'application LOGAN.");
+    showFallbackLogin();
   }
+}
+
+// ══════════════════════════════════════════
+//  FALLBACK LOGIN (si pas de session LOGAN)
+// ══════════════════════════════════════════
+function showFallbackLogin() {
+  document.getElementById('app').style.display = 'none';
+  const existing = document.getElementById('fallback-login');
+  if (existing) { existing.style.display = 'flex'; return; }
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="fallback-login" style="
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:var(--ink);z-index:9999;
+    ">
+      <div style="
+        background:var(--cream);border-radius:24px;padding:48px;width:420px;
+        box-shadow:0 32px 80px rgba(0,0,0,0.4);position:relative;
+      ">
+        <div style="text-align:center;margin-bottom:32px;">
+          <div style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--terracotta);">Childminder App</div>
+          <div style="font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--mid);margin-top:6px;">Gestion assistantes maternelles</div>
+        </div>
+        <div id="fallback-err" class="msg msg-error"></div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="fallback-email" placeholder="votre@email.fr" autocomplete="email"
+            style="width:100%;padding:12px 16px;border:1.5px solid var(--sand);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;">
+        </div>
+        <div class="field">
+          <label>Mot de passe</label>
+          <input type="password" id="fallback-pass" placeholder="••••••••" autocomplete="current-password"
+            style="width:100%;padding:12px 16px;border:1.5px solid var(--sand);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;">
+        </div>
+        <button onclick="fallbackLogin()" class="btn btn-primary" style="width:100%;margin-top:8px;">
+          Se connecter
+        </button>
+        <div style="margin-top:16px;text-align:center;font-size:12px;color:var(--mid);">
+          Session automatique si lancé depuis LOGAN
+        </div>
+      </div>
+    </div>
+  `);
+
+  // Enter key support
+  document.getElementById('fallback-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fallbackLogin();
+  });
+  document.getElementById('fallback-email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fallbackLogin();
+  });
+}
+
+async function fallbackLogin() {
+  const email = document.getElementById('fallback-email').value.trim();
+  const pass  = document.getElementById('fallback-pass').value;
+  const errEl = document.getElementById('fallback-err');
+  errEl.className = 'msg msg-error';
+
+  if (!email || !pass) {
+    errEl.textContent = 'Email et mot de passe requis.';
+    errEl.className = 'msg msg-error show';
+    return;
+  }
+
+  const { data, error } = await sbClient.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.className = 'msg msg-error show';
+    return;
+  }
+  currentUser = data.user;
+  document.getElementById('fallback-login').style.display = 'none';
+  startApp();
 }
 
 // ══════════════════════════════════════════
