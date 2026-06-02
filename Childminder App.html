@@ -795,35 +795,39 @@
   @media print {
     @page { size: A4 portrait; margin: 0; }
 
-    /* Masque tout sauf la fiche */
+    html, body {
+      margin: 0; padding: 0;
+      width: 210mm; height: 297mm;
+      overflow: hidden;
+    }
+
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
 
-    /* Forçage couleurs */
     * {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
 
-    /* La fiche occupe exactement une page A4 par transformation */
     #print-area {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 794px;          /* A4 à 96dpi = 794px */
-      max-width: 794px;
+      position: absolute;
+      top: 0; left: 0;
+      /* zoom: fiche = ~1537px haute, A4 = 1123px → 1123/1537 = 0.731 */
+      /* On prend 0.71 pour avoir une petite marge de sécurité */
+      zoom: 0.71;
+      width: calc(210mm / 0.71);   /* compense le zoom pour occuper toute la largeur A4 */
+      max-height: calc(297mm / 0.71);
+      overflow: hidden;
       border-radius: 0;
       box-shadow: none;
-      overflow: hidden;
-      /* Scale pour tenir en hauteur A4 (1123px) */
-      transform-origin: top left;
-      transform: scale(0.72);
     }
 
     /* Aucun saut de page */
-    #print-area * {
+    #print-area, #print-area * {
       page-break-before: avoid !important;
       break-before: avoid !important;
+      page-break-after: avoid !important;
+      break-after: avoid !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
