@@ -577,7 +577,28 @@ function buildEvMap(){
 }
 
 // ── RENDER 
-function render(){renderSidebar();renderLegend();renderCurrentView();}
+function render(){
+  // Premier lancement : aucun profil → invite de création
+  var overlay=document.getElementById('empty-state-overlay');
+  if(!profiles.length){
+    if(!overlay){
+      document.getElementById('app').insertAdjacentHTML('beforeend',
+        '<div id="empty-state-overlay" style="position:fixed;inset:0;background:rgba(17,24,39,.7);display:flex;align-items:center;justify-content:center;z-index:8000;">'
+        +'<div style="background:#fff;border-radius:20px;padding:2.5rem 2rem;width:360px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.25);">'
+        +'<div style="font-size:2.5rem;margin-bottom:1rem;">🗓</div>'
+        +'<h2 style="font-family:\'Playfair Display\',serif;font-size:1.4rem;color:#111827;margin-bottom:.5rem;">Bienvenue sur Holidays App</h2>'
+        +'<p style="color:#6B7280;font-size:.88rem;margin-bottom:1.75rem;">Aucun profil trouvé.<br>Commencez par en créer un pour gérer vos congés.</p>'
+        +'<button onclick="document.getElementById(\'empty-state-overlay\').remove();openAddProfileModal();" '
+        +'style="width:100%;padding:.82rem;background:var(--coral);color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;">Créer mon premier profil →</button>'
+        +'</div></div>'
+      );
+    }
+    return; // ne pas rendre le calendrier vide
+  } else {
+    if(overlay)overlay.remove();
+  }
+  renderSidebar();renderLegend();renderCurrentView();
+}
 
 function renderSidebar(){
   var el=document.getElementById('profiles-list');
