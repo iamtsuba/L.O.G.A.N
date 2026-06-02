@@ -810,19 +810,19 @@
     }
 
     #print-area {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 50%;
       transform: translateX(-50%);
-      zoom: 1;
-      width: 210mm;
-      max-height: 297mm;
+      zoom: 0.90;
+      width: calc(210mm / 0.90);
+      height: calc(297mm / 0.90);
       overflow: hidden;
       border-radius: 0;
       box-shadow: none;
     }
 
-    /* Aucun saut de page */
+    /* Aucun saut de page — bloqué sur 1 page */
     #print-area, #print-area * {
       page-break-before: avoid !important;
       break-before: avoid !important;
