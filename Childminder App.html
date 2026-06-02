@@ -615,6 +615,183 @@
   .empty-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink-soft); margin-bottom: 8px; }
 
   /* ── PRINT STYLES ── */
+  /* ══════════════════════════════════════════
+     RESPONSIVE MOBILE
+  ══════════════════════════════════════════ */
+  @media (max-width: 768px) {
+
+    /* ── TOPBAR ── */
+    .topbar {
+      padding: 0 16px;
+      height: auto;
+      min-height: 56px;
+      flex-wrap: wrap;
+      gap: 0;
+    }
+    .topbar-logo {
+      font-size: 16px;
+      padding: 10px 0;
+    }
+    .topbar-logo img { width: 28px; height: 28px; }
+    .topbar-right { gap: 8px; }
+    .user-chip { padding: 5px 10px 5px 6px; font-size: 12px; }
+    #user-email-display { display: none; }
+    .btn-logout { font-size: 11px; padding: 6px 10px; }
+
+    /* Navigation en bas de la topbar sur mobile */
+    .topbar-nav {
+      order: 3;
+      width: 100%;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 6px 0;
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* ── CONTENU PRINCIPAL ── */
+    .main-content {
+      padding: 16px;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+    }
+    .page-title { font-size: 28px; }
+
+    /* ── GRIDS → 1 colonne ── */
+    .grid-2, .grid-3, .grid-4 {
+      grid-template-columns: 1fr;
+    }
+    .nanny-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* ── CARDS ── */
+    .card { padding: 16px; margin-bottom: 12px; }
+
+    /* ── NANNY CARDS ── */
+    .nanny-card-header { padding: 16px; gap: 12px; }
+    .nanny-avatar { width: 42px; height: 42px; font-size: 18px; }
+    .nanny-name { font-size: 17px; }
+    .nanny-card-body { padding: 12px 16px; }
+    .nanny-card-footer {
+      padding: 10px 16px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* ── TABLES → défilement horizontal ── */
+    .table-wrap, table {
+      overflow-x: auto;
+      display: block;
+    }
+    td, th { white-space: nowrap; padding: 10px 10px; font-size: 13px; }
+
+    /* ── BOUTONS ── */
+    .btn { padding: 10px 16px; font-size: 13px; }
+    .btn-xs { padding: 5px 8px; font-size: 11px; }
+
+    /* ── MODALS ── */
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal {
+      border-radius: 20px 20px 0 0;
+      max-height: 92vh;
+      width: 100%;
+      max-width: 100%;
+    }
+    .modal-header { padding: 20px 20px 0; margin-bottom: 16px; }
+    .modal-title { font-size: 20px; }
+    .modal-body { padding: 0 20px 20px; }
+    .modal-footer {
+      padding: 12px 20px 28px;
+      flex-direction: column-reverse;
+    }
+    .modal-footer .btn { width: 100%; text-align: center; }
+
+    /* ── FORMULAIRES ── */
+    .field { margin-bottom: 14px; }
+    .field label { font-size: 12px; }
+    input, select, textarea {
+      font-size: 16px !important; /* évite le zoom auto iOS */
+    }
+    .grid-2.form-grid { grid-template-columns: 1fr; }
+
+    /* ── PAGE PAIE ── */
+    .nanny-card { cursor: pointer; }
+    #paie-step2, #paie-step3 { margin-top: 16px; }
+    .month-btn {
+      padding: 10px 6px;
+      font-size: 12px;
+    }
+    #month-grid {
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 6px;
+    }
+
+    /* ── SAISIE MENSUELLE ── */
+    .saisie-grid {
+      gap: 4px;
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .saisie-day {
+      font-size: 9px;
+      border-radius: 6px;
+      border-width: 1px;
+      padding: 2px;
+      aspect-ratio: 1;
+    }
+    .saisie-day .day-num { font-size: 11px; }
+    .saisie-legend { gap: 8px; }
+    .legend-item { font-size: 11px; }
+
+    /* ── FICHE DE PAIE APERÇU ── */
+    #print-area { font-size: 11px; }
+    .fiche-header { padding: 8px 12px; }
+    .fiche-employer-name { font-size: 14px; }
+    .fiche-period { font-size: 16px; }
+    .fiche-nanny-bar { padding: 6px 12px; }
+    .fiche-section { padding: 10px 12px; }
+    .fiche-total-bar { padding: 6px 12px; }
+    .fiche-recap-table { font-size: 10px; }
+    .fiche-grand-table { font-size: 8px; overflow-x: auto; display: block; }
+
+    /* ── SECTION RÉCAP STAT CARDS ── */
+    .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* ── PARTAGE ── */
+    .shared-email-item {
+      flex-wrap: wrap;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    /* ── FALLBACK LOGIN ── */
+    #fallback-login > div {
+      width: 100% !important;
+      border-radius: 20px 20px 0 0 !important;
+      padding: 32px 24px !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      top: auto !important;
+    }
+  }
+
+  /* Très petits écrans */
+  @media (max-width: 380px) {
+    .saisie-day .day-num { font-size: 10px; }
+    .page-title { font-size: 24px; }
+    .nanny-name { font-size: 15px; }
+  }
+
   @media print {
     @page { size: A4 portrait; margin: 4mm; }
     body * { visibility: hidden; }
@@ -1466,7 +1643,7 @@ function renderContratsModal() {
     el.innerHTML = '<div class="empty" style="padding:30px;"><div class="empty-icon">📋</div><div class="empty-title">Aucun contrat</div></div>';
     return;
   }
-  el.innerHTML = `<table>
+  el.innerHTML = `<div style="overflow-x:auto"><table>
     <thead><tr>
       <th>Période</th><th>Salaire</th><th>CP</th><th>Repas</th><th>Entretien</th><th>Statut</th><th></th>
     </tr></thead>
@@ -1487,7 +1664,7 @@ function renderContratsModal() {
       </td>
     </tr>`).join('')}
     </tbody>
-  </table>`;
+  </table></div>`;
 }
 
 function openAddContrat() {
