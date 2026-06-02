@@ -43,6 +43,8 @@ body{font-family:'DM Sans',sans-serif;background:#F5F3EE;color:var(--gray-800);m
 .header-actions{display:flex;gap:.4rem}
 .btn-icon{padding:.4rem .8rem;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer;transition:background .2s}
 .btn-icon:hover{background:rgba(255,255,255,.2)}
+.btn-logan{display:inline-flex;align-items:center;justify-content:center;padding:.4rem .7rem;background:rgba(255,255,255,.08);color:#fff;border:1.5px solid rgba(255,255,255,.3);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-decoration:none;cursor:pointer;transition:background .2s,border-color .2s;white-space:nowrap}
+.btn-logan:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.6)}
 .main-layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 58px)}
 
 /* ── SIDEBAR ── */
@@ -391,7 +393,7 @@ body{font-family:'DM Sans',sans-serif;background:#F5F3EE;color:var(--gray-800);m
       <button class="btn-icon" onclick="openAddLeaveModal()">＋ Poser des congés</button>
       <button class="btn-icon" onclick="openAddEnvelopeModal()">📋 Compteur</button>
       <button class="btn-icon" onclick="openAddProfileModal()">👤 Profil</button>
-      <button class="btn-icon" onclick="doLogout()">⎋ Déconnexion</button>
+      <a href="https://iamtsuba.github.io/L.O.G.A.N" class="btn-logan">L.O.G.A.N</a>
     </div>
     <button class="mob-menu-btn" onclick="mobToggleSidebar()" aria-label="Menu">☰</button>
   </header>
@@ -445,7 +447,7 @@ var DAYS_FR=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 var MONTHS_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 var DAYS_MINI=['Lu','Ma','Me','Je','Ve','Sa','Di'];
 
-var sbClient=null,profiles=[],envelopes=[],leaves=[];
+var sbClient=null,profiles=[],envelopes=[],leaves=[],currentUserId=null;
 var activeProfiles=new Set();
 var currentView='mensuel';
 var navState={mensuel:new Date(),annuel:new Date(),cp:new Date(),nounou:new Date()};
@@ -477,7 +479,13 @@ function connecterSupabase(){
 
 // ── DATA 
 async function loadData(){
-  var pR=await sbClient.from('holidaysapp_profiles').select('*').order('name');
+  // Récupérer le user_id depuis user_apps (app = 'holidays')
+  if(!currentUserId){
+    var uR=await sbClient.from('user_apps').select('user_id').contains('app_ids',JSON.stringify(['Holidays App.html'])).single();
+    if(uR.error||!uR.data)return toast('Utilisateur non trouvé dans user_apps','error');
+    currentUserId=uR.data.user_id;
+  }
+  var pR=await sbClient.from('holidaysapp_profiles').select('*').eq('user_id',currentUserId).order('name');
   var eR=await sbClient.from('holidaysapp_envelopes').select('*').order('start_date');
   var lR=await sbClient.from('holidaysapp_leaves').select('*').order('start_date');
   if(pR.error)return toast('Erreur profils: '+pR.error.message,'error');
@@ -902,7 +910,7 @@ function selectColor(c,el){document.querySelectorAll('.color-swatch').forEach(fu
 async function saveProfile(){
   var name=document.getElementById('p-name').value.trim(),color=document.getElementById('p-color').value;
   if(!name)return toast('Entrez un nom','error');
-  var res=editingProfile?await sbClient.from('holidaysapp_profiles').update({name:name,color:color}).eq('id',editingProfile.id):await sbClient.from('holidaysapp_profiles').insert({name:name,color:color});
+  var res=editingProfile?await sbClient.from('holidaysapp_profiles').update({name:name,color:color}).eq('id',editingProfile.id):await sbClient.from('holidaysapp_profiles').insert({name:name,color:color,user_id:currentUserId});
   if(res.error)return toast('Erreur: '+res.error.message,'error');
   toast(editingProfile?'Profil mis à jour ✓':'Profil créé ✓','success');closeModal();await loadData();render();
 }
