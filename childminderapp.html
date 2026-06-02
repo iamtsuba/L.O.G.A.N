@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Childminder App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --cream: #FAF7F2;
+    --warm: #F0EAE0;
+    --sand: #E8DDD0;
+    --terracotta: #C8654A;
+    --terracotta-dark: #A84F38;
+    --forest: #3A6B4A;
+    --forest-light: #4E8C62;
+    --gold: #D4A843;
+    --ink: #1A1A18;
+    --ink-soft: #3C3C38;
+    --mid: #7A7A72;
+    --light: #B8B8B0;
+    --white: #FFFFFF;
+    --danger: #C0392B;
+    --warning: #E67E22;
+    --success: #27AE60;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(26,26,24,0.08);
+    --shadow-hover: 0 8px 40px rgba(26,26,24,0.14);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── AUTH SCREEN (supprimé — session gérée par LOGAN) ── */
+
+  /* ── FORM ELEMENTS ── */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 8px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--sand);
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--white);
+    transition: border-color .2s, box-shadow .2s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--terracotta);
+    box-shadow: 0 0 0 3px rgba(200,101,74,0.1);
+  }
+  .field input[type="number"] { -moz-appearance: textfield; }
+  .field input[type="number"]::-webkit-outer-spin-button,
+  .field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 24px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+  }
+  .btn-primary {
+    background: var(--terracotta);
+    color: var(--white);
+    width: 100%;
+  }
+  .btn-primary:hover { background: var(--terracotta-dark); transform: translateY(-1px); box-shadow: var(--shadow-hover); }
+  .btn-secondary {
+    background: var(--warm);
+    color: var(--ink-soft);
+  }
+  .btn-secondary:hover { background: var(--sand); }
+  .btn-forest { background: var(--forest); color: var(--white); }
+  .btn-forest:hover { background: var(--forest-light); }
+  .btn-danger { background: var(--danger); color: var(--white); }
+  .btn-danger:hover { background: #a93226; }
+  .btn-ghost { background: transparent; color: var(--mid); border: 1.5px solid var(--sand); }
+  .btn-ghost:hover { background: var(--warm); color: var(--ink); }
+  .btn-sm { padding: 8px 16px; font-size: 13px; }
+  .btn-xs { padding: 5px 10px; font-size: 12px; border-radius: 8px; }
+
+  .msg {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .msg.show { display: block; }
+  .msg-error { background: #fdecea; color: var(--danger); border: 1px solid #f5c6c2; }
+  .msg-success { background: #edf7ef; color: var(--success); border: 1px solid #c3e8cb; }
+  .msg-info { background: #e8f0fe; color: #1a56db; border: 1px solid #c3d5fd; }
+
+  /* ── APP LAYOUT ── */
+  #app { display: none; min-height: 100vh; }
+
+  .topbar {
+    background: var(--ink);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--terracotta);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbar-logo span { color: var(--white); font-size: 14px; font-family: 'DM Sans', sans-serif; font-weight: 300; opacity: .6; }
+  .topbar-nav { display: flex; gap: 4px; }
+  .nav-btn {
+    padding: 8px 18px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.55);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.08); color: var(--white); }
+  .nav-btn.active { background: rgba(200,101,74,0.2); color: var(--terracotta); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.08);
+    padding: 6px 14px 6px 8px;
+    border-radius: 30px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.8);
+  }
+  .user-avatar {
+    width: 28px; height: 28px;
+    background: var(--terracotta);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--white);
+  }
+  .btn-logout {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: rgba(255,255,255,0.55);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,0.15); color: var(--white); }
+
+  .main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 36px 32px;
+  }
+
+  /* ── PAGE HEADERS ── */
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--sand);
+  }
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .page-subtitle {
+    font-size: 14px;
+    color: var(--mid);
+    margin-top: 6px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title .badge {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--warm);
+    color: var(--mid);
+  }
+
+  /* ── GRID LAYOUTS ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  /* ── NANNY CARDS ── */
+  .nanny-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  .nanny-card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: all .25s;
+    cursor: pointer;
+  }
+  .nanny-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+  .nanny-card-header {
+    background: linear-gradient(135deg, var(--forest) 0%, var(--forest-light) 100%);
+    padding: 24px;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .nanny-avatar {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--white);
+    flex-shrink: 0;
+  }
+  .nanny-name { font-family: 'DM Serif Display', serif; font-size: 20px; }
+  .nanny-contrat-count { font-size: 12px; opacity: .7; margin-top: 2px; }
+  .share-badge {
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.2);
+    color: var(--white);
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .nanny-card-body { padding: 20px 24px; }
+  .nanny-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--warm);
+    font-size: 13px;
+  }
+  .nanny-stat:last-child { border-bottom: none; }
+  .nanny-stat-label { color: var(--mid); }
+  .nanny-stat-val { font-weight: 600; color: var(--ink); }
+  .nanny-card-footer {
+    padding: 12px 24px;
+    background: var(--warm);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  /* ── CONTRAT BADGE ── */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-active { background: #edf7ef; color: var(--success); }
+  .status-archived { background: var(--warm); color: var(--mid); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 2px solid var(--sand); }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+  td { padding: 13px 14px; font-size: 14px; border-bottom: 1px solid var(--warm); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--cream); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,26,24,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--cream);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+  }
+  .modal-header {
+    padding: 28px 32px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 24px; }
+  .modal-close {
+    width: 36px; height: 36px;
+    border: none;
+    background: var(--warm);
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mid);
+    transition: all .2s;
+  }
+  .modal-close:hover { background: var(--sand); color: var(--ink); }
+  .modal-body { padding: 0 32px 28px; }
+  .modal-footer { padding: 16px 32px 28px; display: flex; gap: 12px; justify-content: flex-end; }
+
+  /* ── FICHE DE PAIE ── */
+  .fiche-wrap { display: none; }
+  #print-area {
+    font-family: 'DM Sans', sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .fiche-header {
+    background: var(--ink);
+    color: var(--white);
+    padding: 32px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .fiche-employer { font-size: 13px; opacity: .65; margin-bottom: 4px; }
+  .fiche-employer-name { font-family: 'DM Serif Display', serif; font-size: 22px; }
+  .fiche-title-block { text-align: right; }
+  .fiche-title { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; opacity: .55; }
+  .fiche-period { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--terracotta); margin-top: 4px; }
+  .fiche-nanny-bar {
+    background: var(--forest);
+    color: var(--white);
+    padding: 16px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .fiche-nanny-name { font-family: 'DM Serif Display', serif; font-size: 20px; }
+  .fiche-section { padding: 24px 36px; border-bottom: 1px solid var(--warm); }
+  .fiche-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    margin-bottom: 16px;
+  }
+  .fiche-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 14px;
+  }
+  .fiche-row-label { color: var(--ink-soft); }
+  .fiche-row-val { font-weight: 600; }
+  .fiche-row.highlight {
+    background: var(--warm);
+    margin: 0 -12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+  .fiche-total-bar {
+    background: var(--ink);
+    color: var(--white);
+    padding: 24px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .fiche-total-label { font-size: 14px; opacity: .7; }
+  .fiche-total-amount { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--terracotta); }
+
+  /* ── FICHE: TABLEAU RÉCAP DU MOIS (4 colonnes) ── */
+  .fiche-recap-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 1px;
+    font-size: 13px;
+  }
+  .fiche-recap-table thead th {
+    background: #d6e4f5;
+    color: var(--ink-soft);
+    padding: 8px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .fiche-recap-table thead th:first-child { background: transparent; }
+  .fiche-recap-table tbody th {
+    text-align: left;
+    padding: 7px 12px;
+    background: var(--warm);
+    font-weight: 600;
+    color: var(--ink-soft);
+    font-size: 12px;
+    width: 42%;
+  }
+  .fiche-recap-table tbody td {
+    text-align: center;
+    padding: 6px;
+    background: var(--white);
+  }
+  .fiche-recap-table td.num {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .fiche-recap-table tr.row-spacer td {
+    background: transparent;
+    padding: 4px;
+    border: none;
+  }
+  .fiche-recap-table tr.row-highlight th {
+    background: var(--ink);
+    color: var(--white);
+    font-weight: 700;
+  }
+  .fiche-recap-table tr.row-highlight td {
+    background: var(--ink);
+    color: var(--white);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ── MONTH SELECTOR ── */
+  .month-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .month-btn {
+    padding: 10px 8px;
+    border: 1.5px solid var(--sand);
+    border-radius: 10px;
+    background: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+    text-align: center;
+  }
+  .month-btn:hover { border-color: var(--terracotta); color: var(--terracotta); }
+  .month-btn.active { background: var(--terracotta); border-color: var(--terracotta); color: var(--white); }
+
+  /* ── STAT BOXES ── */
+  .stat-box {
+    background: var(--white);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  .stat-box-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--mid); margin-bottom: 8px; }
+  .stat-box-val { font-family: 'DM Serif Display', serif; font-size: 30px; color: var(--ink); }
+  .stat-box-sub { font-size: 12px; color: var(--mid); margin-top: 4px; }
+  .stat-box.accent { background: var(--terracotta); }
+  .stat-box.accent .stat-box-label { color: rgba(255,255,255,0.65); }
+  .stat-box.accent .stat-box-val { color: var(--white); }
+  .stat-box.accent .stat-box-sub { color: rgba(255,255,255,0.65); }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--sand); margin: 24px 0; }
+
+  /* ── HELPER ── */
+  .text-mid { color: var(--mid); }
+  .text-sm { font-size: 13px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-20 { margin-top: 20px; }
+  .flex-row { display: flex; align-items: center; gap: 12px; }
+  .flex-end { justify-content: flex-end; }
+
+  /* ── LOADING ── */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: var(--mid);
+    gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--sand);
+    border-top-color: var(--terracotta);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--mid);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: .4; }
+  .empty-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink-soft); margin-bottom: 8px; }
+
+  /* ── PRINT STYLES ── */
+  @media print {
+    @page { size: A4 portrait; margin: 4mm; }
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      box-shadow: none;
+      border-radius: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    /* En-tête compact */
+    #print-area .fiche-header { padding: 4px 12px; }
+    #print-area .fiche-employer-name { font-size: 12px; }
+    #print-area .fiche-period { font-size: 14px; margin-top: 1px; }
+    #print-area .fiche-employer, #print-area .fiche-title { font-size: 7px; }
+    #print-area .fiche-nanny-bar { padding: 3px 12px; }
+    #print-area .fiche-nanny-name { font-size: 12px; }
+    #print-area .fiche-nanny-bar div { font-size: 8px; }
+    #print-area .fiche-section { padding: 4px 12px; }
+    #print-area .fiche-section-title { font-size: 7px; margin-bottom: 3px; letter-spacing: 1px; }
+    #print-area .fiche-total-bar { padding: 4px 12px; }
+    #print-area .fiche-total-label { font-size: 8px; }
+    #print-area .fiche-total-amount { font-size: 18px; }
+    /* Tableau récap mois (4 colonnes) */
+    #print-area .fiche-recap-table { font-size: 9px; }
+    #print-area .fiche-recap-table thead th { font-size: 7px; padding: 2px 4px; }
+    #print-area .fiche-recap-table tbody th { font-size: 9px; padding: 1px 6px; white-space: nowrap; }
+    #print-area .fiche-recap-table tbody td { padding: 1px 4px; white-space: nowrap; }
+    #print-area .fiche-recap-table tr.row-highlight td { font-size: 10px; }
+    /* Grand table combinée (calendrier + données) */
+    #print-area .fiche-grand-table { font-size: 7px; border-spacing: 0; }
+    #print-area .fiche-grand-table thead th { font-size: 7px; padding: 2px 1px; }
+    #print-area .cal-cell { height: 5px; font-size: 4px; line-height: 1; border-radius: 1px; }
+    #print-area .cal-row th.cal-day { font-size: 5px; }
+    #print-area .grand-spacer td { height: 2px; }
+    #print-area .data-row th.data-label { font-size: 7px; padding: 1px; }
+    #print-area .data-row td { font-size: 7px; padding: 1px 2px; }
+    #print-area .data-row.d-highlight td { font-size: 7px; }
+    /* Légende couleurs */
+    #print-area .fiche-cal-color-legend { font-size: 6px; gap: 6px; margin-bottom: 3px; }
+    #print-area .fiche-cal-color-legend .dot { width: 6px; height: 6px; }
+    /* Légende lettres */
+    #print-area .fiche-letter-legend { font-size: 6px; gap: 1px 8px; margin-top: 4px; }
+    /* Forçage couleurs print */
+    .cal-cell, .data-row th, .data-row td,
+    .fiche-grand-table thead th {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .no-print { display: none !important; }
+    .fiche-grand-table, .fiche-recap-table {
+      page-break-inside: avoid; break-inside: avoid;
+    }
+    .fiche-header, .fiche-nanny-bar, .fiche-total-bar {
+      page-break-inside: avoid; break-inside: avoid;
+    }
+    /* Forçage couleurs (ancien) */
+    .fiche-header, .fiche-nanny-bar, .fiche-total-bar,
+    .fiche-recap-table thead th,
+    .fiche-recap-table tr.row-highlight th,
+    .fiche-recap-table tr.row-highlight td {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+
+  /* ── SAISIE MENSUELLE ── */
+  .saisie-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .saisie-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1.5px solid var(--sand);
+    cursor: pointer;
+    transition: all .15s;
+    gap: 2px;
+  }
+  .saisie-day .day-num { font-size: 13px; font-weight: 700; }
+  .saisie-day:hover { border-color: var(--terracotta); }
+  .saisie-day.worked { background: var(--forest); border-color: var(--forest); color: var(--white); }
+  .saisie-day.ferie { background: var(--gold); border-color: var(--gold); color: var(--white); }
+  .saisie-day.cp { background: var(--terracotta); border-color: var(--terracotta); color: var(--white); }
+  .saisie-day.cnp { background: var(--danger); border-color: var(--danger); color: var(--white); }
+  .saisie-day.off { background: #f5d4d0; border-color: #f5d4d0; color: #8a3a30; }
+  .saisie-day.weekend { background: #C9C9C9; border-color: #C9C9C9; color: #5A5A5A; }
+  .saisie-day.empty-day { border: none; background: transparent; cursor: default; }
+  .saisie-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mid); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* ── ANNUAL CALENDAR (PRÉVISUEL) ── */
+  .prevu-table {
+    border-collapse: separate;
+    border-spacing: 2px;
+    width: 100%;
+    table-layout: fixed;
+  }
+  .prevu-table th, .prevu-table td {
+    border: none;
+    padding: 0;
+    text-align: center;
+  }
+  .prevu-table th {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--mid);
+    padding: 8px 4px;
+    background: var(--warm);
+    border-radius: 6px;
+  }
+  .prevu-table th.day-col {
+    width: 24px;
+    background: transparent;
+    color: var(--light);
+    font-size: 9px;
+  }
+  .prevu-cell {
+    height: 26px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .1s, box-shadow .1s;
+    user-select: none;
+  }
+  .prevu-cell:hover { transform: scale(1.15); box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index:5; position:relative; }
+  .prevu-cell.s-out { background: var(--ink); cursor: default; }
+  .prevu-cell.s-out:hover { transform: none; box-shadow: none; }
+  .prevu-cell.s-off { background: #f5d4d0; color: #8a3a30; }
+  .prevu-cell.s-weekend { background: #C9C9C9; color: #5A5A5A; }
+  .prevu-cell.s-work { background: var(--forest); color: var(--white); }
+  .prevu-cell.s-ferie { background: var(--gold); color: var(--white); }
+  .prevu-cell.s-cp { background: var(--terracotta); color: var(--white); font-size: 9px; }
+  .prevu-cell.s-cnp { background: var(--danger); color: var(--white); font-size: 9px; }
+  .prevu-cell.s-future { background: var(--warm); color: var(--light); }
+
+  /* KPI cards */
+  .kpi-card {
+    background: var(--white);
+    border: 1.5px solid var(--sand);
+    border-radius: 14px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content:'';
+    position:absolute;
+    left:0; top:0; bottom:0;
+    width: 4px;
+    background: var(--mid);
+  }
+  .kpi-card.k-work::before { background: var(--forest); }
+  .kpi-card.k-cp::before { background: var(--terracotta); }
+  .kpi-card.k-cnp::before { background: var(--danger); }
+  .kpi-card.k-ferie::before { background: var(--gold); }
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 6px;
+  }
+  .kpi-val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--mid);
+    margin-top: 4px;
+  }
+  .kpi-trend {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 6px;
+  }
+  .kpi-trend.over { background: #fdecea; color: var(--danger); }
+  .kpi-trend.under { background: #edf7ef; color: var(--success); }
+  .kpi-trend.ok { background: var(--warm); color: var(--mid); }
+
+  /* ── RECAP TABLE (Prévisuel + Fiche de paie) ── */
+  .recap-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 2px;
+    font-size: 12px;
+  }
+  .recap-table th, .recap-table td {
+    padding: 8px 6px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .recap-table thead th {
+    background: var(--ink);
+    color: var(--white);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .recap-table th.recap-row-header {
+    background: var(--warm);
+    color: var(--ink-soft);
+    text-align: left;
+    padding-left: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    min-width: 180px;
+  }
+  .recap-table td.recap-total-col {
+    background: var(--ink);
+    color: var(--white);
+    font-weight: 700;
+  }
+  .recap-table th.recap-total-col {
+    background: var(--terracotta);
+    color: var(--white);
+  }
+  .recap-table tr.recap-work td { color: var(--forest); font-weight: 600; }
+  .recap-table tr.recap-ferie td { color: #b8881e; font-weight: 600; }
+  .recap-table tr.recap-cp td { color: var(--terracotta); font-weight: 600; }
+  .recap-table tr.recap-cnp td { color: var(--danger); font-weight: 600; }
+  .recap-table tr.recap-highlight th,
+  .recap-table tr.recap-highlight td { background: var(--ink); color: var(--white); font-weight: 700; }
+  .recap-table tr.recap-highlight td.recap-total-col { background: var(--terracotta); color: var(--white); }
+
+  /* Mini-calendrier annuel dans la fiche de paie */
+  .mini-prevu-table {
+    border-collapse: separate;
+    border-spacing: 1px;
+    width: 100%;
+    font-size: 9px;
+    table-layout: fixed;
+  }
+  .mini-prevu-table th, .mini-prevu-table td {
+    padding: 0;
+    text-align: center;
+  }
+  .mini-prevu-table th {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    color: var(--mid);
+    padding: 4px 2px;
+    background: var(--warm);
+    border-radius: 3px;
+  }
+  .mini-prevu-table th.day-col { width: 18px; background: transparent; color: var(--light); font-size: 8px; }
+  .mini-prevu-cell {
+    height: 14px;
+    border-radius: 2px;
+    font-size: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mini-prevu-cell.s-out { background: var(--ink); }
+  .mini-prevu-cell.s-off { background: #f5d4d0; color: #8a3a30; }
+  .mini-prevu-cell.s-weekend { background: #C9C9C9; color: #5A5A5A; }
+  .mini-prevu-cell.s-work { background: var(--forest); color: var(--white); }
+  .mini-prevu-cell.s-ferie { background: var(--gold); color: var(--white); }
+  .mini-prevu-cell.s-cp { background: var(--terracotta); color: var(--white); font-size: 7px; }
+  .mini-prevu-cell.s-cnp { background: var(--danger); color: var(--white); font-size: 7px; }
+
+  /* ── FICHE GRAND TABLE (calendrier + données combinés) ── */
+  .fiche-grand-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 1px;
+    font-size: 11px;
+  }
+  .fiche-grand-table col.col-label  { width: 28px; }
+  .fiche-grand-table col.col-total  { width: 60px; }
+  /* month cols share remaining space equally via auto */
+
+  /* Header */
+  .fiche-grand-table thead th {
+    background: var(--ink);
+    color: var(--white);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-align: center;
+    padding: 5px 2px;
+    line-height: 1.2;
+    border-radius: 3px;
+  }
+  .fiche-grand-table thead th:first-child { background: transparent; }
+  .fiche-grand-table thead th.total-header { background: var(--terracotta); }
+
+  /* Calendar rows */
+  .cal-row th.cal-day {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--light);
+    text-align: center;
+    padding: 0;
+    background: transparent;
+  }
+  .cal-row td { padding: 0 0; }
+  .cal-cell {
+    height: 13px;
+    border-radius: 2px;
+    font-size: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .cal-cell.s-out     { background: var(--ink); }
+  .cal-cell.s-off     { background: #f5d4d0; }
+  .cal-cell.s-weekend { background: #C9C9C9; }
+  .cal-cell.s-work    { background: var(--forest); color: var(--white); }
+  .cal-cell.s-ferie   { background: var(--gold); color: var(--white); }
+  .cal-cell.s-cp      { background: var(--terracotta); color: var(--white); font-size: 7px; }
+  .cal-cell.s-cnp     { background: var(--danger); color: var(--white); font-size: 7px; }
+
+  /* Spacer between calendar and data */
+  .grand-spacer td { height: 5px; background: transparent; }
+
+  /* Data rows */
+  .data-row th.data-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    background: var(--warm);
+    border-radius: 3px;
+    color: var(--ink-soft);
+    padding: 3px 1px;
+  }
+  .data-row td {
+    text-align: center;
+    background: var(--white);
+    padding: 3px 2px;
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+    border-radius: 2px;
+  }
+  .data-row td.data-future { color: var(--light); }
+  .data-row td.data-total {
+    background: var(--ink);
+    color: var(--white);
+    font-weight: 700;
+    border-radius: 3px;
+  }
+  /* Color accents on data rows */
+  .data-row.d-work  td { color: var(--forest); }
+  .data-row.d-ferie td { color: #b8881e; }
+  .data-row.d-cp    td { color: var(--terracotta); }
+  .data-row.d-cnp   td { color: var(--danger); }
+  .data-row.d-highlight th.data-label { background: var(--ink); color: var(--white); }
+  .data-row.d-highlight td { background: var(--ink); color: var(--white); font-weight: 700; font-size: 11px; }
+  .data-row.d-highlight td.data-total { background: var(--terracotta); }
+  .data-row.d-highlight td.data-future { background: var(--ink-soft); color: rgba(255,255,255,.4); }
+  .total-blank { background: transparent !important; }
+
+  /* Color legend (above table) */
+  .fiche-cal-color-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+    font-size: 10px;
+    color: var(--mid);
+    align-items: center;
+  }
+  .fiche-cal-color-legend .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-right: 3px;
+  }
+
+  /* Letter legend (below table) */
+  .fiche-letter-legend {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px 16px;
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--mid);
+  }
+  .fiche-letter-legend strong { color: var(--ink-soft); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 3px; }
+</style>
+<script defer>
+
+// ══════════════════════════════════════════
+//  SUPABASE INIT
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  ⚠️ CONFIGURATION SUPABASE — NOUVELLE BASE ⚠️
+//  Remplacez par l'URL et la clé publique (anon key)
+//  de votre NOUVELLE base Supabase (Settings → API)
+// ══════════════════════════════════════════
+const SUPABASE_URL = 'https://oqhntkjadfgejuyutvxo.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xaG50a2phZGZnZWp1eXV0dnhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTE2NDgsImV4cCI6MjA5NTAyNzY0OH0.VssyuIMIQzPBsN6VIt_vGu3-l2S9JN-QPP9JTIjRSZQ';
+
+let sbClient = null;
+let currentUser = null;
+let currentNounouId = null;
+let currentContratId = null;
+let selectedYear = new Date().getFullYear();
+let selectedMonth = new Date().getMonth() + 1;
+let calendarState = {}; // { "1": "worked", "2": "off", ... }
+let currentContrats = [];
+let allNounous = [];
+
+const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                   'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MONTHS_SHORT = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+
+// ══════════════════════════════════════════
+//  INIT — SESSION LOGAN (pas de connexion propre)
+// ══════════════════════════════════════════
+// Cette app est une sous-app de LOGAN.
+// Elle reçoit la session Supabase via :
+//   1. window.LOGAN_SESSION  (injection directe par LOGAN)
+//   2. localStorage['logan_session']  (fallback cross-page)
+// Elle n'affiche JAMAIS d'écran de connexion.
+
+function initSupabase() {
+  if (!SUPABASE_URL || SUPABASE_URL === 'COLLEZ_VOTRE_URL_ICI'
+      || !SUPABASE_KEY || SUPABASE_KEY === 'COLLEZ_VOTRE_CLE_ICI') {
+    showFatalError("Configuration Supabase manquante. Contactez l'administrateur.");
+    return;
+  }
+  try {
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    checkSession().catch(err => showFatalError("Erreur de session : " + err.message));
+  } catch (e) {
+    showFatalError("Erreur d'initialisation Supabase : " + e.message);
+  }
+}
+
+async function checkSession() {
+  // 1. Session injectée directement par LOGAN dans la même page
+  if (window.LOGAN_SESSION) {
+    const { data, error } = await sbClient.auth.setSession(window.LOGAN_SESSION);
+    if (!error && data?.user) {
+      currentUser = data.user;
+      startApp();
+      return;
+    }
+  }
+
+  // 2. Session stockée dans localStorage par LOGAN
+  try {
+    const raw = localStorage.getItem('logan_session');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const { data, error } = await sbClient.auth.setSession(parsed);
+      if (!error && data?.user) {
+        currentUser = data.user;
+        startApp();
+        return;
+      }
+    }
+  } catch (_) {}
+
+  // 3. Session Supabase déjà active (même domaine / storage partagé)
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    startApp();
+    return;
+  }
+
+  // Aucune session trouvée
+  showFatalError("Aucune session active. Connectez-vous depuis l'application LOGAN.");
+}
+
+// logout() : on déconnecte et on notifie LOGAN si possible
+async function logout() {
+  await sbClient.auth.signOut();
+  currentUser = null;
+  // Notifier LOGAN (si intégré dans le même contexte)
+  if (window.LOGAN_LOGOUT) {
+    window.LOGAN_LOGOUT();
+  } else {
+    showFatalError("Session terminée. Reconnectez-vous depuis l'application LOGAN.");
+  }
+}
+
+// ══════════════════════════════════════════
+//  APP START
+// ══════════════════════════════════════════
+function startApp() {
+  document.getElementById('app').style.display = 'block';
+  const email = currentUser.email;
+  const name = currentUser.user_metadata?.full_name || email;
+  document.getElementById('user-email-display').textContent = name;
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  loadNounous();
+}
+
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.getElementById('nav-' + p).classList.add('active');
+  if (p === 'paie') buildPaieNounouSelect();
+}
+
+// ══════════════════════════════════════════
+//  NOUNOUS
+// ══════════════════════════════════════════
+async function loadNounous() {
+  // Pas de filtre user_id : la RLS Supabase renvoie les nounous possédées ET partagées avec moi
+  const { data, error } = await sbClient.from('childminderapp_nounous')
+    .select('*, childminderapp_contrats(*)')
+    .order('prenom');
+  if (error) {
+    const container = document.getElementById('nounous-list');
+    const isTableMissing = error.code === '42P01' || error.message?.includes('does not exist');
+    container.innerHTML = `<div class="empty">
+      <div class="empty-icon">⚠️</div>
+      <div class="empty-title">${isTableMissing ? 'Tables manquantes' : 'Erreur de connexion'}</div>
+      <div class="text-mid text-sm mt-12" style="max-width:500px;margin:0 auto;line-height:1.7;">
+        ${isTableMissing
+          ? `Les tables de la base de données n'existent pas encore.<br>
+             <strong>Allez dans Supabase → SQL Editor</strong> et exécutez le script SQL fourni lors de la configuration.`
+          : `Erreur : ${error.message}`}
+      </div>
+    </div>`;
+    document.getElementById('nounous-count').textContent = 'Erreur';
+    return;
+  }
+  allNounous = data || [];
+  renderNounous();
+}
+
+function renderNounous() {
+  const container = document.getElementById('nounous-list');
+  document.getElementById('nounous-count').textContent =
+    `${allNounous.length} assistante${allNounous.length !== 1 ? 's' : ''} enregistrée${allNounous.length !== 1 ? 's' : ''}`;
+  if (!allNounous.length) {
+    container.innerHTML = `<div class="empty">
+      <div class="empty-icon">👶</div>
+      <div class="empty-title">Aucune assistante maternelle</div>
+      <div class="text-mid text-sm mt-12">Commencez par ajouter une assistante maternelle</div>
+    </div>`;
+    return;
+  }
+  container.innerHTML = `<div class="nanny-grid">${allNounous.map(n => nounouCard(n)).join('')}</div>`;
+}
+
+function nounouCard(n) {
+  const contrats = n.contrats || [];
+  const actifs = contrats.filter(c => !c.archive);
+  const contratActif = actifs.find(c => !c.date_fin || new Date(c.date_fin) >= new Date()) || actifs[0];
+  const initials = (n.prenom[0] + (n.nom[0] || '')).toUpperCase();
+  const isOwner = n.user_id === currentUser.id;
+  const sharedCount = (n.shared_emails || []).length;
+  return `<div class="nanny-card">
+    <div class="nanny-card-header">
+      <div class="nanny-avatar">${initials}</div>
+      <div style="flex:1;">
+        <div class="nanny-name">${n.prenom} ${n.nom}</div>
+        <div class="nanny-contrat-count">${actifs.length} contrat${actifs.length !== 1 ? 's' : ''} actif${actifs.length !== 1 ? 's' : ''}</div>
+      </div>
+      ${!isOwner
+        ? `<span class="share-badge" title="Partagée avec vous">🔗 Partagée</span>`
+        : (sharedCount ? `<span class="share-badge" title="${sharedCount} co-parent(s)">🔗 ${sharedCount}</span>` : '')}
+    </div>
+    <div class="nanny-card-body">
+      ${contratActif ? `
+        <div class="nanny-stat"><span class="nanny-stat-label">Salaire mensuel</span><span class="nanny-stat-val">${fmt(contratActif.salaire_mensuel)} €</span></div>
+        <div class="nanny-stat"><span class="nanny-stat-label">Jours CP / an</span><span class="nanny-stat-val">${contratActif.jours_cp} j</span></div>
+        <div class="nanny-stat"><span class="nanny-stat-label">Repas / j</span><span class="nanny-stat-val">${fmt(contratActif.prix_repas)} €</span></div>
+        <div class="nanny-stat"><span class="nanny-stat-label">Entretien / j</span><span class="nanny-stat-val">${fmt(contratActif.prix_entretien)} €</span></div>
+        ${contratActif.enfant_nom ? `<div class="nanny-stat"><span class="nanny-stat-label">Enfant gardé</span><span class="nanny-stat-val">${contratActif.enfant_nom}</span></div>` : ''}
+      ` : '<div class="text-mid text-sm" style="padding:8px 0;">Aucun contrat actif</div>'}
+    </div>
+    <div class="nanny-card-footer">
+      <button class="btn btn-ghost btn-xs" onclick="editNounou('${n.id}')">Modifier</button>
+      ${isOwner ? `<button class="btn btn-ghost btn-xs" onclick="openShare('${n.id}')">Partager</button>` : ''}
+      <button class="btn btn-secondary btn-xs" onclick="openContrats('${n.id}')">Contrats</button>
+      <button class="btn btn-forest btn-xs" onclick="quickPaie('${n.id}')">Fiche paie →</button>
+    </div>
+  </div>`;
+}
+
+function fmt(n) {
+  return parseFloat(n || 0).toFixed(2).replace('.', ',');
+}
+
+// ══════════════════════════════════════════
+//  PARTAGE AVEC CO-PARENT
+// ══════════════════════════════════════════
+let shareNounouId = null;
+
+function openShare(nounouId) {
+  shareNounouId = nounouId;
+  const n = allNounous.find(x => x.id === nounouId);
+  if (!n) return;
+  document.getElementById('share-title').textContent = `Partager — ${n.prenom} ${n.nom}`;
+  document.getElementById('share-email-input').value = '';
+  document.getElementById('share-err').classList.remove('show');
+  renderSharedList(n);
+  openModal('modal-share');
+}
+
+function renderSharedList(n) {
+  const emails = n.shared_emails || [];
+  const el = document.getElementById('share-list');
+  if (!emails.length) {
+    el.innerHTML = '<div class="text-mid text-sm" style="padding:8px 0;">Aucun co-parent pour le moment.</div>';
+    return;
+  }
+  el.innerHTML = emails.map(e => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--warm);border-radius:8px;margin-bottom:6px;">
+      <span style="font-size:14px;">${e}</span>
+      <button class="btn btn-ghost btn-xs" onclick="removeShare('${e}')">Retirer</button>
+    </div>`).join('');
+}
+
+async function addShare() {
+  const input = document.getElementById('share-email-input');
+  const email = input.value.trim().toLowerCase();
+  if (!email || !email.includes('@')) {
+    showErr('share-err', 'Veuillez saisir un email valide.');
+    return;
+  }
+  const n = allNounous.find(x => x.id === shareNounouId);
+  const emails = n.shared_emails || [];
+  if (emails.includes(email)) {
+    showErr('share-err', 'Cet email est déjà ajouté.');
+    return;
+  }
+  if (email === currentUser.email) {
+    showErr('share-err', "Vous ne pouvez pas vous partager la nounou à vous-même.");
+    return;
+  }
+  const updated = [...emails, email];
+  const { error } = await sbClient.from('childminderapp_nounous')
+    .update({ shared_emails: updated }).eq('id', shareNounouId);
+  if (error) { showErr('share-err', error.message); return; }
+  n.shared_emails = updated;
+  input.value = '';
+  document.getElementById('share-err').classList.remove('show');
+  renderSharedList(n);
+  renderNounous();
+}
+
+async function removeShare(email) {
+  const n = allNounous.find(x => x.id === shareNounouId);
+  const updated = (n.shared_emails || []).filter(e => e !== email);
+  const { error } = await sbClient.from('childminderapp_nounous')
+    .update({ shared_emails: updated }).eq('id', shareNounouId);
+  if (error) { showErr('share-err', error.message); return; }
+  n.shared_emails = updated;
+  renderSharedList(n);
+  renderNounous();
+}
+
+function openModalNounou() {
+  document.getElementById('edit-nounou-id').value = '';
+  document.getElementById('modal-nounou-title').textContent = 'Nouvelle assistante maternelle';
+  ['n-prenom','n-nom','n-email','n-tel'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('nounou-err').classList.remove('show');
+  openModal('modal-nounou');
+}
+
+function editNounou(id) {
+  const n = allNounous.find(x => x.id === id);
+  if (!n) return;
+  document.getElementById('edit-nounou-id').value = id;
+  document.getElementById('modal-nounou-title').textContent = 'Modifier l\'assistante';
+  document.getElementById('n-prenom').value = n.prenom;
+  document.getElementById('n-nom').value = n.nom;
+  document.getElementById('n-email').value = n.email || '';
+  document.getElementById('n-tel').value = n.telephone || '';
+  document.getElementById('nounou-err').classList.remove('show');
+  openModal('modal-nounou');
+}
+
+async function saveNounou() {
+  const id = document.getElementById('edit-nounou-id').value;
+  const prenom = document.getElementById('n-prenom').value.trim();
+  const nom = document.getElementById('n-nom').value.trim();
+  const email = document.getElementById('n-email').value.trim();
+  const telephone = document.getElementById('n-tel').value.trim();
+  if (!prenom || !nom) {
+    const el = document.getElementById('nounou-err');
+    el.textContent = 'Prénom et nom sont requis.';
+    el.className = 'msg msg-error show';
+    return;
+  }
+  const row = { user_id: currentUser.id, prenom, nom, email: email || null, telephone: telephone || null };
+  let error;
+  if (id) {
+    ({ error } = await sbClient.from('childminderapp_nounous').update(row).eq('id', id));
+  } else {
+    ({ error } = await sbClient.from('childminderapp_nounous').insert(row));
+  }
+  if (error) {
+    const el = document.getElementById('nounou-err');
+    el.textContent = error.message;
+    el.className = 'msg msg-error show';
+    return;
+  }
+  closeModal('modal-nounou');
+  loadNounous();
+}
+
+// ══════════════════════════════════════════
+//  CONTRATS
+// ══════════════════════════════════════════
+let currentContratsNounouId = null;
+
+async function openContrats(nounouId) {
+  currentContratsNounouId = nounouId;
+  const n = allNounous.find(x => x.id === nounouId);
+  document.getElementById('modal-contrats-title').textContent = `Contrats — ${n.prenom} ${n.nom}`;
+  await loadContratsModal(nounouId);
+  openModal('modal-contrats');
+}
+
+async function loadContratsModal(nounouId) {
+  const { data } = await sbClient.from('childminderapp_contrats')
+    .select('*').eq('nounou_id', nounouId).order('date_debut', { ascending: false });
+  currentContrats = data || [];
+  renderContratsModal();
+}
+
+function renderContratsModal() {
+  const el = document.getElementById('contrats-list');
+  if (!currentContrats.length) {
+    el.innerHTML = '<div class="empty" style="padding:30px;"><div class="empty-icon">📋</div><div class="empty-title">Aucun contrat</div></div>';
+    return;
+  }
+  el.innerHTML = `<table>
+    <thead><tr>
+      <th>Période</th><th>Salaire</th><th>CP</th><th>Repas</th><th>Entretien</th><th>Statut</th><th></th>
+    </tr></thead>
+    <tbody>
+    ${currentContrats.map(c => `<tr>
+      <td>${fmtDate(c.date_debut)} → ${c.date_fin ? fmtDate(c.date_fin) : '∞'}<br>
+          <small class="text-mid">${c.enfant_nom ? '👶 ' + c.enfant_nom : ''}</small></td>
+      <td><strong>${fmt(c.salaire_mensuel)} €</strong></td>
+      <td>${c.jours_cp} j</td>
+      <td>${fmt(c.prix_repas)} €</td>
+      <td>${fmt(c.prix_entretien)} €</td>
+      <td><span class="status-badge ${c.archive ? 'status-archived' : 'status-active'}">
+          <span class="status-dot"></span>${c.archive ? 'Archivé' : 'Actif'}</span></td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-xs" onclick="openContratPrevu('${c.id}')" title="Vue annuelle">📅</button>
+        <button class="btn btn-ghost btn-xs" onclick="editContrat('${c.id}')" title="Modifier">✏️</button>
+        <button class="btn btn-ghost btn-xs" onclick="toggleArchive('${c.id}',${c.archive})" title="${c.archive ? 'Désarchiver' : 'Archiver'}">${c.archive ? '↩' : '📦'}</button>
+      </td>
+    </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function openAddContrat() {
+  document.getElementById('edit-contrat-id').value = '';
+  document.getElementById('edit-contrat-nounou-id').value = currentContratsNounouId;
+  document.getElementById('modal-contrat-title').textContent = 'Nouveau contrat';
+  ['c-debut','c-fin','c-enfant'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('c-jours-contrat').value = 178;
+  document.getElementById('c-salaire').value = 612;
+  document.getElementById('c-cp').value = 25;
+  document.getElementById('c-cnp').value = 0;
+  document.getElementById('c-repas').value = 4.95;
+  document.getElementById('c-entretien').value = 3.96;
+  document.getElementById('contrat-err').classList.remove('show');
+  openModal('modal-contrat-form');
+}
+
+function editContrat(id) {
+  const c = currentContrats.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('edit-contrat-id').value = id;
+  document.getElementById('edit-contrat-nounou-id').value = c.nounou_id;
+  document.getElementById('modal-contrat-title').textContent = 'Modifier le contrat';
+  document.getElementById('c-debut').value = c.date_debut;
+  document.getElementById('c-fin').value = c.date_fin || '';
+  document.getElementById('c-jours-contrat').value = c.jours_contrat;
+  document.getElementById('c-salaire').value = c.salaire_mensuel;
+  document.getElementById('c-cp').value = c.jours_cp;
+  document.getElementById('c-cnp').value = c.jours_cnp;
+  document.getElementById('c-repas').value = c.prix_repas;
+  document.getElementById('c-entretien').value = c.prix_entretien;
+  document.getElementById('c-enfant').value = c.enfant_nom || '';
+  document.getElementById('contrat-err').classList.remove('show');
+  openModal('modal-contrat-form');
+}
+
+async function saveContrat() {
+  const id = document.getElementById('edit-contrat-id').value;
+  const nounouId = document.getElementById('edit-contrat-nounou-id').value;
+  const debut = document.getElementById('c-debut').value;
+  if (!debut) {
+    showErr('contrat-err', 'La date de début est requise.');
+    return;
+  }
+  const row = {
+    nounou_id: nounouId,
+    user_id: currentUser.id,
+    date_debut: debut,
+    date_fin: document.getElementById('c-fin').value || null,
+    jours_contrat: parseInt(document.getElementById('c-jours-contrat').value) || 178,
+    salaire_mensuel: parseFloat(document.getElementById('c-salaire').value) || 612,
+    jours_cp: parseInt(document.getElementById('c-cp').value) || 25,
+    jours_cnp: parseInt(document.getElementById('c-cnp').value) || 0,
+    prix_repas: parseFloat(document.getElementById('c-repas').value) || 4.95,
+    prix_entretien: parseFloat(document.getElementById('c-entretien').value) || 3.96,
+    enfant_nom: document.getElementById('c-enfant').value.trim() || null,
+  };
+  let error;
+  if (id) {
+    ({ error } = await sbClient.from('childminderapp_contrats').update(row).eq('id', id));
+  } else {
+    ({ error } = await sbClient.from('childminderapp_contrats').insert(row));
+  }
+  if (error) { showErr('contrat-err', error.message); return; }
+  closeModal('modal-contrat-form');
+  await loadContratsModal(nounouId);
+  loadNounous();
+}
+
+async function toggleArchive(id, isArchived) {
+  await sbClient.from('childminderapp_contrats').update({ archive: !isArchived }).eq('id', id);
+  await loadContratsModal(currentContratsNounouId);
+  loadNounous();
+}
+
+// ══════════════════════════════════════════
+//  PAGE PAIE
+// ══════════════════════════════════════════
+async function buildPaieNounouSelect() {
+  if (!allNounous.length) await loadNounous();
+  const el = document.getElementById('paie-nounou-select');
+  if (!allNounous.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">👶</div><div class="empty-title">Aucune nounou enregistrée</div></div>';
+    return;
+  }
+  el.innerHTML = `<div class="nanny-grid">
+    ${allNounous.map(n => {
+      const actif = (n.contrats || []).filter(c => !c.archive);
+      const contratActif = actif.find(c => !c.date_fin || new Date(c.date_fin) >= new Date()) || actif[0];
+      const initials = (n.prenom[0] + (n.nom[0] || '')).toUpperCase();
+      return `<div class="nanny-card" onclick="selectNounouPaie('${n.id}','${n.prenom} ${n.nom}')">
+        <div class="nanny-card-header">
+          <div class="nanny-avatar">${initials}</div>
+          <div>
+            <div class="nanny-name">${n.prenom} ${n.nom}</div>
+            <div class="nanny-contrat-count">${actif.length} contrat${actif.length !== 1 ? 's' : ''} actif${actif.length !== 1 ? 's' : ''}</div>
+          </div>
+        </div>
+        <div class="nanny-card-body">
+          ${contratActif ? `<div class="nanny-stat"><span class="nanny-stat-label">Salaire</span><span class="nanny-stat-val">${fmt(contratActif.salaire_mensuel)} € / mois</span></div>` : ''}
+        </div>
+        <div class="nanny-card-footer">
+          <span style="font-size:13px;color:var(--mid);">Cliquer pour sélectionner →</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+async function selectNounouPaie(nounouId, name) {
+  currentNounouId = nounouId;
+  document.getElementById('paie-nounou-chosen').textContent = '— ' + name;
+  document.getElementById('paie-step2').style.display = 'block';
+  document.getElementById('paie-step3').style.display = 'none';
+  document.getElementById('fiche-zone').style.display = 'none';
+  // Build year selector
+  const yearSel = document.getElementById('paie-year');
+  const now = new Date();
+  yearSel.innerHTML = '';
+  for (let y = now.getFullYear() + 1; y >= now.getFullYear() - 3; y--) {
+    yearSel.innerHTML += `<option value="${y}" ${y === now.getFullYear() ? 'selected' : ''}>${y}</option>`;
+  }
+  yearSel.onchange = buildMonthGrid;
+  buildMonthGrid();
+}
+
+function buildMonthGrid() {
+  selectedYear = parseInt(document.getElementById('paie-year').value);
+  const grid = document.getElementById('month-grid');
+  const now = new Date();
+  grid.innerHTML = MONTHS_SHORT.map((m, i) => {
+    const idx = i + 1;
+    const isCurrent = idx === now.getMonth() + 1 && selectedYear === now.getFullYear();
+    return `<button class="month-btn ${isCurrent ? 'active' : ''}"
+      onclick="selectMonth(${idx})">${m}</button>`;
+  }).join('');
+}
+
+async function selectMonth(month) {
+  selectedMonth = month;
+  document.querySelectorAll('.month-btn').forEach((b, i) =>
+    b.classList.toggle('active', i + 1 === month));
+  document.getElementById('paie-month-chosen').textContent =
+    `— ${MONTHS_FR[month - 1]} ${selectedYear}`;
+  // Load contrat actif for this nounou
+  const n = allNounous.find(x => x.id === currentNounouId);
+  const contrats = (n?.contrats || []).filter(c => !c.archive);
+  currentContratId = null;
+  // Find contrat active during this month
+  const monthStart = new Date(selectedYear, month - 1, 1);
+  const monthEnd = new Date(selectedYear, month, 0);
+  const c = contrats.find(ct => {
+    const deb = new Date(ct.date_debut);
+    const fin = ct.date_fin ? new Date(ct.date_fin) : new Date('2099-12-31');
+    return deb <= monthEnd && fin >= monthStart;
+  }) || contrats[0];
+  if (c) currentContratId = c.id;
+  // Load existing saisie
+  await loadSaisie();
+  buildCalendar();
+  document.getElementById('paie-step3').style.display = 'block';
+  document.getElementById('fiche-zone').style.display = 'none';
+  document.getElementById('paie-step3').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function loadSaisie() {
+  if (!currentContratId) { calendarState = {}; return; }
+  const { data } = await sbClient.from('childminderapp_saisies')
+    .select('*')
+    .eq('contrat_id', currentContratId)
+    .eq('annee', selectedYear)
+    .eq('mois', selectedMonth)
+    .single();
+  // Normalize legacy 'worked' to 'work'
+  const raw = data?.jours_data || {};
+  calendarState = {};
+  Object.keys(raw).forEach(k => {
+    const v = raw[k] === 'worked' ? 'work' : raw[k];
+    if (v) calendarState[k] = v;
+  });
+}
+
+function buildCalendar() {
+  const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+  const firstDay = new Date(selectedYear, selectedMonth - 1, 1).getDay();
+  const offset = firstDay === 0 ? 6 : firstDay - 1; // Monday start
+  const grid = document.getElementById('calendar-grid');
+  // Day headers
+  const headers = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  let html = headers.map(h => `<div style="text-align:center;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--mid);padding:6px 0;">${h}</div>`).join('');
+  // Empty cells
+  for (let i = 0; i < offset; i++) {
+    html += `<div class="saisie-day empty-day"></div>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(selectedYear, selectedMonth - 1, d);
+    const dow = dt.getDay(); // 0=Sun, 6=Sat
+    const isWeekend = dow === 0 || dow === 6;
+    const state = calendarState[d] || (isWeekend ? 'weekend' : 'work');
+    // CSS class mapping: 'work' => 'worked' (existing CSS), other states use same name as state
+    const cssState = state === 'work' ? 'worked' : state;
+    const labels = { work: '✓', ferie: 'F', cp: 'CP', cnp: 'CNP', off: 'R', weekend: '' };
+    const onClick = `onclick="cycleDay(${d})"`;
+    html += `<div class="saisie-day ${cssState}" id="day-${d}" ${onClick}>
+      <span class="day-num">${d}</span>
+      <span style="font-size:9px;">${labels[state] || ''}</span>
+    </div>`;
+  }
+  grid.innerHTML = html;
+  updateSaisieSummary();
+}
+
+// Cycles: 5 states each; weekday default = 'work', weekend default = 'weekend'
+const CYCLE_WEEKDAY = ['off', 'work', 'ferie', 'cp', 'cnp'];
+const CYCLE_WEEKEND = ['weekend', 'work', 'ferie', 'cp', 'cnp'];
+
+function cycleDay(d) {
+  const dt = new Date(selectedYear, selectedMonth - 1, d);
+  const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+  const cycle = isWeekend ? CYCLE_WEEKEND : CYCLE_WEEKDAY;
+  const current = calendarState[d] || cycle[0];
+  let idx = cycle.indexOf(current);
+  // Si état non reconnu (legacy), repart de l'index 0
+  const next = cycle[(idx + 1 + cycle.length) % cycle.length];
+  calendarState[d] = next;
+  buildCalendar();
+  scheduleAutoSaveSaisie();
+}
+
+function resetMonth() {
+  calendarState = {};
+  buildCalendar();
+  scheduleAutoSaveSaisie();
+}
+
+function getSummary() {
+  const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+  let worked = 0, ferie = 0, cp = 0, cnp = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(selectedYear, selectedMonth - 1, d);
+    const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+    const state = calendarState[d] || (isWeekend ? 'weekend' : 'work');
+    if (state === 'work') worked++;
+    else if (state === 'ferie') ferie++;
+    else if (state === 'cp') cp++;
+    else if (state === 'cnp') cnp++;
+    // 'weekend' and 'off' are not counted
+  }
+  return { worked, ferie, cp, cnp };
+}
+
+function updateSaisieSummary() {
+  const { worked, ferie, cp, cnp } = getSummary();
+  const indicator = autoSaveStatus
+    ? `<div style="grid-column:1/-1;text-align:center;font-size:11px;color:${autoSaveStatus.color};margin-top:8px;">${autoSaveStatus.text}</div>`
+    : '';
+  document.getElementById('saisie-summary').innerHTML = `
+    <div style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:var(--forest);">${worked}</div>
+      <div style="font-size:11px;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;">Travaillés</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:var(--gold);">${ferie}</div>
+      <div style="font-size:11px;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;">Fériés</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:var(--terracotta);">${cp}</div>
+      <div style="font-size:11px;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;">CP</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:var(--danger);">${cnp}</div>
+      <div style="font-size:11px;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;">CNP</div>
+    </div>
+    ${indicator}
+  `;
+}
+
+// ── AUTO-SAVE (debounced) ──
+let autoSaveTimer = null;
+let autoSaveStatus = null;
+
+function scheduleAutoSaveSaisie() {
+  autoSaveStatus = { text: '⏳ Modifications en cours...', color: 'var(--mid)' };
+  updateSaisieSummary();
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => doSaveSaisie(true), 800);
+}
+
+async function doSaveSaisie(silent) {
+  if (!currentContratId) {
+    if (!silent) alert('Aucun contrat actif pour cette période.');
+    return;
+  }
+  const row = {
+    contrat_id: currentContratId,
+    user_id: currentUser.id,
+    annee: selectedYear,
+    mois: selectedMonth,
+    jours_data: calendarState,
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await sbClient.from('childminderapp_saisies').upsert(row,
+    { onConflict: 'contrat_id,annee,mois' });
+  if (error) {
+    autoSaveStatus = { text: '⚠️ Erreur : ' + error.message, color: 'var(--danger)' };
+    updateSaisieSummary();
+    if (!silent) alert('Erreur : ' + error.message);
+    return;
+  }
+  autoSaveStatus = { text: '✓ Enregistré automatiquement', color: 'var(--success)' };
+  updateSaisieSummary();
+  setTimeout(() => { autoSaveStatus = null; updateSaisieSummary(); }, 2500);
+}
+
+async function saveSaisie() {
+  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+  await doSaveSaisie(false);
+  if (!autoSaveStatus || autoSaveStatus.color !== 'var(--danger)') {
+    autoSaveStatus = { text: '✓ Sauvegardé', color: 'var(--success)' };
+    updateSaisieSummary();
+    setTimeout(() => { autoSaveStatus = null; updateSaisieSummary(); }, 2500);
+  }
+}
+
+// ══════════════════════════════════════════
+//  FICHE DE PAIE
+// ══════════════════════════════════════════
+async function generateFiche() {
+  if (!currentContratId) { alert('Aucun contrat actif pour cette période.'); return; }
+  const n = allNounous.find(x => x.id === currentNounouId);
+  const contrat = (n?.contrats || []).find(c => c.id === currentContratId);
+  if (!contrat) { alert('Contrat introuvable.'); return; }
+  const { worked, ferie, cp, cnp } = getSummary();
+  const profile = currentUser.user_metadata?.full_name || currentUser.email;
+
+  const totalRepas = worked * parseFloat(contrat.prix_repas || 0);
+  const totalEntretien = worked * parseFloat(contrat.prix_entretien || 0);
+  const salaireMensuel = parseFloat(contrat.salaire_mensuel || 0);
+  const joursContratAnnuel = contrat.jours_contrat || 178;
+  const joursContratMoyenMois = joursContratAnnuel / 12;
+  const tarifJournalier = joursContratMoyenMois > 0 ? salaireMensuel / joursContratMoyenMois : 0;
+  const deductionCNP = cnp > 0 ? tarifJournalier * cnp : 0;
+  const salaireNet = salaireMensuel - deductionCNP;
+  const totalMensuel = salaireNet + totalRepas + totalEntretien;
+
+  // ── Charger les données annuelles du contrat pour le récap + mini-prévisuel ──
+  // On réutilise les variables globales du prévisuel temporairement
+  const prevPrevuContrat = prevuContrat;
+  const prevPrevuMonths = prevuMonths;
+  const prevPrevuState = prevuState;
+
+  prevuContrat = contrat;
+  // Build month list from date_debut to date_fin
+  const debut = new Date(contrat.date_debut + 'T00:00:00');
+  const fin = contrat.date_fin
+    ? new Date(contrat.date_fin + 'T00:00:00')
+    : new Date(debut.getFullYear() + 1, debut.getMonth(), 0);
+  prevuMonths = [];
+  let yy = debut.getFullYear(), mm = debut.getMonth();
+  while (yy < fin.getFullYear() || (yy === fin.getFullYear() && mm <= fin.getMonth())) {
+    prevuMonths.push({ year: yy, month: mm });
+    mm++;
+    if (mm > 11) { mm = 0; yy++; }
+  }
+  await loadPrevuSaisies(contrat.id);
+
+  // Build recap table HTML — only fill data up to the selected (current) month
+  const allRecapRows = computeRunningTable();
+  const currentMonthIdx = selectedMonth - 1; // 0-indexed
+  const isFutureMonth = (year, monthIdx) => {
+    if (year > selectedYear) return true;
+    if (year === selectedYear && monthIdx > currentMonthIdx) return true;
+    return false;
+  };
+
+  // ── Calculs pour le Récapitulatif du mois (4 colonnes) ──
+  // Trouve la ligne du mois en cours (pour jours restants début/fin)
+  const currentRow = allRecapRows.find(r => r.year === selectedYear && r.month === currentMonthIdx);
+  const joursRestantsDebut = currentRow ? currentRow.joursRestantsDebut : (contrat.jours_contrat || 178);
+  const joursRestantsFin = currentRow ? currentRow.joursRestantsFin : joursRestantsDebut;
+
+  // Totaux prévus sur l'ensemble du contrat
+  const totalWorkPlanned = allRecapRows.reduce((acc, r) => acc + r.stats.work, 0);
+  const totalFeriePlanned = allRecapRows.reduce((acc, r) => acc + r.stats.ferie, 0);
+  const totalCpPlanned = allRecapRows.reduce((acc, r) => acc + r.stats.cp, 0);
+  const totalCnpPlanned = allRecapRows.reduce((acc, r) => acc + r.stats.cnp, 0);
+  const nbMoisContrat = prevuMonths.length;
+
+  // Indemnités et salaires prévus (sur la base du prévisionnel saisi)
+  const totalRepasPrevu = totalWorkPlanned * parseFloat(contrat.prix_repas || 0);
+  const totalEntretienPrevu = totalWorkPlanned * parseFloat(contrat.prix_entretien || 0);
+  const totalSalaireMensualisePrevu = salaireMensuel * nbMoisContrat;
+  const deductionCNPPrevu = totalCnpPlanned * tarifJournalier;
+  const totalSalaireMensuelPrevu = totalSalaireMensualisePrevu - deductionCNPPrevu + totalRepasPrevu + totalEntretienPrevu;
+
+  // Helper for colored badges in "Mois en cours" column
+  const ficheBadge = (label, color) => `<span style="display:inline-block;padding:3px 12px;border-radius:4px;background:${color};color:white;font-weight:700;font-size:11px;letter-spacing:.5px;">${label}</span>`;
+
+  // For display: future months = blank cells (no values, no cumul)
+  const recapRows = allRecapRows.map(r => {
+    const future = isFutureMonth(r.year, r.month);
+    return { ...r, future };
+  });
+  // Totals only count past+current months
+  const recapTotals = recapRows.reduce((acc, r) => {
+    if (r.future) return acc;
+    acc.work += r.stats.work;
+    acc.ferie += r.stats.ferie;
+    acc.cp += r.stats.cp;
+    acc.cnp += r.stats.cnp;
+    return acc;
+  }, { work: 0, ferie: 0, cp: 0, cnp: 0 });
+  // Last non-future row's joursRestantsFin = current cumul to show in Total column
+  const lastNonFuture = [...recapRows].reverse().find(r => !r.future);
+  const totalRestantFin = lastNonFuture ? lastNonFuture.joursRestantsFin : (prevuContrat.jours_contrat || 178);
+
+  // ── Calculs salariaux par mois (pour les lignes monétaires du récap annuel) ──
+  const monthlySalary = recapRows.map(r => {
+    if (r.future) return null;
+    const repas = r.stats.work * parseFloat(contrat.prix_repas || 0);
+    const entretien = r.stats.work * parseFloat(contrat.prix_entretien || 0);
+    const deduction = r.stats.cnp * tarifJournalier;
+    const salaireNet = salaireMensuel - deduction;
+    const totalMois = salaireNet + repas + entretien;
+    return { repas, entretien, salaireMensualise: salaireMensuel, totalMois };
+  });
+  const sumRepas = monthlySalary.reduce((s, m) => s + (m ? m.repas : 0), 0);
+  const sumEntretien = monthlySalary.reduce((s, m) => s + (m ? m.entretien : 0), 0);
+  const sumSalaireMensualise = monthlySalary.reduce((s, m) => s + (m ? m.salaireMensualise : 0), 0);
+  const sumTotalMensuel = monthlySalary.reduce((s, m) => s + (m ? m.totalMois : 0), 0);
+
+  const cell = (v, future) => future ? '<td style="color:var(--light);">—</td>' : `<td>${v}</td>`;
+  const cellEur = (v, future) => future ? '<td style="color:var(--light);">—</td>' : `<td>${fmt(v)} €</td>`;
+
+  const recapHead = `<tr>
+    <th class="recap-row-header">Mois</th>
+    ${recapRows.map(r => `<th${r.future ? ' style="opacity:.4;"' : ''}>${r.label}<br><span style="font-size:8px;font-weight:400;opacity:.6;">'${String(r.year).slice(2)}</span></th>`).join('')}
+    <th class="recap-total-col">Total</th>
+  </tr>`;
+
+  const recapBody = `
+    <tr>
+      <th class="recap-row-header">Jours restant début de mois</th>
+      ${recapRows.map(r => cell(r.joursRestantsDebut, r.future)).join('')}
+      <td class="recap-total-col">—</td>
+    </tr>
+    <tr class="recap-work">
+      <th class="recap-row-header">Jours travaillés au mois</th>
+      ${recapRows.map(r => cell(r.stats.work || 0, r.future)).join('')}
+      <td class="recap-total-col">${recapTotals.work}</td>
+    </tr>
+    <tr class="recap-ferie">
+      <th class="recap-row-header">Jours fériés au mois</th>
+      ${recapRows.map(r => cell(r.stats.ferie || 0, r.future)).join('')}
+      <td class="recap-total-col">${recapTotals.ferie}</td>
+    </tr>
+    <tr class="recap-cp">
+      <th class="recap-row-header">Congés payés au mois</th>
+      ${recapRows.map(r => cell(r.stats.cp || 0, r.future)).join('')}
+      <td class="recap-total-col">${recapTotals.cp}</td>
+    </tr>
+    <tr class="recap-cnp">
+      <th class="recap-row-header">Congés non payés au mois</th>
+      ${recapRows.map(r => cell(r.stats.cnp || 0, r.future)).join('')}
+      <td class="recap-total-col">${recapTotals.cnp}</td>
+    </tr>
+    <tr>
+      <th class="recap-row-header">Jours restant fin de mois</th>
+      ${recapRows.map(r => cell(r.joursRestantsFin, r.future)).join('')}
+      <td class="recap-total-col">${totalRestantFin}</td>
+    </tr>
+    <tr>
+      <th class="recap-row-header">Total repas au mois</th>
+      ${recapRows.map((r,i) => cellEur(monthlySalary[i] ? monthlySalary[i].repas : 0, r.future)).join('')}
+      <td class="recap-total-col">${fmt(sumRepas)} €</td>
+    </tr>
+    <tr>
+      <th class="recap-row-header">Total entretien au mois</th>
+      ${recapRows.map((r,i) => cellEur(monthlySalary[i] ? monthlySalary[i].entretien : 0, r.future)).join('')}
+      <td class="recap-total-col">${fmt(sumEntretien)} €</td>
+    </tr>
+    <tr>
+      <th class="recap-row-header">Total salaire mensualisé</th>
+      ${recapRows.map((r,i) => cellEur(monthlySalary[i] ? monthlySalary[i].salaireMensualise : 0, r.future)).join('')}
+      <td class="recap-total-col">${fmt(sumSalaireMensualise)} €</td>
+    </tr>
+    <tr class="recap-highlight">
+      <th class="recap-row-header">Total salaire mensuel</th>
+      ${recapRows.map((r,i) => cellEur(monthlySalary[i] ? monthlySalary[i].totalMois : 0, r.future)).join('')}
+      <td class="recap-total-col">${fmt(sumTotalMensuel)} €</td>
+    </tr>
+  `;
+
+  // Labels pour les cellules du calendrier dans la grand-table
+  const miniLabel = { off: '', weekend: '', work: '1', ferie: 'F', cp: 'CP', cnp: 'CNP' };
+
+  document.getElementById('print-area').innerHTML = `
+    <div class="fiche-header">
+      <div>
+        <div class="fiche-employer">Employeur</div>
+        <div class="fiche-employer-name">${profile}</div>
+      </div>
+      <div class="fiche-title-block">
+        <div class="fiche-title">Bulletin de salaire</div>
+        <div class="fiche-period">${MONTHS_FR[selectedMonth - 1]} ${selectedYear}</div>
+      </div>
+    </div>
+    <div class="fiche-nanny-bar">
+      <div>
+        <div style="font-size:11px;opacity:.6;letter-spacing:1px;text-transform:uppercase;">Assistante maternelle</div>
+        <div class="fiche-nanny-name">${n.prenom} ${n.nom}</div>
+      </div>
+      <div style="text-align:right;">
+        ${contrat.enfant_nom ? `<div style="font-size:12px;opacity:.7;">Enfant gardé</div><div style="font-weight:600;">${contrat.enfant_nom}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- ─ Section 1 : Récapitulatif du mois (4 colonnes) ─ -->
+    <div class="fiche-section">
+      <div class="fiche-section-title">Récapitulatif du mois — ${MONTHS_FR[selectedMonth - 1]} ${selectedYear}</div>
+      <table class="fiche-recap-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="col-current">Mois en cours</th>
+            <th class="col-cumul">Total cumulé</th>
+            <th class="col-prevu">Total prévu</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Jours restants début de mois</th>
+            <td class="num">${joursRestantsDebut}</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <th>Jours travaillés</th>
+            <td class="num" style="color:var(--forest);">${worked}</td>
+            <td class="num">${recapTotals.work}</td>
+            <td class="num">${contrat.jours_contrat}</td>
+          </tr>
+          <tr>
+            <th>Jours fériés</th>
+            <td class="num" style="color:#b8881e;">${ferie}</td>
+            <td class="num">${recapTotals.ferie}</td>
+            <td class="num">${totalFeriePlanned}</td>
+          </tr>
+          <tr>
+            <th>Congés payés</th>
+            <td class="num" style="color:var(--terracotta);">${cp}</td>
+            <td class="num">${recapTotals.cp}</td>
+            <td class="num">${contrat.jours_cp || 0}</td>
+          </tr>
+          <tr>
+            <th>Congés non payés</th>
+            <td class="num" style="color:var(--danger);">${cnp}</td>
+            <td class="num">${recapTotals.cnp}</td>
+            <td class="num">${contrat.jours_cnp || 0}</td>
+          </tr>
+          <tr>
+            <th>Jours restant fin de mois</th>
+            <td class="num">${joursRestantsFin}</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr class="row-spacer"><td colspan="4"></td></tr>
+          <tr>
+            <th>Total repas</th>
+            <td class="num">${fmt(totalRepas)} €</td>
+            <td class="num">${fmt(sumRepas)} €</td>
+            <td class="num">${fmt(totalRepasPrevu)} €</td>
+          </tr>
+          <tr>
+            <th>Total entretien</th>
+            <td class="num">${fmt(totalEntretien)} €</td>
+            <td class="num">${fmt(sumEntretien)} €</td>
+            <td class="num">${fmt(totalEntretienPrevu)} €</td>
+          </tr>
+          <tr>
+            <th>Total salaire mensualisé</th>
+            <td class="num">${fmt(salaireMensuel)} €</td>
+            <td class="num">${fmt(sumSalaireMensualise)} €</td>
+            <td class="num">${fmt(totalSalaireMensualisePrevu)} €</td>
+          </tr>
+          <tr class="row-highlight">
+            <th>Total salaire mensuel</th>
+            <td class="num">${fmt(totalMensuel)} €</td>
+            <td class="num">${fmt(sumTotalMensuel)} €</td>
+            <td class="num">${fmt(totalSalaireMensuelPrevu)} €</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="fiche-total-bar">
+      <div>
+        <div class="fiche-total-label">Total à verser ce mois</div>
+        <div style="font-size:12px;opacity:.5;margin-top:2px;">${MONTHS_FR[selectedMonth - 1]} ${selectedYear}</div>
+      </div>
+      <div class="fiche-total-amount">${fmt(totalMensuel)} €</div>
+    </div>
+
+    <!-- ─ Section 2 : Calendrier annuel + Récapitulatif combinés ─ -->
+    <div class="fiche-section">
+      <div class="fiche-section-title">Calendrier &amp; récapitulatif annuel</div>
+      <div style="font-size:10px;color:var(--mid);margin-bottom:6px;">
+        Période : ${fmtDate(contrat.date_debut)} → ${contrat.date_fin ? fmtDate(contrat.date_fin) : 'indéterminée'}
+        · Total prévu : <strong>${joursContratAnnuel} jours</strong>
+      </div>
+
+      <!-- Légende couleurs -->
+      <div class="fiche-cal-color-legend">
+        <span><span class="dot" style="background:var(--forest)"></span> Travaillé</span>
+        <span><span class="dot" style="background:#f5d4d0"></span> Repos</span>
+        <span><span class="dot" style="background:#C9C9C9"></span> Week-end</span>
+        <span><span class="dot" style="background:var(--gold)"></span> Férié</span>
+        <span><span class="dot" style="background:var(--terracotta)"></span> CP</span>
+        <span><span class="dot" style="background:var(--danger)"></span> CNP</span>
+        <span><span class="dot" style="background:var(--ink)"></span> Hors contrat</span>
+      </div>
+
+      <!-- Tableau combiné : calendrier + données -->
+      <table class="fiche-grand-table">
+        <colgroup>
+          <col class="col-label">
+          ${prevuMonths.map(() => '<col class="col-month">').join('')}
+          <col class="col-total">
+        </colgroup>
+        <thead>
+          <tr>
+            <th></th>
+            ${prevuMonths.map(pm => {
+              const future = isFutureMonth(pm.year, pm.month);
+              return `<th${future ? ' style="opacity:.4;"' : ''}>${MONTHS_SHORT[pm.month].toUpperCase()}<br><span style="font-weight:400;opacity:.6;font-size:8px;">'${String(pm.year).slice(2)}</span></th>`;
+            }).join('')}
+            <th class="total-header">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${(() => {
+            // 31 calendar rows
+            let cal = '';
+            for (let d = 1; d <= 31; d++) {
+              cal += `<tr class="cal-row"><th class="cal-day">${d}</th>`;
+              prevuMonths.forEach(pm => {
+                const daysInMonth = new Date(pm.year, pm.month + 1, 0).getDate();
+                if (d > daysInMonth) {
+                  cal += `<td><div class="cal-cell" style="visibility:hidden;"></div></td>`;
+                } else {
+                  const state = getCellState(pm.year, pm.month, d);
+                  cal += `<td><div class="cal-cell s-${state}">${miniLabel[state] || ''}</div></td>`;
+                }
+              });
+              cal += `<td class="total-blank"></td></tr>`;
+            }
+            return cal;
+          })()}
+
+          <!-- Spacer -->
+          <tr class="grand-spacer"><td colspan="${prevuMonths.length + 2}"></td></tr>
+
+          ${(() => {
+            // Data rows (A)-(J)
+            const rowDefs = [
+              { key: 'A', getVal: (r) => r.future ? null : r.joursRestantsDebut, totalVal: '—' },
+              { key: 'B', cls: 'd-work', getVal: (r) => r.future ? null : (r.stats.work || 0), totalVal: recapTotals.work },
+              { key: 'C', cls: 'd-ferie', getVal: (r) => r.future ? null : (r.stats.ferie || 0), totalVal: recapTotals.ferie },
+              { key: 'D', cls: 'd-cp', getVal: (r) => r.future ? null : (r.stats.cp || 0), totalVal: recapTotals.cp },
+              { key: 'E', cls: 'd-cnp', getVal: (r) => r.future ? null : (r.stats.cnp || 0), totalVal: recapTotals.cnp },
+              { key: 'F', getVal: (r) => r.future ? null : r.joursRestantsFin, totalVal: totalRestantFin },
+              { key: 'G', getVal: (r, i) => monthlySalary[i] ? fmt(monthlySalary[i].repas) + ' €' : null, totalVal: fmt(sumRepas) + ' €' },
+              { key: 'H', getVal: (r, i) => monthlySalary[i] ? fmt(monthlySalary[i].entretien) + ' €' : null, totalVal: fmt(sumEntretien) + ' €' },
+              { key: 'I', getVal: (r, i) => monthlySalary[i] ? fmt(monthlySalary[i].salaireMensualise) + ' €' : null, totalVal: fmt(sumSalaireMensualise) + ' €' },
+              { key: 'J', cls: 'd-highlight', getVal: (r, i) => monthlySalary[i] ? fmt(monthlySalary[i].totalMois) + ' €' : null, totalVal: fmt(sumTotalMensuel) + ' €' },
+            ];
+            return rowDefs.map(def => {
+              const cells = recapRows.map((r, i) => {
+                const v = def.getVal(r, i);
+                return v === null ? '<td class="data-future">—</td>' : `<td>${v}</td>`;
+              }).join('');
+              return `<tr class="data-row ${def.cls || ''}">
+                <th class="data-label">(${def.key})</th>
+                ${cells}
+                <td class="data-total">${def.totalVal}</td>
+              </tr>`;
+            }).join('');
+          })()}
+        </tbody>
+      </table>
+
+      <!-- Légende des libellés -->
+      <div class="fiche-letter-legend">
+        <div><strong>(A)</strong> Jours restant début de mois</div>
+        <div><strong>(B)</strong> Jours travaillés au mois</div>
+        <div><strong>(C)</strong> Jours fériés au mois</div>
+        <div><strong>(D)</strong> Congés payés au mois</div>
+        <div><strong>(E)</strong> Congés non payés au mois</div>
+        <div><strong>(F)</strong> Jours restant fin de mois</div>
+        <div><strong>(G)</strong> Total repas au mois</div>
+        <div><strong>(H)</strong> Total entretien au mois</div>
+        <div><strong>(I)</strong> Total salaire mensualisé</div>
+        <div><strong>(J)</strong> Total salaire mensuel</div>
+      </div>
+    </div>
+
+    <div class="fiche-footer" style="padding:8px 24px;font-size:10px;color:var(--mid);display:flex;justify-content:space-between;">
+      <span>Généré le ${new Date().toLocaleDateString('fr-FR')}</span>
+      <span>Ce document ne constitue pas un bulletin de salaire officiel</span>
+    </div>
+  `;
+
+  // Restaure le contexte global du prévisuel (après génération du HTML)
+  prevuContrat = prevPrevuContrat;
+  prevuMonths = prevPrevuMonths;
+  prevuState = prevPrevuState;
+
+  document.getElementById('fiche-zone').style.display = 'block';
+  document.getElementById('fiche-zone').scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeFiche() {
+  document.getElementById('fiche-zone').style.display = 'none';
+}
+
+function quickPaie(nounouId) {
+  showPage('paie');
+  selectNounouPaie(nounouId, allNounous.find(n => n.id === nounouId)?.prenom + ' ' + allNounous.find(n => n.id === nounouId)?.nom);
+}
+
+// ══════════════════════════════════════════
+//  MODAL HELPERS
+// ══════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => {
+    if (e.target === el) el.classList.remove('show');
+  });
+});
+
+function showErr(elId, msg) {
+  const el = document.getElementById(elId);
+  el.textContent = msg;
+  el.className = 'msg msg-error show';
+}
+
+// ══════════════════════════════════════════
+//  DATE HELPERS
+// ══════════════════════════════════════════
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('fr-FR');
+}
+
+// ══════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.show').forEach(el => el.classList.remove('show'));
+  }
+});
+
+
+// ══════════════════════════════════════════
+//  PRÉVISUEL ANNUEL (vue calendrier annuel)
+// ══════════════════════════════════════════
+let prevuContrat = null;
+let prevuState = {}; // { "2025-09-15": "work" | "off" | "ferie" | "cp" | "cnp" }
+let prevuMonths = []; // [{year, month}, ...] from start to end
+const PREVU_CYCLE_WEEKDAY = ['off', 'work', 'ferie', 'cp', 'cnp'];
+const PREVU_CYCLE_WEEKEND = ['weekend', 'work', 'ferie', 'cp', 'cnp'];
+const PREVU_LABEL = { off: 'R', work: '1', ferie: 'F', cp: 'CP', cnp: 'CNP', weekend: '' };
+
+async function openContratPrevu(contratId) {
+  // Find contrat
+  const c = currentContrats.find(x => x.id === contratId);
+  if (!c) return;
+  prevuContrat = c;
+  // Reset auto-save state
+  prevuDirtyMonths.clear();
+  if (prevuAutoSaveTimer) { clearTimeout(prevuAutoSaveTimer); prevuAutoSaveTimer = null; }
+  const n = allNounous.find(x => x.id === c.nounou_id);
+  const nomComplet = n ? `${n.prenom} ${n.nom}` : '';
+
+  document.getElementById('modal-prevu-title').textContent =
+    `Prévisuel annuel — ${nomComplet}`;
+  document.getElementById('modal-prevu-sub').textContent =
+    `Période : ${fmtDate(c.date_debut)} → ${c.date_fin ? fmtDate(c.date_fin) : 'indéterminée'}` +
+    (c.enfant_nom ? ` · 👶 ${c.enfant_nom}` : '');
+
+  // Build month list from date_debut to date_fin (or +12 months if no end)
+  const debut = new Date(c.date_debut);
+  const fin = c.date_fin ? new Date(c.date_fin) : new Date(debut.getFullYear() + 1, debut.getMonth(), 0);
+  prevuMonths = [];
+  let y = debut.getFullYear();
+  let m = debut.getMonth();
+  while (y < fin.getFullYear() || (y === fin.getFullYear() && m <= fin.getMonth())) {
+    prevuMonths.push({ year: y, month: m });
+    m++;
+    if (m > 11) { m = 0; y++; }
+  }
+
+  // Load all saisies for this contrat (always fresh from DB)
+  await loadPrevuSaisies(contratId);
+
+  // Render
+  renderPrevuGrid();
+  renderPrevuKpis();
+
+  openModal('modal-prevu');
+  // Clear any leftover status text
+  setTimeout(() => setPrevuStatus('', 'var(--mid)'), 0);
+}
+
+async function loadPrevuSaisies(contratId) {
+  prevuState = {};
+  const { data, error } = await sbClient.from('childminderapp_saisies')
+    .select('*')
+    .eq('contrat_id', contratId);
+  if (error) { console.error(error); return; }
+  (data || []).forEach(s => {
+    const jd = s.jours_data || {};
+    Object.keys(jd).forEach(day => {
+      // Normalize legacy 'worked' to 'work'
+      const old = jd[day];
+      const mapped = old === 'worked' ? 'work' : old;
+      if (!mapped) return;
+      const key = `${s.annee}-${String(s.mois).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      // Keep all states including 'off' (explicit overrides)
+      prevuState[key] = mapped;
+    });
+  });
+}
+
+function dateKey(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function isWithinContrat(y, m, d) {
+  if (!prevuContrat) return false;
+  const dt = new Date(y, m, d).setHours(0,0,0,0);
+  const deb = new Date(prevuContrat.date_debut + 'T00:00:00').setHours(0,0,0,0);
+  const fin = prevuContrat.date_fin
+    ? new Date(prevuContrat.date_fin + 'T00:00:00').setHours(0,0,0,0)
+    : null;
+  if (dt < deb) return false;
+  if (fin !== null && dt > fin) return false;
+  return true;
+}
+
+function getCellState(y, m, d) {
+  if (!isWithinContrat(y, m, d)) return 'out';
+  const key = dateKey(y, m, d);
+  if (prevuState[key]) return prevuState[key];
+  // Default: weekend = weekend (gris), weekday = work
+  const dow = new Date(y, m, d).getDay();
+  return (dow === 0 || dow === 6) ? 'weekend' : 'work';
+}
+
+function renderPrevuGrid() {
+  const wrap = document.getElementById('prevu-grid-wrap');
+  // Build a table: rows = days 1..31, columns = months
+  let html = '<table class="prevu-table"><thead><tr><th class="day-col"></th>';
+  prevuMonths.forEach(pm => {
+    const label = MONTHS_SHORT[pm.month].toUpperCase();
+    const year = String(pm.year).slice(2);
+    html += `<th>${label} <span style="opacity:.5;font-weight:400;">'${year}</span></th>`;
+  });
+  html += '</tr></thead><tbody>';
+  for (let d = 1; d <= 31; d++) {
+    html += `<tr><th class="day-col">${d}</th>`;
+    prevuMonths.forEach(pm => {
+      const daysInMonth = new Date(pm.year, pm.month + 1, 0).getDate();
+      if (d > daysInMonth) {
+        html += `<td><div class="prevu-cell" style="visibility:hidden;"></div></td>`;
+      } else {
+        const state = getCellState(pm.year, pm.month, d);
+        const key = dateKey(pm.year, pm.month, d);
+        const onClick = state === 'out' ? '' : `onclick="cyclePrevuCell('${key}')"`;
+        html += `<td><div class="prevu-cell s-${state}" id="pc-${key}" ${onClick}>${PREVU_LABEL[state] || ''}</div></td>`;
+      }
+    });
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function cyclePrevuCell(key) {
+  const [yStr, mStr, dStr] = key.split('-');
+  const y = parseInt(yStr), m = parseInt(mStr) - 1, d = parseInt(dStr);
+  if (!isWithinContrat(y, m, d)) return;
+  const dow = new Date(y, m, d).getDay();
+  const isWeekend = (dow === 0 || dow === 6);
+  const cycle = isWeekend ? PREVU_CYCLE_WEEKEND : PREVU_CYCLE_WEEKDAY;
+  const current = prevuState[key] || cycle[0];
+  let idx = cycle.indexOf(current);
+  const next = cycle[(idx + 1 + cycle.length) % cycle.length];
+  prevuState[key] = next;
+  // Track which months were touched for targeted auto-save
+  prevuDirtyMonths.add(`${y}-${m}`);
+  // Update cell only
+  const el = document.getElementById(`pc-${key}`);
+  if (el) {
+    el.className = `prevu-cell s-${next}`;
+    el.textContent = PREVU_LABEL[next] || '';
+  }
+  renderPrevuKpis();
+  schedulePrevuAutoSave();
+}
+
+// ── PRÉVU AUTO-SAVE ──
+let prevuDirtyMonths = new Set();
+let prevuAutoSaveTimer = null;
+
+function schedulePrevuAutoSave() {
+  setPrevuStatus('⏳ Sauvegarde en attente...', 'var(--mid)');
+  if (prevuAutoSaveTimer) clearTimeout(prevuAutoSaveTimer);
+  prevuAutoSaveTimer = setTimeout(() => doSavePrevu(true), 1000);
+}
+
+function setPrevuStatus(text, color) {
+  const el = document.getElementById('prevu-save-status');
+  if (el) {
+    el.textContent = text;
+    el.style.color = color;
+  }
+}
+
+// ── STATS UTILITAIRES (mois et cumul) ──
+
+// Compte les jours par état pour un mois donné, en se basant sur prevuState et getCellState.
+// Retourne { work, off, ferie, cp, cnp, total }  (total = jours du mois dans le contrat)
+function computeMonthStats(year, monthIdx) {
+  const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+  let work = 0, off = 0, weekend = 0, ferie = 0, cp = 0, cnp = 0, total = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    if (!isWithinContrat(year, monthIdx, d)) continue;
+    total++;
+    const s = getCellState(year, monthIdx, d);
+    if (s === 'work') work++;
+    else if (s === 'off') off++;
+    else if (s === 'weekend') weekend++;
+    else if (s === 'ferie') ferie++;
+    else if (s === 'cp') cp++;
+    else if (s === 'cnp') cnp++;
+  }
+  return { work, off, weekend, ferie, cp, cnp, total };
+}
+
+// Construit un tableau de cumul pour chaque mois du contrat
+// → [{ year, month, label, stats, joursRestantsDebut, joursRestantsFin }]
+function computeRunningTable() {
+  if (!prevuContrat) return [];
+  const totalContrat = prevuContrat.jours_contrat || 178;
+  let restantsDebut = totalContrat;
+  const rows = prevuMonths.map(pm => {
+    const stats = computeMonthStats(pm.year, pm.month);
+    // F (jours restant fin de mois) = A − B − C − D (début − travaillés − fériés − CP, hors CNP)
+    const restantsFin = restantsDebut - stats.work - stats.ferie - stats.cp;
+    const row = {
+      year: pm.year,
+      month: pm.month,
+      label: MONTHS_SHORT[pm.month],
+      stats,
+      joursRestantsDebut: restantsDebut,
+      joursRestantsFin: restantsFin
+    };
+    restantsDebut = restantsFin;
+    return row;
+  });
+  return rows;
+}
+
+function renderPrevuKpis() {
+  if (!prevuContrat) return;
+  // Totaux
+  let work = 0, off = 0, ferie = 0, cp = 0, cnp = 0;
+  prevuMonths.forEach(pm => {
+    const s = computeMonthStats(pm.year, pm.month);
+    work += s.work; off += s.off; ferie += s.ferie; cp += s.cp; cnp += s.cnp;
+  });
+
+  const workPrevu = prevuContrat.jours_contrat || 178;
+  const nbMois = prevuMonths.length;
+  const cpPrevu = prevuContrat.jours_cp || 0;
+  const cnpPrevu = prevuContrat.jours_cnp || 0;
+
+  const workDiff = work - workPrevu;
+  const cpDiff = cp - cpPrevu;
+  const cnpDiff = cnp - cnpPrevu;
+
+  function trendBadge(diff) {
+    if (diff === 0) return `<div class="kpi-trend ok">✓ Conforme</div>`;
+    if (diff > 0) return `<div class="kpi-trend over">+${diff} en trop</div>`;
+    return `<div class="kpi-trend under">${Math.abs(diff)} restant${Math.abs(diff) > 1 ? 's' : ''}</div>`;
+  }
+
+  document.getElementById('prevu-kpis').innerHTML = `
+    <div class="kpi-card k-work">
+      <div class="kpi-label">Jours travaillés</div>
+      <div class="kpi-val">${work} <span style="font-size:14px;color:var(--mid);">/ ${workPrevu}</span></div>
+      <div class="kpi-sub">Total prévu au contrat (${nbMois} mois)</div>
+      ${trendBadge(workDiff)}
+    </div>
+    <div class="kpi-card k-cp">
+      <div class="kpi-label">Congés payés</div>
+      <div class="kpi-val">${cp} <span style="font-size:14px;color:var(--mid);">/ ${cpPrevu}</span></div>
+      <div class="kpi-sub">Quota annuel</div>
+      ${trendBadge(cpDiff)}
+    </div>
+    <div class="kpi-card k-cnp">
+      <div class="kpi-label">Congés non payés</div>
+      <div class="kpi-val">${cnp} <span style="font-size:14px;color:var(--mid);">/ ${cnpPrevu}</span></div>
+      <div class="kpi-sub">Quota annuel</div>
+      ${trendBadge(cnpDiff)}
+    </div>
+    <div class="kpi-card k-ferie">
+      <div class="kpi-label">Jours fériés</div>
+      <div class="kpi-val">${ferie}</div>
+      <div class="kpi-sub">Sur la période</div>
+      <div class="kpi-trend ok">Saisis manuellement</div>
+    </div>
+  `;
+
+  // Render running totals table
+  renderRunningTable();
+}
+
+function renderRunningTable() {
+  const wrap = document.getElementById('prevu-recap-wrap');
+  if (!wrap) return;
+  const rows = computeRunningTable();
+  if (!rows.length) { wrap.innerHTML = ''; return; }
+
+  const totals = rows.reduce((acc, r) => {
+    acc.work += r.stats.work;
+    acc.ferie += r.stats.ferie;
+    acc.cp += r.stats.cp;
+    acc.cnp += r.stats.cnp;
+    return acc;
+  }, { work: 0, ferie: 0, cp: 0, cnp: 0 });
+
+  const head = `<tr>
+    <th class="recap-row-header">Mois</th>
+    ${rows.map(r => `<th>${r.label}<br><span style="font-size:9px;font-weight:400;opacity:.6;">'${String(r.year).slice(2)}</span></th>`).join('')}
+    <th class="recap-total-col">Total</th>
+  </tr>`;
+
+  const body = `
+    <tr>
+      <th class="recap-row-header">Jours restants M+1</th>
+      ${rows.map(r => `<td>${r.joursRestantsFin}</td>`).join('')}
+      <td class="recap-total-col">${rows[rows.length-1].joursRestantsFin}</td>
+    </tr>
+    <tr class="recap-work">
+      <th class="recap-row-header">Jours travaillés</th>
+      ${rows.map(r => `<td>${r.stats.work || 0}</td>`).join('')}
+      <td class="recap-total-col">${totals.work}</td>
+    </tr>
+    <tr class="recap-ferie">
+      <th class="recap-row-header">Jours fériés</th>
+      ${rows.map(r => `<td>${r.stats.ferie || 0}</td>`).join('')}
+      <td class="recap-total-col">${totals.ferie}</td>
+    </tr>
+    <tr class="recap-cp">
+      <th class="recap-row-header">Congés payés</th>
+      ${rows.map(r => `<td>${r.stats.cp || 0}</td>`).join('')}
+      <td class="recap-total-col">${totals.cp}</td>
+    </tr>
+    <tr class="recap-cnp">
+      <th class="recap-row-header">Congés non payés</th>
+      ${rows.map(r => `<td>${r.stats.cnp || 0}</td>`).join('')}
+      <td class="recap-total-col">${totals.cnp}</td>
+    </tr>
+  `;
+
+  wrap.innerHTML = `
+    <div style="margin-top:24px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--terracotta);margin-bottom:10px;">Récapitulatif mensuel</div>
+      <div style="overflow-x:auto;">
+        <table class="recap-table">
+          <thead>${head}</thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function doSavePrevu(autoMode) {
+  if (!prevuContrat) return;
+  // Determine which months to save
+  let monthsToSave;
+  if (autoMode && prevuDirtyMonths.size > 0) {
+    monthsToSave = Array.from(prevuDirtyMonths);
+  } else {
+    // Manual save: rewrite all months that have at least one entry
+    const set = new Set();
+    Object.keys(prevuState).forEach(key => {
+      const [y, m] = key.split('-');
+      set.add(`${y}-${parseInt(m) - 1}`); // m is 1-indexed in dateKey, convert to 0-indexed
+    });
+    monthsToSave = Array.from(set);
+  }
+
+  // Group prevuState by month (year-monthIndex with monthIndex 0-based)
+  const byMonth = {};
+  monthsToSave.forEach(k => { byMonth[k] = {}; });
+  Object.keys(prevuState).forEach(key => {
+    const [y, mStr, d] = key.split('-');
+    const monthIdx = parseInt(mStr) - 1; // 0-indexed
+    const k = `${y}-${monthIdx}`;
+    if (byMonth[k] !== undefined) {
+      byMonth[k][parseInt(d)] = prevuState[key];
+    }
+  });
+
+  if (Object.keys(byMonth).length === 0) {
+    if (!autoMode) alert('Aucune modification à sauvegarder.');
+    return;
+  }
+
+  const rows = [];
+  for (const k of Object.keys(byMonth)) {
+    const [y, mIdx] = k.split('-');
+    rows.push({
+      contrat_id: prevuContrat.id,
+      user_id: currentUser.id,
+      annee: parseInt(y),
+      mois: parseInt(mIdx) + 1, // store as 1-indexed in DB
+      jours_data: byMonth[k],
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  const { error } = await sbClient.from('childminderapp_saisies').upsert(rows, { onConflict: 'contrat_id,annee,mois' });
+  if (error) {
+    setPrevuStatus('⚠️ Erreur : ' + error.message, 'var(--danger)');
+    if (!autoMode) alert('Erreur : ' + error.message);
+    return;
+  }
+  prevuDirtyMonths.clear();
+  setPrevuStatus('✓ Enregistré automatiquement', 'var(--success)');
+  setTimeout(() => setPrevuStatus('', 'var(--mid)'), 2500);
+
+  // If saisie page is currently showing the same contrat/month, refresh it
+  if (currentContratId === prevuContrat.id && document.getElementById('paie-step3').style.display !== 'none') {
+    await loadSaisie();
+    buildCalendar();
+  }
+}
+
+async function savePrevu() {
+  if (prevuAutoSaveTimer) { clearTimeout(prevuAutoSaveTimer); prevuAutoSaveTimer = null; }
+  await doSavePrevu(false);
+  if (!document.getElementById('prevu-save-status')?.textContent.startsWith('⚠️')) {
+    setPrevuStatus('✓ Sauvegardé', 'var(--success)');
+    setTimeout(() => setPrevuStatus('', 'var(--mid)'), 2500);
+  }
+}
+
+// ══════════════════════════════════════════
+//  EXPOSE TO WINDOW (for inline onclick handlers)
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+function bootApp() {
+  // Attendre que la librairie Supabase (CDN) soit chargée
+  if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+    let tries = 0;
+    const wait = setInterval(() => {
+      tries++;
+      if (window.supabase && typeof window.supabase.createClient === 'function') {
+        clearInterval(wait);
+        safeInit();
+      } else if (tries > 40) { // ~8s
+        clearInterval(wait);
+        showFatalError("Impossible de charger la librairie Supabase. Vérifiez votre connexion internet puis rechargez la page.");
+      }
+    }, 200);
+    return;
+  }
+  safeInit();
+}
+
+function safeInit() {
+  try {
+    initSupabase();
+  } catch (e) {
+    showFatalError("Erreur au démarrage : " + e.message);
+  }
+}
+
+function showFatalError(msg) {
+  document.body.insertAdjacentHTML('beforeend', `
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1A1A18;color:#FAF7F2;padding:32px;font-family:system-ui,sans-serif;z-index:9999;">
+      <div style="max-width:520px;background:#FAF7F2;color:#1A1A18;padding:40px;border-radius:20px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+        <h2 style="margin:0 0 12px;color:#C8654A;">Problème de chargement</h2>
+        <p style="margin:0 0 20px;line-height:1.6;">${msg}</p>
+        <button onclick="location.reload()" style="padding:12px 24px;border:none;border-radius:10px;background:#C8654A;color:white;font-size:14px;font-weight:600;cursor:pointer;">Recharger la page</button>
+      </div>
+    </div>`);
+}
+
+// Lancement : avec defer, le DOM est déjà parsé, mais on gère les deux cas.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+  bootApp();
+}
+</script>
+</head>
+<body>
+
+<!-- Session gérée par LOGAN — pas d'écran de connexion -->
+
+<!-- ══════════════════════════════════════════
+     APP
+══════════════════════════════════════════ -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">
+      Childminder App
+    </div>
+    <nav class="topbar-nav">
+      <button class="nav-btn active" onclick="showPage('nounous')" id="nav-nounous">Mes nounous</button>
+      <button class="nav-btn" onclick="showPage('paie')" id="nav-paie">Fiches de paie</button>
+    </nav>
+    <div class="topbar-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <span id="user-email-display"></span>
+      </div>
+      <button class="btn-logout" onclick="logout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- PAGE: NOUNOUS -->
+    <div class="page active" id="page-nounous">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Mes assistantes maternelles</div>
+          <div class="page-subtitle" id="nounous-count">Chargement...</div>
+        </div>
+        <button class="btn btn-forest" onclick="openModalNounou()">
+          + Ajouter une nounou
+        </button>
+      </div>
+      <div id="nounous-list">
+        <div class="loading"><div class="spinner"></div><span>Chargement...</span></div>
+      </div>
+    </div>
+
+    <!-- PAGE: PAIE -->
+    <div class="page" id="page-paie">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Fiches de paie</div>
+          <div class="page-subtitle">Saisissez les jours du mois et générez la fiche</div>
+        </div>
+      </div>
+
+      <!-- Step 1: choose nounou -->
+      <div class="card" id="paie-step1">
+        <div class="card-title">1. Choisir l'assistante maternelle</div>
+        <div id="paie-nounou-select">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Step 2: choose month -->
+      <div class="card" id="paie-step2" style="display:none;">
+        <div class="card-title">2. Choisir le mois <span id="paie-nounou-chosen" style="font-family:'DM Sans',sans-serif;font-size:15px;color:var(--terracotta);"></span></div>
+        <div class="flex-row">
+          <div class="field" style="flex:1;margin:0;">
+            <label>Année</label>
+            <select id="paie-year"></select>
+          </div>
+        </div>
+        <div class="month-grid" id="month-grid"></div>
+      </div>
+
+      <!-- Step 3: saisie jours -->
+      <div class="card" id="paie-step3" style="display:none;">
+        <div class="card-title">3. Saisie des jours <span id="paie-month-chosen" style="font-family:'DM Sans',sans-serif;font-size:15px;color:var(--terracotta);"></span></div>
+        <div id="saisie-legend-zone" class="saisie-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--forest)"></div>Travaillé</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Férié</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--terracotta)"></div>Congé payé</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>Congé non payé</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f5d4d0"></div>Repos</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#C9C9C9"></div>Week-end</div>
+        </div>
+        <div id="calendar-grid" class="saisie-grid"></div>
+        <div style="margin-top:20px;padding:16px;background:var(--warm);border-radius:12px;">
+          <div id="saisie-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;"></div>
+        </div>
+        <div class="flex-row mt-20 flex-end">
+          <button class="btn btn-secondary" onclick="resetMonth()">Réinitialiser</button>
+          <button class="btn btn-forest" onclick="saveSaisie()">Sauvegarder la saisie</button>
+          <button class="btn btn-primary" onclick="generateFiche()">Générer la fiche de paie →</button>
+        </div>
+      </div>
+
+      <!-- Fiche de paie -->
+      <div id="fiche-zone" style="display:none;">
+        <div class="flex-row flex-end" style="margin-bottom:16px;" id="fiche-actions">
+          <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimer</button>
+          <button class="btn btn-ghost btn-sm" onclick="closeFiche()">← Retour à la saisie</button>
+        </div>
+        <div id="print-area"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+
+<!-- Modal: Ajouter/Modifier Nounou -->
+<div class="modal-overlay" id="modal-nounou">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-nounou-title">Nouvelle assistante maternelle</div>
+      <button class="modal-close" onclick="closeModal('modal-nounou')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="msg msg-error" id="nounou-err"></div>
+      <input type="hidden" id="edit-nounou-id">
+      <div class="grid-2">
+        <div class="field">
+          <label>Prénom</label>
+          <input type="text" id="n-prenom" placeholder="Marie">
+        </div>
+        <div class="field">
+          <label>Nom</label>
+          <input type="text" id="n-nom" placeholder="MARTIN">
+        </div>
+      </div>
+      <div class="field">
+        <label>Email (facultatif)</label>
+        <input type="email" id="n-email" placeholder="marie.martin@email.fr">
+      </div>
+      <div class="field">
+        <label>Téléphone (facultatif)</label>
+        <input type="tel" id="n-tel" placeholder="06 00 00 00 00">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nounou')">Annuler</button>
+      <button class="btn btn-forest" onclick="saveNounou()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Contrats -->
+<div class="modal-overlay" id="modal-contrats">
+  <div class="modal" style="max-width:750px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-contrats-title">Contrats</div>
+      <button class="modal-close" onclick="closeModal('modal-contrats')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="flex-row flex-end" style="margin-bottom:16px;">
+        <button class="btn btn-forest btn-sm" onclick="openAddContrat()">+ Nouveau contrat</button>
+      </div>
+      <div id="contrats-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ajouter/Modifier Contrat -->
+<div class="modal-overlay" id="modal-contrat-form">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-contrat-title">Nouveau contrat</div>
+      <button class="modal-close" onclick="closeModal('modal-contrat-form')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="msg msg-error" id="contrat-err"></div>
+      <input type="hidden" id="edit-contrat-id">
+      <input type="hidden" id="edit-contrat-nounou-id">
+      <div class="grid-2">
+        <div class="field">
+          <label>Date de début</label>
+          <input type="date" id="c-debut">
+        </div>
+        <div class="field">
+          <label>Date de fin</label>
+          <input type="date" id="c-fin">
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mid);margin-bottom:14px;">Paramètres salariaux</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Jours travaillés au contrat</label>
+          <input type="number" id="c-jours-contrat" placeholder="178">
+        </div>
+        <div class="field">
+          <label>Salaire mensuel brut (€)</label>
+          <input type="number" id="c-salaire" placeholder="612.00" step="0.01">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Jours CP / an</label>
+          <input type="number" id="c-cp" placeholder="25">
+        </div>
+        <div class="field">
+          <label>Jours CNP / an</label>
+          <input type="number" id="c-cnp" placeholder="0">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Prix repas / jour (€)</label>
+          <input type="number" id="c-repas" placeholder="4.95" step="0.01">
+        </div>
+        <div class="field">
+          <label>Prix entretien / jour (€)</label>
+          <input type="number" id="c-entretien" placeholder="3.96" step="0.01">
+        </div>
+      </div>
+      <div class="field">
+        <label>Nom de l'enfant gardé (facultatif)</label>
+        <input type="text" id="c-enfant" placeholder="Léa">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-contrat-form')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveContrat()">Enregistrer le contrat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Vue annuelle prévisionnelle -->
+<div class="modal-overlay" id="modal-prevu">
+  <div class="modal" style="max-width:1100px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-prevu-title">Prévisuel annuel</div>
+        <div style="font-size:13px;color:var(--mid);margin-top:4px;" id="modal-prevu-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-prevu')">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- KPIs -->
+      <div id="prevu-kpis" class="grid-4" style="margin-bottom:20px;"></div>
+
+      <!-- Légende -->
+      <div class="saisie-legend" style="margin-bottom:14px;">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--forest)"></div>Travaillé</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f5d4d0"></div>Repos</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#C9C9C9"></div>Week-end</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Férié</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--terracotta)"></div>CP</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>CNP</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--ink)"></div>Hors contrat</div>
+      </div>
+
+      <!-- Calendrier -->
+      <div id="prevu-grid-wrap" style="overflow-x:auto;"></div>
+
+      <!-- Tableau récapitulatif mensuel -->
+      <div id="prevu-recap-wrap"></div>
+
+      <div style="margin-top:14px;font-size:12px;color:var(--mid);text-align:center;">
+        Cliquez sur une cellule pour cycler entre les états.
+        <br><span style="font-size:11px;opacity:.7;">Sauvegarde automatique · synchronisé avec les fiches de paie</span>
+      </div>
+    </div>
+    <div class="modal-footer" style="align-items:center;">
+      <div id="prevu-save-status" style="flex:1;font-size:13px;font-weight:500;text-align:left;"></div>
+      <button class="btn btn-ghost" onclick="closeModal('modal-prevu')">Fermer</button>
+      <button class="btn btn-forest" onclick="savePrevu()">💾 Forcer la sauvegarde</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Partage co-parent -->
+<div class="modal-overlay" id="modal-share">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="share-title">Partager</div>
+      <button class="modal-close" onclick="closeModal('modal-share')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="msg msg-info show" style="display:block;">
+        Saisissez l'email du compte co-parent avec qui partager cette nounou.
+        Cette personne doit avoir un compte Childminder App avec ce même email.
+        Elle pourra voir et modifier les contrats, saisies et fiches de paie.
+      </div>
+      <div class="msg msg-error" id="share-err"></div>
+      <div class="flex-row" style="gap:8px;margin-top:8px;">
+        <input type="email" id="share-email-input" placeholder="coparent@email.fr" style="flex:1;padding:12px 16px;border:1.5px solid var(--sand);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;">
+        <button class="btn btn-forest" onclick="addShare()">Ajouter</button>
+      </div>
+      <div style="margin-top:16px;">
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mid);margin-bottom:10px;">Co-parents actuels</div>
+        <div id="share-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-share')">Fermer</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
