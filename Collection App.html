@@ -487,29 +487,72 @@ async function deleteProduct(id) {
 }
 
 // ============================================================
-// PRIX DE REVENTE (eBay manuel)
+// PRIX DE REVENTE (sources externes + saisie manuelle)
 // ============================================================
-// L'API eBay nécessite une clé serveur, impossible depuis un navigateur.
-// On ouvre les ventes terminées eBay et on laisse l'utilisateur saisir la moyenne.
-function openEbaySearch(productName) {
-  const q = encodeURIComponent(productName);
-  // LH_Sold=1 & LH_Complete=1 = annonces vendues / terminées
-  const url = `https://www.ebay.fr/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1&_sop=13`;
-  window.open(url, '_blank');
+// Aucune API publique gratuite ne permet de récupérer le prix sans serveur.
+// On ouvre les sources de ventes réelles et l'utilisateur saisit la moyenne.
+
+function ebayUrl(name) {
+  const q = encodeURIComponent(name);
+  // LH_Sold=1 & LH_Complete=1 = annonces vendues / terminées, triées par date
+  return `https://www.ebay.fr/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1&_sop=13`;
+}
+function point130Url(name) {
+  const q = encodeURIComponent(name);
+  // 130point agrège les ventes eBay réussies
+  return `https://130point.com/sales/?query=${q}&searchButton=&type=2`;
+}
+function vintedUrl(name) {
+  const q = encodeURIComponent(name);
+  // Vinted : articles en vente (indicatif, pas un historique de ventes)
+  return `https://www.vinted.fr/catalog?search_text=${q}&order=price_low_to_high`;
 }
 
-async function editSellPrice(productId) {
+function openPriceSources(productId) {
   const p = products.find(x => x.id === productId);
   if (!p) return;
-  const current = p.sell_price_ebay != null ? p.sell_price_ebay : '';
-  const val = prompt(`Prix de revente pour "${p.name}" (€)\n\nAstuce : ouvrez les ventes eBay pour voir la moyenne.`, current);
-  if (val === null) return; // annulé
-  const price = parseFloat(String(val).replace(',', '.'));
-  if (isNaN(price) || price < 0) { toast('Prix invalide', 'error'); return; }
+  document.getElementById('modal-content').innerHTML = `
+    <h2>💶 Prix de revente</h2>
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:16px">
+      Consultez les ventes réelles pour « ${escHtml(p.name)} », puis saisissez la moyenne.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+      <a class="btn btn-ghost" style="text-decoration:none;display:flex;align-items:center;gap:10px;justify-content:flex-start"
+         href="${ebayUrl(p.name)}" target="_blank" rel="noopener">
+        📦 eBay — ventes réussies
+      </a>
+      <a class="btn btn-ghost" style="text-decoration:none;display:flex;align-items:center;gap:10px;justify-content:flex-start"
+         href="${point130Url(p.name)}" target="_blank" rel="noopener">
+        📊 130point — historique des ventes
+      </a>
+      <a class="btn btn-ghost" style="text-decoration:none;display:flex;align-items:center;gap:10px;justify-content:flex-start"
+         href="${vintedUrl(p.name)}" target="_blank" rel="noopener">
+        👕 Vinted — articles en vente (indicatif)
+      </a>
+    </div>
+    <div class="form-group">
+      <label>Prix de revente moyen (€)</label>
+      <input type="number" id="sell-input" min="0" step="0.01"
+        value="${p.sell_price_ebay ?? ''}" placeholder="Ex: 24.50">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+      <button class="btn btn-primary" onclick="saveSellPrice('${p.id}')">Enregistrer</button>
+    </div>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+async function saveSellPrice(productId) {
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  const raw = document.getElementById('sell-input').value;
+  const price = raw === '' ? null : parseFloat(String(raw).replace(',', '.'));
+  if (price !== null && (isNaN(price) || price < 0)) { toast('Prix invalide', 'error'); return; }
   const { error } = await db.from('collectapp_products').update({ sell_price_ebay: price }).eq('id', productId);
   if (error) { toast('Erreur: ' + error.message, 'error'); return; }
   p.sell_price_ebay = price;
   toast('Prix mis à jour', 'success');
+  closeModal();
   renderProductsView();
 }
 
@@ -651,15 +694,15 @@ function renderProductCard(p) {
           <div class="price-chip" id="sell-${p.id}">
             <span class="price-chip-label">Revente</span>
             ${p.sell_price_ebay != null
-              ? `<span class="price-chip-val sell" style="cursor:pointer" onclick="editSellPrice('${p.id}')">€${p.sell_price_ebay.toFixed(2)} ✏️</span>`
-              : `<span class="price-chip-val loading" style="cursor:pointer" onclick="editSellPrice('${p.id}')">＋ Saisir</span>`
+              ? `<span class="price-chip-val sell" style="cursor:pointer" onclick="openPriceSources('${p.id}')">€${p.sell_price_ebay.toFixed(2)} ✏️</span>`
+              : `<span class="price-chip-val loading" style="cursor:pointer" onclick="openPriceSources('${p.id}')">＋ Saisir</span>`
             }
           </div>
         </div>
         ${profitBadge}
       </div>
       <div class="product-actions">
-        <button class="icon-btn" onclick="openEbaySearch('${escHtml(p.name)}')" title="Voir ventes eBay">🔍</button>
+        <button class="icon-btn" onclick="openPriceSources('${p.id}')" title="Prix de revente">💶</button>
         <button class="icon-btn" onclick="openEditProductModal('${p.id}')" title="Modifier">✏️</button>
         <button class="icon-btn danger" onclick="deleteProduct('${p.id}')" title="Supprimer">🗑</button>
       </div>
