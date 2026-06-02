@@ -238,8 +238,8 @@
 const SUPABASE_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
 
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Le client est créé au boot, une fois la librairie Supabase chargée.
+let db = null;
 
 // ============================================================
 // STATE
@@ -502,7 +502,7 @@ async function fetchEbayPrice(productId, productName) {
         model: 'claude-sonnet-4-20250514',
         max_tokens: 200,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: 'Tu es un assistant qui cherche des prix sur eBay. Réponds UNIQUEMENT avec un nombre décimal représentant le prix moyen en euros (ex: 24.50). Rien d'autre.',
+        system: "Tu es un assistant qui cherche des prix sur eBay. Réponds UNIQUEMENT avec un nombre décimal représentant le prix moyen en euros (ex: 24.50). Rien d'autre.",
         messages: [{
           role: 'user',
           content: `Cherche sur eBay les 5 dernières ventes réussies de "${productName}" et donne-moi la moyenne des prix en euros. Réponds uniquement avec le nombre, sans symbole ni texte.`
@@ -844,6 +844,7 @@ function bootApp() {
       tries++;
       if (window.supabase && typeof window.supabase.createClient === 'function') {
         clearInterval(wait);
+        db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         checkSession().catch(err => showFatalError('Erreur de session : ' + err.message));
       } else if (tries > 40) {
         clearInterval(wait);
@@ -852,6 +853,7 @@ function bootApp() {
     }, 200);
     return;
   }
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   checkSession().catch(err => showFatalError('Erreur de session : ' + err.message));
 }
 
@@ -863,7 +865,7 @@ function showFatalError(msg) {
         border-radius:16px;text-align:center;">
         <div style="font-size:2.5rem;margin-bottom:12px;">⚠️</div>
         <h2 style="margin:0 0 12px;color:#ff6b6b;">Problème de chargement</h2>
-        <p style="margin:0 0 20px;line-height:1.6;color:#7b82a8;">\${msg}</p>
+        <p style="margin:0 0 20px;line-height:1.6;color:#7b82a8;">${msg}</p>
         <button onclick="location.reload()"
           style="padding:12px 24px;border:none;border-radius:10px;
           background:linear-gradient(135deg,#6c63ff,#a78bfa);color:white;
