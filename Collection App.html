@@ -174,6 +174,11 @@
     .img-upload-area:hover { border-color: var(--accent); }
     .img-upload-area img { max-height: 120px; border-radius: 8px; margin-top: 8px; }
     .img-upload-area p { color: var(--muted); font-size: 0.85rem; }
+    .ocr-chip { background: var(--card2); border: 1.5px solid var(--border); color: var(--text);
+      padding: 7px 12px; border-radius: 20px; font-family: inherit; font-size: 0.8rem; cursor: pointer;
+      transition: all 0.15s; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ocr-chip:hover { border-color: var(--accent); }
+    .ocr-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
     
     /* EBAY BADGE */
     .ebay-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(108,99,255,0.1);
@@ -863,12 +868,15 @@ function openNewProductModal() {
     </div>
     <div class="form-group">
       <label>Photo</label>
-      <div class="img-upload-area" id="img-upload-area" onclick="document.getElementById('img-file-input').click()">
-        <p>📷 Cliquez pour ajouter une photo</p>
-        <p style="font-size:0.75rem;margin-top:4px">Galerie ou appareil photo · le texte sera lu automatiquement 🔍</p>
-        <div id="img-preview"></div>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-ghost" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"
+          onclick="document.getElementById('img-camera-input').click()">📷 Photo</button>
+        <button type="button" class="btn btn-ghost" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"
+          onclick="document.getElementById('img-gallery-input').click()">🖼️ Galerie</button>
       </div>
-      <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="handleImageUpload(this, 'img-preview', 'prod-search')">
+      <div id="img-preview" style="text-align:center"></div>
+      <input type="file" id="img-camera-input" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(this, 'img-preview', 'prod-search')">
+      <input type="file" id="img-gallery-input" accept="image/*" style="display:none" onchange="handleImageUpload(this, 'img-preview', 'prod-search')">
     </div>
     <div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px">💡 Saisissez le prix de revente, ou laissez vide pour le renseigner plus tard.</div>
     <div class="form-group">
@@ -911,53 +919,91 @@ async function handleImageUpload(input, previewId = 'img-preview', searchFieldId
 // ============================================================
 // OCR (Tesseract.js — gratuit, 100% navigateur)
 // ============================================================
+// L'OCR ne remplit PAS automatiquement le champ (trop d'erreurs possibles).
+// Il PROPOSE des suggestions cliquables, filtrées par niveau de confiance.
 async function runOcr(imageData, searchFieldId) {
   const field = document.getElementById(searchFieldId);
   if (!field || typeof Tesseract === 'undefined') return;
 
-  // Ne pas écraser un champ déjà rempli par l'utilisateur
-  if (field.value.trim() !== '') return;
-
-  const statusId = searchFieldId + '-ocr-status';
-  let status = document.getElementById(statusId);
-  if (!status) {
-    status = document.createElement('div');
-    status.id = statusId;
-    status.style.cssText = 'font-size:0.72rem;color:var(--accent);margin-top:6px;display:flex;align-items:center;gap:6px';
-    field.parentNode.appendChild(status);
+  const boxId = searchFieldId + '-ocr-box';
+  let box = document.getElementById(boxId);
+  if (!box) {
+    box = document.createElement('div');
+    box.id = boxId;
+    box.style.cssText = 'margin-top:8px';
+    field.parentNode.appendChild(box);
   }
-  status.innerHTML = '<span class="spinner" style="width:12px;height:12px"></span> Lecture du texte de la photo…';
+  box.innerHTML = '<div style="font-size:0.72rem;color:var(--accent);display:flex;align-items:center;gap:6px"><span class="spinner" style="width:12px;height:12px"></span> Lecture du texte de la photo…</div>';
 
   try {
     const { data } = await Tesseract.recognize(imageData, 'eng+fra', {
       logger: m => {
         if (m.status === 'recognizing text') {
-          status.innerHTML = `<span class="spinner" style="width:12px;height:12px"></span> Lecture… ${Math.round(m.progress*100)}%`;
+          box.innerHTML = `<div style="font-size:0.72rem;color:var(--accent);display:flex;align-items:center;gap:6px"><span class="spinner" style="width:12px;height:12px"></span> Lecture… ${Math.round(m.progress*100)}%</div>`;
         }
       }
     });
-    const cleaned = cleanOcrText(data.text);
-    if (cleaned) {
-      if (field.value.trim() === '') field.value = cleaned;
-      status.innerHTML = '✅ Texte détecté — vérifiez et corrigez si besoin.';
-    } else {
-      status.innerHTML = '⚠️ Aucun texte lisible détecté. Saisissez le nom manuellement.';
+
+    const suggestions = buildOcrSuggestions(data);
+    if (suggestions.length === 0) {
+      box.innerHTML = '<div style="font-size:0.72rem;color:var(--muted)">🔍 Aucun texte fiable détecté. Saisissez le nom manuellement.</div>';
+      return;
     }
+
+    // Affiche les suggestions sous forme de "chips" cliquables
+    const chips = suggestions.map((s, i) =>
+      `<button type="button" class="ocr-chip" data-field="${searchFieldId}" data-text="${escHtml(s)}">${escHtml(s)}</button>`
+    ).join('');
+    box.innerHTML = `
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">🔍 Texte détecté — appuyez pour l'utiliser :</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>`;
+
+    // Attache les handlers (append => remplace le champ)
+    box.querySelectorAll('.ocr-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const f = document.getElementById(btn.dataset.field);
+        if (f) { f.value = btn.dataset.text; f.focus(); }
+        box.querySelectorAll('.ocr-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
   } catch (err) {
-    status.innerHTML = '⚠️ Lecture impossible. Saisissez le nom manuellement.';
+    box.innerHTML = '<div style="font-size:0.72rem;color:var(--muted)">⚠️ Lecture impossible. Saisissez le nom manuellement.</div>';
   }
 }
 
-// Nettoie le texte OCR : garde les lignes les plus significatives
-function cleanOcrText(raw) {
-  if (!raw) return '';
-  const lines = raw.split('\n')
-    .map(l => l.replace(/[^\w\s\/\-#&'À-ÿ]/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(l => l.length >= 3 && /[a-zA-ZÀ-ÿ]/.test(l)); // au moins 3 caractères et une lettre
-  if (lines.length === 0) return '';
-  // On garde les 2 lignes les plus longues (souvent le titre + numéro/série), dédupliquées
-  const sorted = [...new Set(lines)].sort((a, b) => b.length - a.length).slice(0, 2);
-  return sorted.join(' ').slice(0, 80).trim();
+// Construit des suggestions à partir des lignes OCR, filtrées par confiance
+function buildOcrSuggestions(data) {
+  const lines = (data.lines || [])
+    .filter(l => l.confidence >= 60)          // on écarte les lignes peu sûres
+    .map(l => ({ text: cleanLine(l.text), conf: l.confidence }))
+    .filter(l => l.text.length >= 3 && /[a-zA-ZÀ-ÿ]{2,}/.test(l.text)); // au moins 2 lettres consécutives
+
+  if (lines.length === 0) return [];
+
+  // Dédup + tri par confiance puis longueur
+  const seen = new Set();
+  const uniq = [];
+  for (const l of lines.sort((a, b) => (b.conf - a.conf) || (b.text.length - a.text.length))) {
+    const key = l.text.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); uniq.push(l.text); }
+  }
+
+  const top = uniq.slice(0, 3);
+  // Propose aussi une combinaison des 2 meilleures lignes (titre + numéro/série)
+  if (top.length >= 2) {
+    const combo = (top[0] + ' ' + top[1]).slice(0, 80).trim();
+    top.unshift(combo);
+  }
+  return [...new Set(top)].slice(0, 4);
+}
+
+function cleanLine(s) {
+  return (s || '')
+    .replace(/[^\w\s\/\-#&'À-ÿ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
 }
 
 async function submitNewProduct() {
@@ -994,12 +1040,15 @@ function openEditProductModal(productId) {
     </div>
     <div class="form-group">
       <label>Photo</label>
-      <div class="img-upload-area" onclick="document.getElementById('edit-file-input').click()">
-        <p>📷 Cliquez pour changer la photo</p>
-        <p style="font-size:0.75rem;margin-top:4px">Galerie ou appareil photo</p>
-        <div id="edit-img-preview">${p.image_url ? `<img src="${p.image_url}" style="max-height:100px;border-radius:8px;margin-top:8px">` : ''}</div>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-ghost" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"
+          onclick="document.getElementById('edit-camera-input').click()">📷 Photo</button>
+        <button type="button" class="btn btn-ghost" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"
+          onclick="document.getElementById('edit-gallery-input').click()">🖼️ Galerie</button>
       </div>
-      <input type="file" id="edit-file-input" accept="image/*" style="display:none" onchange="handleImageUpload(this, 'edit-img-preview', 'edit-search')">
+      <div id="edit-img-preview" style="text-align:center">${p.image_url ? `<img src="${p.image_url}" style="max-height:100px;border-radius:8px;margin-top:8px">` : ''}</div>
+      <input type="file" id="edit-camera-input" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(this, 'edit-img-preview', 'edit-search')">
+      <input type="file" id="edit-gallery-input" accept="image/*" style="display:none" onchange="handleImageUpload(this, 'edit-img-preview', 'edit-search')">
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
