@@ -1613,16 +1613,18 @@ function renderContratsModal() {
     el.innerHTML = '<div class="empty" style="padding:30px;"><div class="empty-icon">📋</div><div class="empty-title">Aucun contrat</div></div>';
     return;
   }
-  el.innerHTML = `<div style="overflow-x:auto"><table>
+  el.innerHTML = `<div style="overflow-x:auto"><table style="white-space:nowrap;width:100%;">
     <thead><tr>
-      <th>Période</th><th>Salaire</th><th>CP</th><th>Repas</th><th>Entretien</th><th>Statut</th><th></th>
+      <th>Période</th><th>Type</th><th>Taux / Heures</th><th>Salaire</th><th>CP</th><th>Repas</th><th>Entretien</th><th>Statut</th><th></th>
     </tr></thead>
     <tbody>
     ${currentContrats.map(c => `<tr>
-      <td>${fmtDate(c.date_debut)} → ${c.date_fin ? fmtDate(c.date_fin) : '∞'}<br>
-          <small class="text-mid">${c.enfant_nom ? '👶 ' + c.enfant_nom : ''}</small></td>
+      <td>${fmtDate(c.date_debut)} → ${c.date_fin ? fmtDate(c.date_fin) : '∞'}
+          ${c.enfant_nom ? `<br><small class="text-mid">👶 ${c.enfant_nom}</small>` : ''}</td>
+      <td><small>${c.type_contrat === 'incomplet' ? 'Incomplète' : 'Complète'}</small></td>
+      <td><small>${c.taux_horaire ? c.taux_horaire + '€/h' : '—'}${c.heures_semaine ? ' · ' + c.heures_semaine + 'h/sem' : ''}</small></td>
       <td><strong>${fmt(c.salaire_mensuel)} €</strong></td>
-      <td>${c.jours_cp} j</td>
+      <td>${c.semaines_cp && c.jours_semaine ? (c.semaines_cp * c.jours_semaine) + ' j' : (c.jours_cp ?? '—') + ' j'}</td>
       <td>${fmt(c.prix_repas)} €</td>
       <td>${fmt(c.prix_entretien)} €</td>
       <td><span class="status-badge ${c.archive ? 'status-archived' : 'status-active'}">
@@ -3115,7 +3117,7 @@ if (document.readyState === 'loading') {
 
 <!-- Modal: Contrats -->
 <div class="modal-overlay" id="modal-contrats">
-  <div class="modal" style="max-width:750px;">
+  <div class="modal" style="max-width:960px;width:95%">
     <div class="modal-header">
       <div class="modal-title" id="modal-contrats-title">Contrats</div>
       <button class="modal-close" onclick="closeModal('modal-contrats')">×</button>
