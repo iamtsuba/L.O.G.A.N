@@ -818,9 +818,13 @@
       box-shadow: none;
     }
 
-    /* Colonnes calendrier égales */
-    .fiche-grand-table col.col-month { width: auto !important; }
-    .fiche-grand-table { table-layout: fixed !important; }
+    /* Colonnes calendrier égales + pleine largeur */
+    .fiche-grand-table {
+      width: 100% !important;
+      table-layout: fixed !important;
+    }
+    .fiche-grand-table col.col-label { width: 3% !important; }
+    .fiche-grand-table col.col-total { width: 8% !important; }
 
     /* Bloque tout sur 1 page */
     #print-area, #print-area * {
@@ -1068,9 +1072,9 @@
     border-spacing: 1px;
     font-size: 11px;
   }
-  .fiche-grand-table col.col-label  { width: 28px; }
-  .fiche-grand-table col.col-total  { width: 60px; }
-  /* month cols share remaining space equally via auto */
+  .fiche-grand-table col.col-label  { width: 3%; }
+  .fiche-grand-table col.col-total  { width: 8%; }
+  /* col-month : l'espace restant (89%) partagé également — calculé en JS */
 
   /* Header */
   .fiche-grand-table thead th {
@@ -2256,7 +2260,10 @@ async function generateFiche() {
       <table class="fiche-grand-table">
         <colgroup>
           <col class="col-label">
-          ${prevuMonths.map(() => '<col class="col-month">').join('')}
+          ${(() => {
+            const pct = ((89) / prevuMonths.length).toFixed(2);
+            return prevuMonths.map(() => `<col class="col-month" style="width:${pct}%">`).join('');
+          })()}
           <col class="col-total">
         </colgroup>
         <thead>
