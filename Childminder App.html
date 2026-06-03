@@ -1702,10 +1702,6 @@ function calcContrat() {
   const semCNP   = parseInt(document.getElementById('c-sem-cnp').value) || 0;
   const type     = document.querySelector('input[name="c-type"]:checked')?.value || 'complet';
 
-  // Jours programmés = jours/sem × (semProg + semCP - semCNP)
-  const joursProg = joursSem * (semProg + semCP - semCNP);
-  document.getElementById('c-jours-contrat').value = joursProg || '';
-
   const resultEl   = document.getElementById('c-calc-result');
   const detailEl   = document.getElementById('c-calc-detail');
   const salaireEl  = document.getElementById('c-calc-salaire');
@@ -1715,14 +1711,21 @@ function calcContrat() {
   resultEl.style.display = 'block';
 
   if (type === 'complet') {
-    const salaire = taux * heures * semProg / 12;
-    detailEl.innerHTML = `<strong>Année complète :</strong> ${taux}€ × ${heures}h × ${semProg} sem. ÷ 12 mois`;
+    // Salaire = taux × heures × (semProg + semCP - semCNP) / 12
+    const totalSem = semProg + semCP - semCNP;
+    const joursProg = joursSem * totalSem;
+    document.getElementById('c-jours-contrat').value = joursProg || '';
+    const salaire = taux * heures * totalSem / 12;
+    detailEl.innerHTML = `<strong>Année complète :</strong> ${taux}€ × ${heures}h × (${semProg} + ${semCP} - ${semCNP}) sem. ÷ 12 mois`;
     salaireEl.textContent = `Salaire mensuel : ${salaire.toFixed(2)} €`;
     cpDetailEl.style.display = 'none';
     document.getElementById('c-salaire').value = salaire.toFixed(2);
     document.getElementById('c-cp-info').value = `Année complète — CP inclus dans le salaire mensualisé`;
     document.getElementById('c-cp-montant').value = '';
   } else {
+    // Année incomplète — jours prog = jours/sem × semProg seulement
+    const joursProg = joursSem * semProg;
+    document.getElementById('c-jours-contrat').value = joursProg || '';
     const salaire  = taux * heures * semProg / 12;
     const cp1      = salaire * 12 * 0.10;
     const cp2      = taux * heures * semCP;
