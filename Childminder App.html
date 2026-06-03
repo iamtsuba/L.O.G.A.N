@@ -506,7 +506,6 @@
     font-weight: 600;
     color: var(--ink-soft);
     font-size: 12px;
-    width: 42%;
   }
   .fiche-recap-table tbody td {
     text-align: center;
@@ -2156,6 +2155,12 @@ async function generateFiche() {
     <div class="fiche-section">
       <div class="fiche-section-title">Récapitulatif du mois — ${MONTHS_FR[selectedMonth - 1]} ${selectedYear}</div>
       <table class="fiche-recap-table">
+        <colgroup>
+          <col style="width:46%">
+          <col style="width:18%">
+          <col style="width:18%">
+          <col style="width:18%">
+        </colgroup>
         <thead>
           <tr>
             <th></th>
