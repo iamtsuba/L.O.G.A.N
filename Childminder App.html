@@ -791,6 +791,9 @@
     .nanny-name { font-size: 15px; }
   }
 
+  /* Bloc nounou dans header : caché à l'écran, visible à l'impression */
+  .fiche-header-nanny-print { display: none; }
+
   @media print {
     @page { size: A4 portrait; margin: 0; }
 
@@ -816,6 +819,24 @@
       border-radius: 0;
       box-shadow: none;
     }
+
+    /* ── Bandeau unique à l'impression ── */
+    #print-area .fiche-nanny-bar { display: none !important; }
+    #print-area .fiche-header {
+      display: grid !important;
+      grid-template-columns: 1fr auto 1fr !important;
+      align-items: center !important;
+      gap: 16px !important;
+      padding: 8px 16px !important;
+    }
+    #print-area .fiche-header-nanny-print {
+      display: block !important;
+      text-align: center;
+      border-left: 1px solid rgba(255,255,255,0.2);
+      border-right: 1px solid rgba(255,255,255,0.2);
+      padding: 0 16px;
+    }
+    #print-area .fiche-title-block { text-align: right; }
 
     /* Colonnes calendrier égales + pleine largeur */
     .fiche-grand-table {
@@ -2230,6 +2251,12 @@ async function generateFiche() {
       <div>
         <div class="fiche-employer">Employeur</div>
         <div class="fiche-employer-name">${profile}</div>
+      </div>
+      <!-- Infos nounou : visibles seulement à l'impression (bandeau unique) -->
+      <div class="fiche-header-nanny-print">
+        <div style="font-size:10px;opacity:.6;letter-spacing:1px;text-transform:uppercase;">Assistante maternelle</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#fff;">${n.prenom} ${n.nom}</div>
+        ${contrat.enfant_nom ? `<div style="font-size:11px;opacity:.7;margin-top:2px;">Enfant gardé : <strong>${contrat.enfant_nom}</strong></div>` : ''}
       </div>
       <div class="fiche-title-block">
         <div class="fiche-title">Bulletin de salaire</div>
