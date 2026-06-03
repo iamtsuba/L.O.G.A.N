@@ -838,14 +838,35 @@
     }
     #print-area .fiche-title-block { text-align: right; }
 
-    /* Colonnes calendrier égales + pleine largeur */
+    /* Colonnes calendrier égales + pleine largeur + centré */
     .fiche-grand-table {
       width: 100% !important;
       table-layout: fixed !important;
+      margin: 0 auto !important;
     }
     .fiche-grand-table col.col-label { width: 2% !important; }
     .fiche-grand-table col.col-total { width: 6% !important; }
     /* colonnes mois = 7.5% — calculé en JS via style inline */
+
+    /* Cellules du grand tableau très compactes pour tout faire tenir */
+    #print-area .fiche-grand-table thead th {
+      font-size: 5.5px !important;
+      padding: 2px 1px !important;
+      text-align: center !important;
+    }
+    #print-area .fiche-grand-table .cal-row th,
+    #print-area .fiche-grand-table .cal-cell {
+      font-size: 5px !important;
+    }
+    #print-area .fiche-grand-table .data-row th,
+    #print-area .fiche-grand-table .data-row td {
+      font-size: 5.5px !important;
+      padding: 1px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    #print-area .fiche-section { padding: 4px 10px !important; }
 
     /* Bloque tout sur 1 page */
     #print-area, #print-area * {
@@ -2303,10 +2324,8 @@ async function generateFiche() {
           <tr>
             ${(() => {
               const cpPrevu  = (contrat.semaines_cp  || 0) * (contrat.jours_semaine || 0);
-              const cnpPrevu = (contrat.semaines_cnp || 0) * (contrat.jours_semaine || 0);
               const travPrevu = (contrat.jours_contrat || 0) - totalFeriePlanned - cpPrevu;
-              const d = travPrevu - recapTotals.work;
-              // différentiel travaillés : vert si =0, rouge sinon
+              const d = recapTotals.work - travPrevu;
               const dColor = d === 0 ? 'color:var(--forest)' : 'color:var(--danger);font-weight:700';
               return `<th>Jours travaillés</th>
             <td class="num" style="color:var(--forest);">${worked}</td>
@@ -2320,17 +2339,16 @@ async function generateFiche() {
             <td class="num" style="color:#b8881e;">${ferie}</td>
             <td class="num">${recapTotals.ferie}</td>
             <td class="num">${totalFeriePlanned}</td>
-            <td class="num">${totalFeriePlanned - recapTotals.ferie > 0 ? '+' : ''}${totalFeriePlanned - recapTotals.ferie}</td>
+            <td class="num">${recapTotals.ferie - totalFeriePlanned > 0 ? '+' : ''}${recapTotals.ferie - totalFeriePlanned}</td>
           </tr>
           <tr>
             ${(() => {
-              const cpPrevu  = (contrat.semaines_cp  || 0) * (contrat.jours_semaine || 0);
-              const d = cpPrevu - recapTotals.cp;
-              // si cumulé > prévu → différentiel négatif → rouge ; sinon vert
-              const dColor = d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)';
+              const cpPrevu = (contrat.semaines_cp || 0) * (contrat.jours_semaine || 0);
+              const d = recapTotals.cp - cpPrevu;
+              const dColor = d > 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)';
               return `<th>Congés payés</th>
             <td class="num" style="color:var(--terracotta);">${cp}</td>
-            <td class="num" ${recapTotals.cp > cpPrevu ? 'style="color:var(--danger);font-weight:700;"' : ''}>${recapTotals.cp}</td>
+            <td class="num" ${d > 0 ? 'style="color:var(--danger);font-weight:700;"' : ''}>${recapTotals.cp}</td>
             <td class="num">${cpPrevu > 0 ? cpPrevu : (contrat.semaines_cp || 0) + ' sem.'}</td>
             <td class="num" style="${dColor}">${cpPrevu > 0 ? (d > 0 ? '+' : '') + d : '—'}</td>`;
             })()}
@@ -2338,8 +2356,8 @@ async function generateFiche() {
           <tr>
             ${(() => {
               const cnpPrevu = (contrat.semaines_cnp || 0) * (contrat.jours_semaine || 0);
-              const d = cnpPrevu - recapTotals.cnp;
-              const dColor = d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)';
+              const d = recapTotals.cnp - cnpPrevu;
+              const dColor = d > 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)';
               return `<th>Congés non payés</th>
             <td class="num" style="color:var(--danger);">${cnp}</td>
             <td class="num">${recapTotals.cnp}</td>
@@ -2360,28 +2378,28 @@ async function generateFiche() {
             <td class="num">${fmt(totalRepas)} €</td>
             <td class="num">${fmt(sumRepas)} €</td>
             <td class="num">${fmt(totalRepasPrevu)} €</td>
-            ${(() => { const d = totalRepasPrevu - sumRepas; return `<td class="num" style="${d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)'}">${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
+            ${(() => { const d = sumRepas - totalRepasPrevu; return `<td class="num" style="${d > 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)'}">${d > 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
           </tr>
           <tr>
             <th>Total entretien</th>
             <td class="num">${fmt(totalEntretien)} €</td>
             <td class="num">${fmt(sumEntretien)} €</td>
             <td class="num">${fmt(totalEntretienPrevu)} €</td>
-            ${(() => { const d = totalEntretienPrevu - sumEntretien; return `<td class="num" style="${d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)'}">${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
+            ${(() => { const d = sumEntretien - totalEntretienPrevu; return `<td class="num" style="${d > 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)'}">${d > 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
           </tr>
           <tr>
             <th>Total salaire mensualisé</th>
             <td class="num">${fmt(salaireMensuel)} €</td>
             <td class="num">${fmt(sumSalaireMensualise)} €</td>
             <td class="num">${fmt(totalSalaireMensualisePrevu)} €</td>
-            ${(() => { const d = totalSalaireMensualisePrevu - sumSalaireMensualise; return `<td class="num" style="${d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)'}">${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
+            ${(() => { const d = sumSalaireMensualise - totalSalaireMensualisePrevu; return `<td class="num" style="${d > 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)'}">${d > 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
           </tr>
           <tr class="row-highlight">
             <th>Total salaire mensuel</th>
             <td class="num">${fmt(totalMensuel)} €</td>
             <td class="num">${fmt(sumTotalMensuel)} €</td>
             <td class="num">${fmt(totalSalaireMensuelPrevu)} €</td>
-            ${(() => { const d = totalSalaireMensuelPrevu - sumTotalMensuel; return `<td class="num" style="${d < 0 ? 'color:#ff6b6b;font-weight:700' : 'color:#6be5a0'}">${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
+            ${(() => { const d = sumTotalMensuel - totalSalaireMensuelPrevu; return `<td class="num" style="${d > 0 ? 'color:#ff6b6b;font-weight:700' : 'color:#6be5a0'}">${d > 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
         </tbody>
       </table>
     </div>
