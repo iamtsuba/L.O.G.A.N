@@ -2274,41 +2274,50 @@ async function generateFiche() {
             <td></td>
           </tr>
           <tr>
-            <th>Jours travaillés</th>
+            ${(() => {
+              const cpPrevu  = (contrat.semaines_cp  || 0) * (contrat.jours_semaine || 0);
+              const cnpPrevu = (contrat.semaines_cnp || 0) * (contrat.jours_semaine || 0);
+              const travPrevu = (contrat.jours_contrat || 0) - totalFeriePlanned - cpPrevu;
+              const d = travPrevu - recapTotals.work;
+              // différentiel travaillés : vert si =0, rouge sinon
+              const dColor = d === 0 ? 'color:var(--forest)' : 'color:var(--danger);font-weight:700';
+              return `<th>Jours travaillés</th>
             <td class="num" style="color:var(--forest);">${worked}</td>
-            <td class="num" ${recapTotals.work > contrat.jours_contrat ? 'style="color:var(--danger);font-weight:700;"' : ''}>${recapTotals.work}</td>
-            <td class="num">${contrat.jours_contrat}</td>
-            ${(() => { const d = contrat.jours_contrat - recapTotals.work; return `<td class="num" ${d < 0 ? 'style="color:var(--danger);font-weight:700;"' : 'style="color:var(--forest);"'}>${d > 0 ? '+' : ''}${d}</td>`; })()}
+            <td class="num">${recapTotals.work}</td>
+            <td class="num">${travPrevu}</td>
+            <td class="num" style="${dColor}">${d > 0 ? '+' : ''}${d}</td>`;
+            })()}
           </tr>
           <tr>
             <th>Jours fériés</th>
             <td class="num" style="color:#b8881e;">${ferie}</td>
             <td class="num">${recapTotals.ferie}</td>
             <td class="num">${totalFeriePlanned}</td>
-            ${(() => { const d = totalFeriePlanned - recapTotals.ferie; return `<td class="num" ${d < 0 ? 'style="color:var(--danger);font-weight:700;"' : 'style="color:var(--forest);"'}>${d > 0 ? '+' : ''}${d}</td>`; })()}
+            <td class="num">${totalFeriePlanned - recapTotals.ferie > 0 ? '+' : ''}${totalFeriePlanned - recapTotals.ferie}</td>
           </tr>
           <tr>
             ${(() => {
-              const cpPrevu = (contrat.semaines_cp || 0) * (contrat.jours_semaine || 0);
-              const cpDepasse = cpPrevu > 0 && recapTotals.cp > cpPrevu;
+              const cpPrevu  = (contrat.semaines_cp  || 0) * (contrat.jours_semaine || 0);
               const d = cpPrevu - recapTotals.cp;
+              // si cumulé > prévu → différentiel négatif → rouge ; sinon vert
+              const dColor = d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)';
               return `<th>Congés payés</th>
             <td class="num" style="color:var(--terracotta);">${cp}</td>
-            <td class="num" ${cpDepasse ? 'style="color:var(--danger);font-weight:700;"' : ''}>${recapTotals.cp}</td>
-            <td class="num">${cpPrevu > 0 ? cpPrevu + ' j' : (contrat.semaines_cp || 0) + ' sem.'}</td>
-            <td class="num" ${d < 0 ? 'style="color:var(--danger);font-weight:700;"' : 'style="color:var(--forest);"'}>${cpPrevu > 0 ? (d > 0 ? '+' : '') + d + ' j' : '—'}</td>`;
+            <td class="num" ${recapTotals.cp > cpPrevu ? 'style="color:var(--danger);font-weight:700;"' : ''}>${recapTotals.cp}</td>
+            <td class="num">${cpPrevu > 0 ? cpPrevu : (contrat.semaines_cp || 0) + ' sem.'}</td>
+            <td class="num" style="${dColor}">${cpPrevu > 0 ? (d > 0 ? '+' : '') + d : '—'}</td>`;
             })()}
           </tr>
           <tr>
             ${(() => {
               const cnpPrevu = (contrat.semaines_cnp || 0) * (contrat.jours_semaine || 0);
-              const cnpDepasse = cnpPrevu > 0 && recapTotals.cnp > cnpPrevu;
               const d = cnpPrevu - recapTotals.cnp;
+              const dColor = d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)';
               return `<th>Congés non payés</th>
             <td class="num" style="color:var(--danger);">${cnp}</td>
-            <td class="num" ${cnpDepasse ? 'style="color:var(--danger);font-weight:700;"' : ''}>${recapTotals.cnp}</td>
-            <td class="num">${cnpPrevu > 0 ? cnpPrevu + ' j' : (contrat.semaines_cnp || 0) + ' sem.'}</td>
-            <td class="num" ${d < 0 ? 'style="color:var(--danger);font-weight:700;"' : 'style="color:var(--forest);"'}>${cnpPrevu > 0 ? (d > 0 ? '+' : '') + d + ' j' : '—'}</td>`;
+            <td class="num">${recapTotals.cnp}</td>
+            <td class="num">${cnpPrevu > 0 ? cnpPrevu : (contrat.semaines_cnp || 0) + ' sem.'}</td>
+            <td class="num" style="${dColor}">${cnpPrevu > 0 ? (d > 0 ? '+' : '') + d : '—'}</td>`;
             })()}
           </tr>
           <tr>
@@ -2324,28 +2333,28 @@ async function generateFiche() {
             <td class="num">${fmt(totalRepas)} €</td>
             <td class="num">${fmt(sumRepas)} €</td>
             <td class="num">${fmt(totalRepasPrevu)} €</td>
-            ${(() => { const d = totalRepasPrevu - sumRepas; return `<td class="num" ${d < 0 ? 'style="color:var(--danger);font-weight:700;"' : 'style="color:var(--forest);"'}>${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
+            ${(() => { const d = totalRepasPrevu - sumRepas; return `<td class="num" style="${d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)'}">${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
           </tr>
           <tr>
             <th>Total entretien</th>
             <td class="num">${fmt(totalEntretien)} €</td>
             <td class="num">${fmt(sumEntretien)} €</td>
             <td class="num">${fmt(totalEntretienPrevu)} €</td>
-            ${(() => { const d = totalEntretienPrevu - sumEntretien; return `<td class="num" ${d < 0 ? 'style="color:var(--danger);font-weight:700;"' : 'style="color:var(--forest);"'}>${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
+            ${(() => { const d = totalEntretienPrevu - sumEntretien; return `<td class="num" style="${d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)'}">${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
           </tr>
           <tr>
             <th>Total salaire mensualisé</th>
             <td class="num">${fmt(salaireMensuel)} €</td>
             <td class="num">${fmt(sumSalaireMensualise)} €</td>
             <td class="num">${fmt(totalSalaireMensualisePrevu)} €</td>
-            ${(() => { const d = totalSalaireMensualisePrevu - sumSalaireMensualise; return `<td class="num" ${d < 0 ? 'style="color:var(--danger);font-weight:700;"' : 'style="color:var(--forest);"'}>${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
+            ${(() => { const d = totalSalaireMensualisePrevu - sumSalaireMensualise; return `<td class="num" style="${d < 0 ? 'color:var(--danger);font-weight:700' : 'color:var(--forest)'}">${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
           </tr>
           <tr class="row-highlight">
             <th>Total salaire mensuel</th>
             <td class="num">${fmt(totalMensuel)} €</td>
             <td class="num">${fmt(sumTotalMensuel)} €</td>
             <td class="num">${fmt(totalSalaireMensuelPrevu)} €</td>
-            ${(() => { const d = totalSalaireMensuelPrevu - sumTotalMensuel; return `<td class="num" ${d < 0 ? 'style="color:#ff6b6b;font-weight:700;"' : 'style="color:#6be5a0;"'}>${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
+            ${(() => { const d = totalSalaireMensuelPrevu - sumTotalMensuel; return `<td class="num" style="${d < 0 ? 'color:#ff6b6b;font-weight:700' : 'color:#6be5a0'}">${d >= 0 ? '+' : ''}${fmt(d)} €</td>`; })()}
         </tbody>
       </table>
     </div>
