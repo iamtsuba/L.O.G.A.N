@@ -1641,13 +1641,21 @@ function openAddContrat() {
   document.getElementById('edit-contrat-id').value = '';
   document.getElementById('edit-contrat-nounou-id').value = currentContratsNounouId;
   document.getElementById('modal-contrat-title').textContent = 'Nouveau contrat';
-  ['c-debut','c-fin','c-enfant'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('c-jours-contrat').value = 178;
-  document.getElementById('c-salaire').value = 612;
-  document.getElementById('c-cp').value = 25;
+  ['c-debut','c-fin','c-enfant','c-cp-info'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('c-taux').value = '';
+  document.getElementById('c-heures').value = '';
+  document.getElementById('c-jours-sem').value = '';
+  document.getElementById('c-sem-prog').value = '';
+  document.getElementById('c-sem-cp').value = 5;
+  document.getElementById('c-sem-cnp').value = 0;
+  document.getElementById('c-jours-contrat').value = '';
+  document.getElementById('c-salaire').value = '';
   document.getElementById('c-cnp').value = 0;
+  document.getElementById('c-cp-montant').value = '';
   document.getElementById('c-repas').value = 4.95;
   document.getElementById('c-entretien').value = 3.96;
+  document.getElementById('c-type-complet').checked = true;
+  document.getElementById('c-calc-result').style.display = 'none';
   document.getElementById('contrat-err').classList.remove('show');
   openModal('modal-contrat-form');
 }
@@ -1660,37 +1668,118 @@ function editContrat(id) {
   document.getElementById('modal-contrat-title').textContent = 'Modifier le contrat';
   document.getElementById('c-debut').value = c.date_debut;
   document.getElementById('c-fin').value = c.date_fin || '';
-  document.getElementById('c-jours-contrat').value = c.jours_contrat;
-  document.getElementById('c-salaire').value = c.salaire_mensuel;
-  document.getElementById('c-cp').value = c.jours_cp;
-  document.getElementById('c-cnp').value = c.jours_cnp;
-  document.getElementById('c-repas').value = c.prix_repas;
-  document.getElementById('c-entretien').value = c.prix_entretien;
   document.getElementById('c-enfant').value = c.enfant_nom || '';
+  document.getElementById('c-taux').value = c.taux_horaire || '';
+  document.getElementById('c-heures').value = c.heures_semaine || '';
+  document.getElementById('c-jours-sem').value = c.jours_semaine || '';
+  document.getElementById('c-sem-prog').value = c.semaines_prog || '';
+  document.getElementById('c-sem-cp').value = c.semaines_cp ?? 5;
+  document.getElementById('c-sem-cnp').value = c.semaines_cnp ?? 0;
+  document.getElementById('c-jours-contrat').value = c.jours_contrat || '';
+  document.getElementById('c-salaire').value = c.salaire_mensuel || '';
+  document.getElementById('c-cnp').value = c.jours_cnp ?? 0;
+  document.getElementById('c-cp-info').value = c.cp_info || '';
+  document.getElementById('c-cp-montant').value = c.cp_montant || '';
+  document.getElementById('c-repas').value = c.prix_repas || 4.95;
+  document.getElementById('c-entretien').value = c.prix_entretien || 3.96;
+  if (c.type_contrat === 'incomplet') {
+    document.getElementById('c-type-incomplet').checked = true;
+  } else {
+    document.getElementById('c-type-complet').checked = true;
+  }
   document.getElementById('contrat-err').classList.remove('show');
+  calcContrat();
   openModal('modal-contrat-form');
 }
 
-async function saveContrat() {
-  const id = document.getElementById('edit-contrat-id').value;
-  const nounouId = document.getElementById('edit-contrat-nounou-id').value;
-  const debut = document.getElementById('c-debut').value;
-  if (!debut) {
-    showErr('contrat-err', 'La date de début est requise.');
-    return;
+// ── Calcul en temps réel ──
+function calcContrat() {
+  const taux     = parseFloat(document.getElementById('c-taux').value) || 0;
+  const heures   = parseFloat(document.getElementById('c-heures').value) || 0;
+  const joursSem = parseInt(document.getElementById('c-jours-sem').value) || 0;
+  const semProg  = parseInt(document.getElementById('c-sem-prog').value) || 0;
+  const semCP    = parseInt(document.getElementById('c-sem-cp').value) || 0;
+  const semCNP   = parseInt(document.getElementById('c-sem-cnp').value) || 0;
+  const type     = document.querySelector('input[name="c-type"]:checked')?.value || 'complet';
+
+  // Jours programmés = jours/sem × (semProg + semCP - semCNP)
+  const joursProg = joursSem * (semProg + semCP - semCNP);
+  document.getElementById('c-jours-contrat').value = joursProg || '';
+
+  const resultEl   = document.getElementById('c-calc-result');
+  const detailEl   = document.getElementById('c-calc-detail');
+  const salaireEl  = document.getElementById('c-calc-salaire');
+  const cpDetailEl = document.getElementById('c-calc-cp-detail');
+
+  if (!taux || !heures || !semProg) { resultEl.style.display = 'none'; return; }
+  resultEl.style.display = 'block';
+
+  if (type === 'complet') {
+    const salaire = taux * heures * semProg / 12;
+    detailEl.innerHTML = `<strong>Année complète :</strong> ${taux}€ × ${heures}h × ${semProg} sem. ÷ 12 mois`;
+    salaireEl.textContent = `Salaire mensuel : ${salaire.toFixed(2)} €`;
+    cpDetailEl.style.display = 'none';
+    document.getElementById('c-salaire').value = salaire.toFixed(2);
+    document.getElementById('c-cp-info').value = `Année complète — CP inclus dans le salaire mensualisé`;
+    document.getElementById('c-cp-montant').value = '';
+  } else {
+    const salaire  = taux * heures * semProg / 12;
+    const cp1      = salaire * 12 * 0.10;
+    const cp2      = taux * heures * semCP;
+    const meilleur = cp2 >= cp1 ? 2 : 1;
+    const cpRetenu = meilleur === 2 ? cp2 : cp1;
+
+    detailEl.innerHTML = `<strong>Année incomplète :</strong> ${taux}€ × ${heures}h × ${semProg} sem. ÷ 12 mois`;
+    salaireEl.textContent = `Salaire mensuel : ${salaire.toFixed(2)} €`;
+    cpDetailEl.style.display = 'block';
+    cpDetailEl.innerHTML = `
+      <strong>Calcul des congés payés :</strong><br>
+      Choix 1 — 10% du brut total : ${salaire.toFixed(2)}€ × 12 × 10% = <strong>${cp1.toFixed(2)} €</strong><br>
+      Choix 2 — Maintien de salaire : ${taux}€ × ${heures}h × ${semCP} sem. = <strong>${cp2.toFixed(2)} €</strong><br>
+      <span style="color:var(--forest);font-weight:700;">✓ Choix ${meilleur} retenu — ${cpRetenu.toFixed(2)} € (plus avantageux)</span>
+    `;
+    document.getElementById('c-salaire').value = salaire.toFixed(2);
+    document.getElementById('c-cp-info').value =
+      `Choix ${meilleur} retenu (plus avantageux) — ` +
+      (meilleur === 1
+        ? `10% du brut total : ${salaire.toFixed(2)}€ × 12 × 10% = ${cp1.toFixed(2)}€`
+        : `Maintien de salaire : ${taux}€ × ${heures}h × ${semCP} sem. CP = ${cp2.toFixed(2)}€`);
+    document.getElementById('c-cp-montant').value = cpRetenu.toFixed(2);
   }
+}
+
+function updateCPCalc() {
+  const type = document.querySelector('input[name="c-type"]:checked')?.value || 'complet';
+  if (type === 'incomplet') calcContrat();
+}
+
+async function saveContrat() {
+  const id      = document.getElementById('edit-contrat-id').value;
+  const nounouId = document.getElementById('edit-contrat-nounou-id').value;
+  const debut   = document.getElementById('c-debut').value;
+  if (!debut) { showErr('contrat-err', 'La date de début est requise.'); return; }
+
   const row = {
-    nounou_id: nounouId,
-    date_debut: debut,
-    date_fin: document.getElementById('c-fin').value || null,
-    jours_contrat: parseInt(document.getElementById('c-jours-contrat').value) || 178,
-    salaire_mensuel: parseFloat(document.getElementById('c-salaire').value) || 612,
-    jours_cp: parseInt(document.getElementById('c-cp').value) || 25,
-    jours_cnp: parseInt(document.getElementById('c-cnp').value) || 0,
-    prix_repas: parseFloat(document.getElementById('c-repas').value) || 4.95,
+    nounou_id:      nounouId,
+    date_debut:     debut,
+    date_fin:       document.getElementById('c-fin').value || null,
+    enfant_nom:     document.getElementById('c-enfant').value.trim() || null,
+    taux_horaire:   parseFloat(document.getElementById('c-taux').value) || null,
+    heures_semaine: parseFloat(document.getElementById('c-heures').value) || null,
+    jours_semaine:  parseInt(document.getElementById('c-jours-sem').value) || null,
+    semaines_prog:  parseInt(document.getElementById('c-sem-prog').value) || null,
+    semaines_cp:    parseInt(document.getElementById('c-sem-cp').value) ?? 0,
+    semaines_cnp:   parseInt(document.getElementById('c-sem-cnp').value) ?? 0,
+    type_contrat:   document.querySelector('input[name="c-type"]:checked')?.value || 'complet',
+    jours_contrat:  parseInt(document.getElementById('c-jours-contrat').value) || 0,
+    salaire_mensuel: parseFloat(document.getElementById('c-salaire').value) || 0,
+    jours_cnp:      parseInt(document.getElementById('c-cnp').value) || 0,
+    cp_info:        document.getElementById('c-cp-info').value.trim() || null,
+    cp_montant:     parseFloat(document.getElementById('c-cp-montant').value) || null,
+    prix_repas:     parseFloat(document.getElementById('c-repas').value) || 4.95,
     prix_entretien: parseFloat(document.getElementById('c-entretien').value) || 3.96,
-    enfant_nom: document.getElementById('c-enfant').value.trim() || null,
   };
+
   let error;
   if (id) {
     ({ error } = await sbClient.from('childminderapp_contrats').update(row).eq('id', id));
@@ -2192,13 +2281,13 @@ async function generateFiche() {
             <th>Congés payés</th>
             <td class="num" style="color:var(--terracotta);">${cp}</td>
             <td class="num">${recapTotals.cp}</td>
-            <td class="num">${contrat.jours_cp || 0}</td>
+            <td class="num">${contrat.semaines_cp || 0} sem.</td>
           </tr>
           <tr>
             <th>Congés non payés</th>
             <td class="num" style="color:var(--danger);">${cnp}</td>
             <td class="num">${recapTotals.cnp}</td>
-            <td class="num">${contrat.jours_cnp || 0}</td>
+            <td class="num">${contrat.semaines_cnp || 0} sem.</td>
           </tr>
           <tr>
             <th>Jours restant fin de mois</th>
@@ -2242,6 +2331,15 @@ async function generateFiche() {
       </div>
       <div class="fiche-total-amount">${fmt(totalMensuel)} €</div>
     </div>
+
+    ${(contrat.cp_info || contrat.type_contrat) ? `
+    <div style="background:#f0f7f2;border-left:3px solid var(--forest);padding:10px 16px;font-size:11px;color:var(--ink-soft);line-height:1.7;">
+      <strong>Type de contrat :</strong> ${contrat.type_contrat === 'incomplet' ? 'Année incomplète' : 'Année complète'}
+      ${contrat.taux_horaire ? ` · Taux horaire : <strong>${contrat.taux_horaire}€/h</strong>` : ''}
+      ${contrat.heures_semaine ? ` · ${contrat.heures_semaine}h/sem.` : ''}
+      ${contrat.semaines_prog ? ` · ${contrat.semaines_prog} sem. programmées` : ''}
+      ${contrat.cp_info ? `<br><strong>Congés payés :</strong> ${contrat.cp_info}${contrat.cp_montant ? ` → <strong style="color:var(--forest)">${fmt(contrat.cp_montant)} €</strong>` : ''}` : ''}
+    </div>` : ''}
 
     <!-- ─ Section 2 : Calendrier annuel + Récapitulatif combinés ─ -->
     <div class="fiche-section recap-section">
@@ -3030,7 +3128,7 @@ if (document.readyState === 'loading') {
 
 <!-- Modal: Ajouter/Modifier Contrat -->
 <div class="modal-overlay" id="modal-contrat-form">
-  <div class="modal">
+  <div class="modal" style="max-width:600px;">
     <div class="modal-header">
       <div class="modal-title" id="modal-contrat-title">Nouveau contrat</div>
       <button class="modal-close" onclick="closeModal('modal-contrat-form')">×</button>
@@ -3039,6 +3137,8 @@ if (document.readyState === 'loading') {
       <div class="msg msg-error" id="contrat-err"></div>
       <input type="hidden" id="edit-contrat-id">
       <input type="hidden" id="edit-contrat-nounou-id">
+
+      <!-- Dates -->
       <div class="grid-2">
         <div class="field">
           <label>Date de début</label>
@@ -3049,28 +3149,97 @@ if (document.readyState === 'loading') {
           <input type="date" id="c-fin">
         </div>
       </div>
+      <div class="field">
+        <label>Nom de l'enfant gardé (facultatif)</label>
+        <input type="text" id="c-enfant" placeholder="Léa">
+      </div>
+
       <div class="divider"></div>
-      <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mid);margin-bottom:14px;">Paramètres salariaux</div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mid);margin-bottom:14px;">Paramètres du contrat</div>
+
+      <!-- Taux & heures -->
       <div class="grid-2">
         <div class="field">
-          <label>Jours travaillés au contrat</label>
-          <input type="number" id="c-jours-contrat" placeholder="178">
+          <label>Taux horaire (€)</label>
+          <input type="number" id="c-taux" placeholder="4.50" step="0.01" oninput="calcContrat()">
         </div>
         <div class="field">
-          <label>Salaire mensuel brut (€)</label>
-          <input type="number" id="c-salaire" placeholder="612.00" step="0.01">
+          <label>Heures par semaine</label>
+          <input type="number" id="c-heures" placeholder="40" step="0.5" oninput="calcContrat()">
         </div>
       </div>
       <div class="grid-2">
         <div class="field">
-          <label>Jours CP / an</label>
-          <input type="number" id="c-cp" placeholder="25">
+          <label>Jours par semaine</label>
+          <input type="number" id="c-jours-sem" placeholder="4" step="1" oninput="calcContrat()">
+        </div>
+        <div class="field">
+          <label>Semaines programmées</label>
+          <input type="number" id="c-sem-prog" placeholder="47" step="1" oninput="calcContrat()">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Semaines congés payés</label>
+          <input type="number" id="c-sem-cp" placeholder="5" step="1" oninput="calcContrat()">
+        </div>
+        <div class="field">
+          <label>Semaines congés non payés</label>
+          <input type="number" id="c-sem-cnp" placeholder="0" step="1" oninput="calcContrat()">
+        </div>
+      </div>
+
+      <!-- Jours programmés (calculé) -->
+      <div class="field">
+        <label>Jours programmés <span style="font-size:11px;color:var(--mid);">(calculé automatiquement)</span></label>
+        <input type="number" id="c-jours-contrat" placeholder="188" readonly style="background:var(--warm);cursor:default;">
+      </div>
+
+      <!-- Type de contrat -->
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mid);margin-bottom:14px;">Type de contrat</div>
+      <div class="field">
+        <div style="display:flex;gap:16px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;">
+            <input type="radio" name="c-type" id="c-type-complet" value="complet" onchange="calcContrat()" checked>
+            Année complète
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;">
+            <input type="radio" name="c-type" id="c-type-incomplet" value="incomplet" onchange="calcContrat()">
+            Année incomplète
+          </label>
+        </div>
+      </div>
+
+      <!-- Résultat calcul salaire -->
+      <div id="c-calc-result" style="background:var(--warm);border-radius:12px;padding:16px;margin-top:8px;display:none;">
+        <div id="c-calc-detail" style="font-size:12px;color:var(--mid);margin-bottom:8px;line-height:1.8;"></div>
+        <div id="c-calc-salaire" style="font-size:18px;font-weight:700;color:var(--terracotta);"></div>
+        <div id="c-calc-cp-detail" style="font-size:12px;color:var(--mid);margin-top:8px;line-height:1.8;display:none;"></div>
+      </div>
+
+      <!-- Champs salaire (éditable) + CP -->
+      <div class="divider"></div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Salaire mensuel brut (€) <span style="font-size:11px;color:var(--mid);">modifiable</span></label>
+          <input type="number" id="c-salaire" placeholder="612.00" step="0.01" oninput="updateCPCalc()">
         </div>
         <div class="field">
           <label>Jours CNP / an</label>
-          <input type="number" id="c-cnp" placeholder="0">
+          <input type="number" id="c-cnp" placeholder="0" oninput="calcContrat()">
         </div>
       </div>
+      <div class="field">
+        <label>Congés payés — méthode retenue & montant</label>
+        <textarea id="c-cp-info" rows="2" style="width:100%;padding:10px;border:1.5px solid var(--sand);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;" placeholder="Ex: Méthode maintien de salaire — 900€"></textarea>
+      </div>
+      <div class="field">
+        <label>Montant CP annuel retenu (€)</label>
+        <input type="number" id="c-cp-montant" placeholder="0" step="0.01">
+      </div>
+
+      <div class="divider"></div>
       <div class="grid-2">
         <div class="field">
           <label>Prix repas / jour (€)</label>
@@ -3080,10 +3249,6 @@ if (document.readyState === 'loading') {
           <label>Prix entretien / jour (€)</label>
           <input type="number" id="c-entretien" placeholder="3.96" step="0.01">
         </div>
-      </div>
-      <div class="field">
-        <label>Nom de l'enfant gardé (facultatif)</label>
-        <input type="text" id="c-enfant" placeholder="Léa">
       </div>
     </div>
     <div class="modal-footer">
