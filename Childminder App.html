@@ -2112,8 +2112,7 @@ async function generateFiche() {
   const joursContratAnnuel = contrat.jours_contrat || 178;
   const joursContratMoyenMois = joursContratAnnuel / 12;
   const tarifJournalier = joursContratMoyenMois > 0 ? salaireMensuel / joursContratMoyenMois : 0;
-  const deductionCNP = cnp > 0 ? tarifJournalier * cnp : 0;
-  const salaireNet = salaireMensuel - deductionCNP;
+  const salaireNet = salaireMensuel; // CNP sans impact sur le salaire
   const totalMensuel = salaireNet + totalRepas + totalEntretien;
 
   // ── Charger les données annuelles du contrat pour le récap + mini-prévisuel ──
@@ -2163,8 +2162,7 @@ async function generateFiche() {
   const totalRepasPrevu = totalWorkPlanned * parseFloat(contrat.prix_repas || 0);
   const totalEntretienPrevu = totalWorkPlanned * parseFloat(contrat.prix_entretien || 0);
   const totalSalaireMensualisePrevu = salaireMensuel * nbMoisContrat;
-  const deductionCNPPrevu = totalCnpPlanned * tarifJournalier;
-  const totalSalaireMensuelPrevu = totalSalaireMensualisePrevu - deductionCNPPrevu + totalRepasPrevu + totalEntretienPrevu;
+  const totalSalaireMensuelPrevu = totalSalaireMensualisePrevu + totalRepasPrevu + totalEntretienPrevu;
 
   // Helper for colored badges in "Mois en cours" column
   const ficheBadge = (label, color) => `<span style="display:inline-block;padding:3px 12px;border-radius:4px;background:${color};color:white;font-weight:700;font-size:11px;letter-spacing:.5px;">${label}</span>`;
@@ -2192,8 +2190,7 @@ async function generateFiche() {
     if (r.future) return null;
     const repas = r.stats.work * parseFloat(contrat.prix_repas || 0);
     const entretien = r.stats.work * parseFloat(contrat.prix_entretien || 0);
-    const deduction = r.stats.cnp * tarifJournalier;
-    const salaireNet = salaireMensuel - deduction;
+    const salaireNet = salaireMensuel;
     const totalMois = salaireNet + repas + entretien;
     return { repas, entretien, salaireMensualise: salaireMensuel, totalMois };
   });
