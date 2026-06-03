@@ -795,20 +795,6 @@
   @media print {
     @page { size: A4 portrait; margin: 0; }
 
-    html {
-      margin: 0; padding: 0;
-      width: 210mm; height: 297mm;
-      overflow: hidden;
-    }
-    body {
-      margin: 0; padding: 0;
-      width: 210mm; height: 297mm;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
-
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
 
@@ -818,21 +804,25 @@
     }
 
     #print-area {
-      position: relative;
+      visibility: visible;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      margin: 0 auto;
       zoom: 0.82;
       width: calc(210mm / 0.82);
       height: calc(297mm / 0.82);
       overflow: hidden;
       border-radius: 0;
       box-shadow: none;
-      flex-shrink: 0;
     }
 
-    /* Colonnes calendrier toutes égales */
+    /* Colonnes calendrier égales */
     .fiche-grand-table col.col-month { width: auto !important; }
     .fiche-grand-table { table-layout: fixed !important; }
 
-    /* Aucun saut de page — bloqué sur 1 page */
+    /* Bloque tout sur 1 page */
     #print-area, #print-area * {
       page-break-before: avoid !important;
       break-before: avoid !important;
