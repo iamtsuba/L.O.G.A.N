@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <!-- LOGAN Guard — doit être en premier -->
+  <script src="/L.O.G.A.N/logan-guard.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Holidays App</title>
@@ -453,11 +455,14 @@ var currentView='mensuel';
 var navState={mensuel:new Date(),annuel:new Date(),cp:new Date(),nounou:new Date()};
 var editingProfile=null,editingEnvelope=null,editingLeave=null;
 
-// ── INIT
+// ── INIT — LOGAN only
 function initSupabase(){
   var lib=window.supabase||window.supabaseJs;
   if(!lib||!lib.createClient)return;
   sbClient=lib.createClient(SB_URL,SB_KEY);
+  // Récupérer le user_id depuis l'URL (?uid=...) ou window.LOGAN_USER_ID
+  var params=new URLSearchParams(window.location.search);
+  currentUserId=window.LOGAN_USER_ID||params.get('uid')||null;
   document.getElementById('app').style.display='block';
   loadData().then(render);
 }
@@ -480,15 +485,9 @@ function connecterSupabase(){
 // ── DATA 
 async function loadData(){
   if(!currentUserId){
-    // 1. Injecté par LOGAN directement
-    if(window.LOGAN_USER_ID){
-      currentUserId=window.LOGAN_USER_ID;
-    } else {
-      // 2. Lecture dans user_apps — prend le premier match
-      var uR=await sbClient.from('user_apps').select('user_id').contains('app_ids',['Holidays App.html']);
-      if(uR.error||!uR.data||!uR.data.length)return toast('Utilisateur non trouvé dans user_apps','error');
-      currentUserId=uR.data[0].user_id;
-    }
+    var uR=await sbClient.from('user_apps').select('user_id').contains('app_ids',['Holidays App.html']);
+    if(uR.error||!uR.data||!uR.data.length)return toast('Utilisateur non trouvé','error');
+    currentUserId=uR.data[0].user_id;
   }
   var pR=await sbClient.from('holidaysapp_profiles').select('*').eq('user_id',currentUserId).order('name');
   var eR=await sbClient.from('holidaysapp_envelopes').select('*').order('start_date');
