@@ -2563,11 +2563,111 @@ async function generateFiche() {
   prevuMonths = prevPrevuMonths;
   prevuState = prevPrevuState;
 
-  document.getElementById('fiche-zone').style.display = 'block';
-  document.getElementById('fiche-zone').scrollIntoView({ behavior: 'smooth' });
-}
+  // ── Ouvrir dans un nouvel onglet ──
+  const ficheHTML = document.getElementById('print-area').innerHTML;
+  const styles = Array.from(document.querySelectorAll('style'))
+    .map(s => `<style>${s.innerHTML}</style>`).join('\n');
+  const fonts = `<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">`;
 
-function closeFiche() {
+  const newTab = window.open('', '_blank');
+  newTab.document.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fiche de paie — ${n.prenom} ${n.nom} — ${MONTHS_FR[selectedMonth-1]} ${selectedYear}</title>
+  ${fonts}
+  ${styles}
+  <style>
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    html, body { margin: 0; padding: 0; background: #f5f5f5; }
+
+    /* ── Barre d'impression ── */
+    #print-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: #1A1A18;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+    #print-bar .bar-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.7);
+    }
+    #print-bar .bar-title strong { color: #fff; }
+    #print-bar button {
+      background: #C8654A; border: none; color: #fff;
+      padding: 10px 28px; border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; letter-spacing: .3px;
+    }
+    #print-bar button:hover { background: #b5553b; }
+
+    /* ── Fiche centrée ── */
+    #fiche-wrap {
+      margin-top: 60px;
+      display: flex; justify-content: center;
+      padding: 24px 0 48px;
+    }
+    #print-area {
+      width: 794px;
+      background: white;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.15);
+    }
+
+    /* ── À l'impression : 1 page A4 exacte ── */
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { background: white; margin: 0; padding: 0; }
+      #print-bar { display: none !important; }
+      #fiche-wrap { margin: 0; padding: 0; display: block; }
+      #print-area {
+        position: fixed; top: 0; left: 0;
+        width: 100%; height: 100%;
+        box-shadow: none;
+        overflow: hidden;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="print-bar">
+    <div class="bar-title">
+      <strong>${n.prenom} ${n.nom}</strong> — ${MONTHS_FR[selectedMonth-1]} ${selectedYear}
+    </div>
+    <button onclick="fitAndPrint()">🖨️ Imprimer</button>
+  </div>
+  <div id="fiche-wrap">
+    <div id="print-area">${ficheHTML}</div>
+  </div>
+  <script>
+    function fitAndPrint() {
+      const el = document.getElementById('print-area');
+      const A4_H = 1123, A4_W = 794;
+      el.style.zoom = '';
+      el.style.transform = '';
+      const h = el.scrollHeight;
+      const w = el.scrollWidth;
+      const zoom = Math.min(A4_H / h, A4_W / w, 1);
+      el.style.zoom = zoom;
+      el.style.width = (A4_W / zoom) + 'px';
+      el.style.height = (A4_H / zoom) + 'px';
+      el.style.overflow = 'hidden';
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+          el.style.zoom = '';
+          el.style.width = '794px';
+          el.style.height = '';
+          el.style.overflow = '';
+        }, 500);
+      }, 150);
+    }
+  </script>
+</body>
+</html>`);
+  newTab.document.close();
+
   document.getElementById('fiche-zone').style.display = 'none';
 }
 
@@ -3164,7 +3264,7 @@ if (document.readyState === 'loading') {
         <div class="flex-row mt-20 flex-end">
           <button class="btn btn-secondary" onclick="resetMonth()">Réinitialiser</button>
           <button class="btn btn-forest" onclick="saveSaisie()">Sauvegarder la saisie</button>
-          <button class="btn btn-primary" onclick="generateFiche()">Générer la fiche de paie →</button>
+          <button class="btn btn-primary" onclick="generateFiche()">Prévisualiser la fiche de paie →</button>
         </div>
       </div>
 
