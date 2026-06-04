@@ -607,7 +607,7 @@ const DEFAULT_CATEGORIES = [
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-let supabase, currentUserId = null;
+let db, currentUserId = null;
 let accounts = [], transactions = [], categories = [];
 let filteredTx = [], currentPage = 1, currentFilterMonth = null;
 let chartMonthly = null, chartCat = null, chartBalance = null;
@@ -619,19 +619,19 @@ let selectedColorAccount = ACCOUNT_COLORS[1];
 // INIT
 // ══════════════════════════════════════════════
 async function init() {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
   // Resolve user_id
   if (window.LOGAN_USER_ID) {
     currentUserId = window.LOGAN_USER_ID;
   } else {
     // Try JWT session
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await db.auth.getSession();
     if (session?.user?.id) {
       currentUserId = session.user.id;
     } else {
       // Fallback: find user by app entry in user_apps
-      const { data } = await supabase
+      const { data } = await db
         .from("user_apps")
         .select("user_id")
         .contains("app_ids", [APP_FILE])
@@ -667,7 +667,7 @@ async function init() {
 // DATA LOAD
 // ══════════════════════════════════════════════
 async function loadCategories() {
-  const { data } = await supabase
+  const { data } = await db
     .from("bankapp_categories")
     .select("*")
     .eq("user_id", currentUserId)
@@ -676,7 +676,7 @@ async function loadCategories() {
   if (!data || data.length === 0) {
     // Seed default categories
     const toInsert = DEFAULT_CATEGORIES.map(c => ({ ...c, user_id: currentUserId }));
-    const { data: inserted } = await supabase.from("bankapp_categories").insert(toInsert).select();
+    const { data: inserted } = await db.from("bankapp_categories").insert(toInsert).select();
     categories = inserted || [];
   } else {
     categories = data;
@@ -684,7 +684,7 @@ async function loadCategories() {
 }
 
 async function loadAccounts() {
-  const { data } = await supabase
+  const { data } = await db
     .from("bankapp_accounts")
     .select("*")
     .eq("user_id", currentUserId)
@@ -693,7 +693,7 @@ async function loadAccounts() {
 }
 
 async function loadTransactions() {
-  const { data } = await supabase
+  const { data } = await db
     .from("bankapp_transactions")
     .select("*")
     .eq("user_id", currentUserId)
@@ -983,9 +983,9 @@ async function saveAccount() {
   };
 
   if (editingAccountId) {
-    await supabase.from("bankapp_accounts").update(payload).eq("id", editingAccountId);
+    await db.from("bankapp_accounts").update(payload).eq("id", editingAccountId);
   } else {
-    await supabase.from("bankapp_accounts").insert(payload);
+    await db.from("bankapp_accounts").insert(payload);
   }
 
   await loadAccounts();
@@ -997,8 +997,8 @@ async function saveAccount() {
 
 async function deleteAccount(id) {
   if (!confirm("Supprimer ce compte et toutes ses transactions ?")) return;
-  await supabase.from("bankapp_transactions").delete().eq("account_id", id);
-  await supabase.from("bankapp_accounts").delete().eq("id", id);
+  await db.from("bankapp_transactions").delete().eq("account_id", id);
+  await db.from("bankapp_accounts").delete().eq("id", id);
   await loadAccounts();
   await loadTransactions();
   renderAll();
@@ -1017,7 +1017,7 @@ async function createFirstAccount() {
   const label = document.getElementById("wAccountName").value.trim();
   if (!label) return showToast("Nom requis", "error");
 
-  await supabase.from("bankapp_accounts").insert({
+  await db.from("bankapp_accounts").insert({
     label,
     type: document.getElementById("wAccountType").value,
     iban: document.getElementById("wAccountIban").value.trim() || null,
@@ -1065,7 +1065,7 @@ function openCatModal(txId, label) {
 
 async function saveCatTx() {
   const catId = document.getElementById("catTxSelect").value;
-  await supabase.from("bankapp_transactions").update({ category_id: catId }).eq("id", catTxId);
+  await db.from("bankapp_transactions").update({ category_id: catId }).eq("id", catTxId);
   const tx = transactions.find(t => t.id === catTxId);
   if (tx) tx.category_id = catId;
   renderTransactions();
@@ -1158,7 +1158,7 @@ function parseAmount(s) {
 
 async function importTransactions(parsed, accountId) {
   // Load existing hashes for this account
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("bankapp_transactions")
     .select("hash")
     .eq("account_id", accountId)
@@ -1208,7 +1208,7 @@ async function confirmImport(rows) {
   // Batch insert
   const chunks = [];
   for (let i = 0; i < data.length; i += 100) chunks.push(data.slice(i, i+100));
-  for (const chunk of chunks) await supabase.from("bankapp_transactions").insert(chunk);
+  for (const chunk of chunks) await db.from("bankapp_transactions").insert(chunk);
 
   await loadTransactions();
   renderAll();
