@@ -964,7 +964,7 @@
   .prevu-cell.s-cp { background: var(--terracotta); color: var(--white); font-size: 9px; }
   .prevu-cell.s-cnp { background: var(--danger); color: var(--white); font-size: 9px; }
   .prevu-cell.s-jhc { background: #7B2FBE; color: var(--white); font-size: 9px; }
-  .prevu-cell.s-ccp { background: #E8A838; color: var(--white); font-size: 9px; }
+  .prevu-cell.s-ccp { background: #87CEEB; color: var(--white); font-size: 9px; }
   .prevu-cell.s-future { background: var(--warm); color: var(--light); }
 
   /* KPI cards */
@@ -1107,7 +1107,7 @@
   .mini-prevu-cell.s-cp { background: var(--terracotta); color: var(--white); font-size: 7px; }
   .mini-prevu-cell.s-cnp { background: var(--danger); color: var(--white); font-size: 7px; }
   .mini-prevu-cell.s-jhc { background: #7B2FBE; color: var(--white); font-size: 7px; }
-  .mini-prevu-cell.s-ccp { background: #E8A838; color: var(--white); font-size: 7px; }
+  .mini-prevu-cell.s-ccp { background: #87CEEB; color: var(--white); font-size: 7px; }
 
   /* ── FICHE GRAND TABLE (calendrier + données combinés) ── */
   .fiche-grand-table {
@@ -1164,7 +1164,7 @@
   .cal-cell.s-cp      { background: var(--terracotta); color: var(--white); font-size: 7px; }
   .cal-cell.s-cnp     { background: var(--danger); color: var(--white); font-size: 7px; }
   .cal-cell.s-jhc     { background: #7B2FBE; color: var(--white); font-size: 7px; }
-  .cal-cell.s-ccp     { background: #E8A838; color: var(--white); font-size: 7px; }
+  .cal-cell.s-ccp     { background: #87CEEB; color: var(--white); font-size: 7px; }
 
   /* Spacer between calendar and data */
   .grand-spacer td { height: 5px; background: transparent; }
@@ -1969,8 +1969,8 @@ function getSummary() {
     else if (state === 'ccp') ccp++; // 0 jours travaillés, mais −1 CP
     // 'weekend' and 'off' are not counted
   }
-  // CCP déduit du total CP
-  return { worked, ferie, cp: cp + ccp, cnp, jhc, ccp };
+  // CCP déduit du total CP (0 jour travaillé mais −1 CP par CCP)
+  return { worked, ferie, cp: cp - ccp, cnp, jhc, ccp };
 }
 
 function updateSaisieSummary() {
@@ -3081,7 +3081,7 @@ if (document.readyState === 'loading') {
           <div class="legend-item"><div class="legend-dot" style="background:var(--forest)"></div>Travaillé</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Férié</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--terracotta)"></div>Congé payé</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#E8A838"></div>Compensation CP (CCP)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#87CEEB"></div>Compensation CP (CCP)</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>Congé non payé</div>
           <div class="legend-item"><div class="legend-dot" style="background:#7B2FBE"></div>Hors contrat (JHC)</div>
           <div class="legend-item"><div class="legend-dot" style="background:#f5d4d0"></div>Repos</div>
