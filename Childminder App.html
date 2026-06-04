@@ -964,7 +964,7 @@
   .prevu-cell.s-cp { background: var(--terracotta); color: var(--white); font-size: 9px; }
   .prevu-cell.s-cnp { background: var(--danger); color: var(--white); font-size: 9px; }
   .prevu-cell.s-jhc { background: #7B2FBE; color: var(--white); font-size: 9px; }
-  .prevu-cell.s-ccp { background: #87CEEB; color: var(--white); font-size: 9px; }
+  .prevu-cell.s-ccp { background: #1E90FF; color: var(--white); font-size: 9px; }
   .prevu-cell.s-future { background: var(--warm); color: var(--light); }
 
   /* KPI cards */
@@ -1107,7 +1107,7 @@
   .mini-prevu-cell.s-cp { background: var(--terracotta); color: var(--white); font-size: 7px; }
   .mini-prevu-cell.s-cnp { background: var(--danger); color: var(--white); font-size: 7px; }
   .mini-prevu-cell.s-jhc { background: #7B2FBE; color: var(--white); font-size: 7px; }
-  .mini-prevu-cell.s-ccp { background: #87CEEB; color: var(--white); font-size: 7px; }
+  .mini-prevu-cell.s-ccp { background: #1E90FF; color: var(--white); font-size: 7px; }
 
   /* ── FICHE GRAND TABLE (calendrier + données combinés) ── */
   .fiche-grand-table {
@@ -1164,7 +1164,7 @@
   .cal-cell.s-cp      { background: var(--terracotta); color: var(--white); font-size: 7px; }
   .cal-cell.s-cnp     { background: var(--danger); color: var(--white); font-size: 7px; }
   .cal-cell.s-jhc     { background: #7B2FBE; color: var(--white); font-size: 7px; }
-  .cal-cell.s-ccp     { background: #87CEEB; color: var(--white); font-size: 7px; }
+  .cal-cell.s-ccp     { background: #1E90FF; color: var(--white); font-size: 7px; }
 
   /* Spacer between calendar and data */
   .grand-spacer td { height: 5px; background: transparent; }
@@ -2721,7 +2721,7 @@ function setPrevuStatus(text, color) {
 // Retourne { work, off, ferie, cp, cnp, total }  (total = jours du mois dans le contrat)
 function computeMonthStats(year, monthIdx) {
   const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
-  let work = 0, off = 0, weekend = 0, ferie = 0, cp = 0, cnp = 0, total = 0;
+  let work = 0, off = 0, weekend = 0, ferie = 0, cp = 0, cnp = 0, jhc = 0, ccp = 0, total = 0;
   for (let d = 1; d <= daysInMonth; d++) {
     if (!isWithinContrat(year, monthIdx, d)) continue;
     total++;
@@ -2732,8 +2732,11 @@ function computeMonthStats(year, monthIdx) {
     else if (s === 'ferie') ferie++;
     else if (s === 'cp') cp++;
     else if (s === 'cnp') cnp++;
+    else if (s === 'jhc') jhc++;
+    else if (s === 'ccp') ccp++; // 0 jours travaillés, −1 CP
   }
-  return { work, off, weekend, ferie, cp, cnp, total };
+  // CCP déduit du total CP
+  return { work, off, weekend, ferie, cp: cp - ccp, cnp, jhc, ccp, total };
 }
 
 // Construit un tableau de cumul pour chaque mois du contrat
@@ -3081,7 +3084,7 @@ if (document.readyState === 'loading') {
           <div class="legend-item"><div class="legend-dot" style="background:var(--forest)"></div>Travaillé</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Férié</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--terracotta)"></div>Congé payé</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#87CEEB"></div>Compensation CP (CCP)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#1E90FF"></div>Compensation CP (CCP)</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>Congé non payé</div>
           <div class="legend-item"><div class="legend-dot" style="background:#7B2FBE"></div>Hors contrat (JHC)</div>
           <div class="legend-item"><div class="legend-dot" style="background:#f5d4d0"></div>Repos</div>
