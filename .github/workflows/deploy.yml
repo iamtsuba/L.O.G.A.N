@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: write
 
@@ -13,13 +16,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Récupère le code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Injecte les secrets Supabase dans le HTML
-      #    Les placeholders %%SUPABASE_URL%% et %%SUPABASE_ANON%%
-      #    sont remplacés par les valeurs stockées dans GitHub Secrets
       - name: Inject Supabase secrets
         run: |
           sed -i \
@@ -27,12 +26,10 @@ jobs:
             -e 's|%%SUPABASE_ANON%%|${{ secrets.SUPABASE_ANON_KEY }}|g' \
             "Bank App.html"
 
-      # 3. Déploie sur la branche gh-pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
           publish_branch: gh-pages
-          # Ne publie que le fichier HTML et les assets, pas les fichiers de config
           exclude_assets: '.github,*.md,*.sql,*.yml'
