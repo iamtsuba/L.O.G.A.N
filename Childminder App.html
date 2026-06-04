@@ -2638,17 +2638,16 @@ async function generateFiche() {
       box-shadow: 0 4px 32px rgba(0,0,0,0.15);
     }
 
-    /* ── À l'impression : la fiche est scalée par fitAndPrint ── */
+    /* ── À l'impression : zoom appliqué par fitAndPrint reflow le contenu ── */
     @media print {
       @page { size: A4 portrait; margin: 0; }
-      html, body { background: white !important; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; overflow: hidden; }
+      html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
       #print-bar { display: none !important; }
       #fiche-wrap { margin: 0 !important; padding: 0 !important; display: block !important; }
       #print-area {
-        position: absolute !important; top: 0 !important; left: 0 !important;
         box-shadow: none !important;
         margin: 0 !important;
-        transform-origin: top left !important;
+        width: 794px !important;
       }
     }
   </style>
@@ -2669,30 +2668,25 @@ async function generateFiche() {
       const wrap = document.getElementById('fiche-wrap');
       const A4_H = 1123, A4_W = 794; // A4 à 96dpi
 
-      // Reset complet, largeur A4 fixe, mesure hors zoom
+      // Reset, largeur A4 fixe
       wrap.style.display = 'block';
-      el.style.transform = 'none';
       el.style.zoom = '1';
+      el.style.transform = 'none';
       el.style.width = A4_W + 'px';
       el.style.height = 'auto';
       el.style.overflow = 'visible';
-      el.style.margin = '0';
 
-      void el.offsetHeight; // force reflow
+      void el.offsetHeight;
       const h = el.getBoundingClientRect().height;
 
-      // Scale pour remplir exactement la hauteur A4
-      const scale = A4_H / h;
-
-      el.style.transformOrigin = 'top left';
-      el.style.transform = 'scale(' + scale + ')';
+      // zoom reflow le contenu réellement (contrairement à transform)
+      const zoom = A4_H / h;
+      el.style.zoom = zoom;
 
       setTimeout(() => {
         window.print();
         setTimeout(() => {
-          el.style.transform = 'none';
-          el.style.height = 'auto';
-          el.style.overflow = 'visible';
+          el.style.zoom = '1';
           wrap.style.display = 'flex';
         }, 600);
       }, 250);
