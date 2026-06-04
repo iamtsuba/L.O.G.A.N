@@ -4,6 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Bank App — LOGAN</title>
+
+<!-- LOGAN Guard — doit être en premier -->
+<script src="/L.O.G.A.N/logan-guard.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
@@ -501,37 +504,7 @@
 
 </div>
 
-<!-- ══ MODAL WELCOME ══ -->
-<div class="modal-overlay hidden" id="modalWelcome">
-  <div class="modal">
-    <div class="welcome-accent">Bienvenue.</div>
-    <div class="modal-title">Configurez votre premier compte</div>
-    <div class="modal-sub">Aucune donnée trouvée pour votre profil. Commencez par ajouter un compte bancaire La Banque Postale.</div>
-    <div class="form-field">
-      <label>Nom du compte</label>
-      <input id="wAccountName" type="text" placeholder="ex: Compte Courant principal"/>
-    </div>
-    <div class="form-field">
-      <label>Type</label>
-      <select id="wAccountType">
-        <option value="courant">Compte courant</option>
-        <option value="epargne">Livret / Épargne</option>
-        <option value="joint">Compte joint</option>
-      </select>
-    </div>
-    <div class="form-field">
-      <label>IBAN (optionnel)</label>
-      <input id="wAccountIban" type="text" placeholder="FR76 …"/>
-    </div>
-    <div class="form-field">
-      <label>Couleur</label>
-      <div class="color-row" id="welcomeColorRow"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn primary" onclick="createFirstAccount()">Créer le compte</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- ══ MODAL COMPTE ══ -->
 <div class="modal-overlay hidden" id="modalAccount">
@@ -615,57 +588,47 @@ let accounts = [], transactions = [], categories = [];
 let filteredTx = [], currentPage = 1, currentFilterMonth = null;
 let chartMonthly = null, chartCat = null, chartBalance = null;
 let editingAccountId = null, catTxId = null;
-let selectedColorWelcome = ACCOUNT_COLORS[0];
 let selectedColorAccount = ACCOUNT_COLORS[1];
 
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// LOGAN ACCESS ERROR
+// ══════════════════════════════════════════════
+function showLoganAccessError() {
+  document.getElementById("loader").classList.add("hidden");
+  document.body.innerHTML = `
+    <div style="width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--text); font-family: var(--font-mono); flex-direction: column; gap: 24px; text-align: center; padding: 20px;">
+      <div style="font-size: 64px; opacity: 0.3;">🔐</div>
+      <div style="font-size: 24px; font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em;">Accès refusé</div>
+      <div style="color: var(--muted); max-width: 440px; line-height: 1.6;">
+        Cette app requiert un accès via le <strong>catalogue LOGAN</strong>.<br>
+        <a href="https://iamtsuba.github.io/L.O.G.A.N" style="color: var(--accent); text-decoration: none; font-weight: 500;">Retourner à LOGAN →</a>
+      </div>
+    </div>
+  `;
+}
+
 async function init() {
-  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-  // Resolve user_id — ordre de priorité :
-  // 1. Injecté par LOGAN (window.LOGAN_USER_ID)
-  // 2. localStorage (même navigateur, session précédente)
-  // 3. Session JWT Supabase active
-  if (window.LOGAN_USER_ID) {
-    currentUserId = window.LOGAN_USER_ID;
-    localStorage.setItem("bankapp_user_id", currentUserId);
-  } else {
-    const stored = localStorage.getItem("bankapp_user_id");
-    if (stored) {
-      currentUserId = stored;
-    } else {
-      const { data: { session } } = await db.auth.getSession();
-      if (session?.user?.id) {
-        currentUserId = session.user.id;
-        localStorage.setItem("bankapp_user_id", currentUserId);
-      }
-    }
-  }
-
-  if (!currentUserId) {
-    showToast("Impossible de déterminer l'utilisateur. Ouvrez l'app via LOGAN.", "error");
-    document.getElementById("loader").classList.add("hidden");
+  // Vérifier que le token LOGAN est présent
+  if (!window.LOGAN_USER_ID) {
+    showLoganAccessError();
     return;
   }
 
-  // Récupérer l'email depuis user_apps ou auth session
+  currentUserId = window.LOGAN_USER_ID;
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  // Afficher l'email depuis user_apps
   let userEmail = null;
   try {
-    // Priorité 1 : session JWT active → email dispo directement
-    const { data: { session } } = await db.auth.getSession();
-    if (session?.user?.email) {
-      userEmail = session.user.email;
-    } else {
-      // Priorité 2 : colonne email dans user_apps si elle existe
-      const { data: udata } = await db
-        .from("user_apps")
-        .select("email")
-        .eq("user_id", currentUserId)
-        .maybeSingle();
-      if (udata?.email) userEmail = udata.email;
-    }
+    const { data: udata } = await db
+      .from("user_apps")
+      .select("email")
+      .eq("user_id", currentUserId)
+      .maybeSingle();
+    if (udata?.email) userEmail = udata.email;
   } catch (_) {}
 
   document.getElementById("userBadge").innerHTML = userEmail
@@ -678,12 +641,7 @@ async function init() {
 
   document.getElementById("loader").classList.add("hidden");
   document.getElementById("mainApp").style.display = "block";
-
-  if (accounts.length === 0) {
-    showWelcomeModal();
-  } else {
-    renderAll();
-  }
+  renderAll();
 }
 
 // ══════════════════════════════════════════════
@@ -1031,34 +989,7 @@ async function deleteAccount(id) {
 // ══════════════════════════════════════════════
 // WELCOME MODAL
 // ══════════════════════════════════════════════
-function showWelcomeModal() {
-  renderColorPicker("welcomeColorRow", "welcome");
-  document.getElementById("modalWelcome").classList.remove("hidden");
-}
 
-async function createFirstAccount() {
-  const label = document.getElementById("wAccountName").value.trim();
-  if (!label) return showToast("Nom requis", "error");
-
-  await db.from("bankapp_accounts").insert({
-    label,
-    type: document.getElementById("wAccountType").value,
-    iban: document.getElementById("wAccountIban").value.trim() || null,
-    color: selectedColorWelcome,
-    user_id: currentUserId,
-  });
-
-  await loadAccounts();
-  document.getElementById("modalWelcome").classList.add("hidden");
-  populateFilters();
-  renderAll();
-  showToast("Compte créé ! Importez votre premier CSV.", "success");
-  switchTab("import");
-}
-
-// ══════════════════════════════════════════════
-// COLOR PICKER
-// ══════════════════════════════════════════════
 function renderColorPicker(containerId, scope) {
   const selected = scope === "welcome" ? selectedColorWelcome : selectedColorAccount;
   document.getElementById(containerId).innerHTML = ACCOUNT_COLORS.map(c =>
