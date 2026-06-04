@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Holidays App</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E8563A'/><text y='72' x='50' text-anchor='middle' font-size='60'>🗓</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --coral:#E8563A;--coral-light:#FDF1EE;--coral-mid:#F2A08F;
+  --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+  --gray-300:#D1D5DB;--gray-400:#9CA3AF;--gray-500:#6B7280;
+  --gray-600:#4B5563;--gray-700:#374151;--gray-800:#1F2937;--gray-900:#111827;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08);--shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --radius:12px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#F5F3EE;color:var(--gray-800);min-height:100vh}
+
+/* ── LOGIN CSS supprimé — session gérée par LOGAN ── */
+
+/* ── CONFIG ── */
+#config-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1F2937,#374151)}
+.config-card{background:#fff;border-radius:20px;padding:2.5rem;width:480px;box-shadow:var(--shadow-lg)}
+.config-card h1{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--gray-900);margin-bottom:.5rem}
+.config-card p{color:var(--gray-500);font-size:.9rem;margin-bottom:2rem}
+.field-group{margin-bottom:1.25rem}
+.field-group label{display:block;font-size:.8rem;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.field-group input{width:100%;padding:.75rem 1rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'Courier New',monospace;font-size:.85rem;color:var(--gray-800);outline:none;transition:border-color .2s}
+.field-group input:focus{border-color:var(--coral)}
+.config-hint{margin-top:1.5rem;padding:1rem;background:var(--gray-50);border-radius:var(--radius-sm);font-size:.8rem;color:var(--gray-500);line-height:1.6}
+.config-hint code{background:var(--gray-200);padding:1px 5px;border-radius:3px;font-size:.75rem}
+
+/* ── APP ── */
+#app{display:none}
+/* ── FALLBACK LOGIN généré dynamiquement par showFallbackLogin() ── */
+.header{background:var(--gray-900);padding:0 1.5rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.header-brand{display:flex;align-items:center;gap:.75rem}
+.header-logo{width:30px;height:30px;background:var(--coral);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.header h1{font-family:'Playfair Display',serif;font-size:1.05rem;color:#fff}
+.header-actions{display:flex;gap:.4rem}
+.btn-icon{padding:.4rem .8rem;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer;transition:background .2s}
+.btn-icon:hover{background:rgba(255,255,255,.2)}
+.btn-logan{display:inline-flex;align-items:center;justify-content:center;padding:.4rem .7rem;background:rgba(255,255,255,.08);color:#fff;border:1.5px solid rgba(255,255,255,.3);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-decoration:none;cursor:pointer;transition:background .2s,border-color .2s;white-space:nowrap}
+.btn-logan:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.6)}
+.main-layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 58px)}
+
+/* ── SIDEBAR ── */
+.sidebar{background:#fff;border-right:1px solid var(--gray-200);padding:1.1rem;overflow-y:auto}
+.sidebar-section-title{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gray-400);margin-bottom:.55rem;margin-top:.1rem}
+
+/* Profile rows */
+.profile-block{margin-bottom:.75rem}
+.profile-row{display:flex;align-items:center;gap:.55rem;padding:.45rem .6rem;border-radius:var(--radius-sm);cursor:pointer;user-select:none;transition:background .15s}
+.profile-row:hover{background:var(--gray-50)}
+.profile-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.profile-name{flex:1;font-size:.85rem;font-weight:600;color:var(--gray-700)}
+.profile-toggle{width:32px;height:18px;background:var(--gray-200);border-radius:10px;position:relative;transition:background .2s;flex-shrink:0}
+.profile-toggle.on{background:var(--coral)}
+.profile-toggle::after{content:'';position:absolute;width:12px;height:12px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.profile-toggle.on::after{transform:translateX(14px)}
+.icon-btn{width:24px;height:24px;border:1px solid var(--gray-200);border-radius:5px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gray-400);flex-shrink:0}
+.icon-btn:hover{background:var(--gray-100);color:var(--gray-600)}
+
+/* Envelope cards inside profile block */
+.env-cards{padding:0 0 .2rem .8rem}
+.env-card{border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:.55rem .75rem;margin-bottom:.4rem;background:#fff;position:relative}
+.env-card.archived-card{opacity:.55;background:var(--gray-50)}
+.env-card-header{display:flex;align-items:center;gap:.4rem;margin-bottom:.22rem}
+.env-type-badge{padding:1px 6px;border-radius:4px;font-size:.68rem;font-weight:700;letter-spacing:.02em;flex-shrink:0}
+.env-dates{font-size:.7rem;color:var(--gray-400);flex:1}
+.env-card-edit{font-size:10px;color:var(--gray-300);cursor:pointer;padding:2px 3px;border:1px solid var(--gray-200);border-radius:3px;background:transparent;flex-shrink:0}
+.env-card-edit:hover{background:var(--gray-100);color:var(--gray-500)}
+.env-progress-bar{height:4px;background:var(--gray-100);border-radius:2px;overflow:hidden;margin:.3rem 0 .22rem}
+.env-progress-fill{height:100%;border-radius:2px;transition:width .4s}
+.env-progress-label{display:flex;justify-content:space-between;font-size:.68rem;color:var(--gray-400)}
+.env-progress-label .val{font-weight:600;color:var(--gray-600)}
+.env-archive-btn{font-size:.68rem;color:var(--gray-300);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;margin-top:.2rem}
+.env-archive-btn:hover{color:var(--gray-500)}
+.archived-label{font-size:.65rem;color:var(--gray-400);font-style:italic;margin-top:.15rem}
+
+.btn-add{width:100%;padding:.5rem;background:transparent;color:var(--coral);border:1.5px dashed var(--coral-mid);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:background .15s;margin-top:.3rem}
+.btn-add:hover{background:var(--coral-light)}
+.sidebar-divider{height:1px;background:var(--gray-100);margin:1rem 0}
+
+/* ── CONTENT ── */
+.content{padding:1.25rem 1.75rem;overflow-y:auto}
+.view-tabs{display:flex;gap:.35rem;margin-bottom:1.2rem;background:#fff;padding:.3rem;border-radius:var(--radius-sm);border:1px solid var(--gray-200);width:fit-content}
+.view-tab{padding:.35rem .85rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--gray-500);transition:all .15s;white-space:nowrap}
+.view-tab.active{background:var(--gray-900);color:#fff}
+.view-tab:hover:not(.active){background:var(--gray-100);color:var(--gray-700)}
+.cal-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.6rem}
+.cal-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gray-800);text-transform:capitalize}
+.cal-nav{display:flex;align-items:center;gap:.35rem}
+.nav-btn{width:30px;height:30px;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;color:var(--gray-600);transition:background .15s}
+.nav-btn:hover{background:var(--gray-100)}
+.today-btn{padding:.32rem .75rem;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.75rem;cursor:pointer;color:var(--gray-600);transition:background .15s}
+.today-btn:hover{background:var(--gray-100)}
+.legend{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
+.legend-item{display:flex;align-items:center;gap:.28rem;font-size:.7rem;color:var(--gray-600)}
+.legend-dot{width:7px;height:7px;border-radius:50%}
+
+/* ── MONTHLY ── */
+.cal-monthly{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;border:1px solid var(--gray-200)}
+.cal-days-header{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--gray-200)}
+.cal-day-name{padding:.5rem .2rem;text-align:center;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--gray-400)}
+.cal-day-name:last-child,.cal-day-name:nth-last-child(2){color:var(--coral)}
+.cal-body-monthly{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-cell{min-height:76px;border-right:1px solid var(--gray-100);border-bottom:1px solid var(--gray-100);padding:.3rem}
+.cal-cell:nth-child(7n){border-right:none}
+.cal-cell.other-month{background:var(--gray-50)}
+.cal-cell.today-cell{background:#FFFBF5}
+.cal-cell.weekend{background:#F8F7F5}
+.cal-cell.other-month.weekend{background:#F3F1EE}
+.cal-date-num{font-size:.74rem;font-weight:500;color:var(--gray-400);width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin-bottom:2px}
+.cal-cell:not(.other-month) .cal-date-num{color:var(--gray-700)}
+.cal-cell.today-cell .cal-date-num{background:var(--coral);color:#fff;font-weight:700}
+.cal-event{border-radius:3px;padding:1px 5px;font-size:.62rem;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s}
+.cal-event:hover{opacity:.75}
+.cal-event-more{font-size:.6rem;color:var(--gray-400);padding:1px 3px}
+
+/* ── ANNUAL / PERIOD ── */
+.cal-annual{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem}
+.cal-period{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem}
+.cal-annual-month{background:#fff;border-radius:var(--radius-sm);border:1px solid var(--gray-200);overflow:hidden}
+.cal-annual-month-title{padding:.45rem .7rem;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:capitalize;border-bottom:1px solid var(--gray-100);background:var(--gray-50)}
+.cal-mini-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-mini-head{text-align:center;font-size:.56rem;font-weight:700;color:var(--gray-400);padding:.28rem 0;text-transform:uppercase}
+.cal-mini-head:last-child,.cal-mini-head:nth-last-child(2){color:var(--coral)}
+.cal-mini-cell{text-align:center;font-size:.66rem;padding:.18rem .05rem;position:relative;border-radius:3px;cursor:default;min-height:26px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+.cal-mini-cell.other{color:var(--gray-300)}
+.cal-mini-cell.today-mini .cal-date-inner{color:var(--coral);font-weight:700}
+.cal-mini-cell.has-leave{cursor:pointer}
+.cal-mini-cell.has-leave:hover{background:var(--gray-50)}
+.cal-mini-cell.weekend .cal-date-inner{color:var(--gray-300)}
+.cal-mini-cell.weekend.today-mini .cal-date-inner{color:var(--coral)}
+.mini-dots{display:flex;justify-content:center;gap:2px;margin-top:1px;flex-wrap:wrap}
+.mini-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.mini-dot-half{width:5px;height:5px;border-radius:50%;flex-shrink:0;border:1.5px solid var(--c,#888);background:linear-gradient(90deg,var(--c,#888) 50%,transparent 50%)}
+
+/* ── TYPE COLORS ── */
+.type-CP{opacity:1;background:#EEF2FF;color:#4338CA}
+.type-RC{opacity:1;background:#ECFDF5;color:#059669}
+.type-CA{opacity:1;background:#FFF7ED;color:#EA580C}
+.type-MAL{opacity:1;background:#FFF1F2;color:#E11D48}
+.type-JFER{opacity:1;background:#F5F3FF;color:#7C3AED}
+.type-ENF{opacity:1;background:#FFF0F9;color:#BE185D}
+.type-ARR{opacity:1;background:#FFF8EC;color:#B45309}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(17,24,39,.5);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(3px)}
+.modal{background:#fff;border-radius:16px;padding:1.75rem;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.modal h2{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gray-900);margin-bottom:1.2rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem}
+.form-group{margin-bottom:.85rem}
+.form-group label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-500);margin-bottom:.32rem}
+.form-group input,.form-group select{width:100%;padding:.58rem .82rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.86rem;color:var(--gray-800);outline:none;transition:border-color .2s;background:#fff}
+.form-group input:focus,.form-group select:focus{border-color:var(--coral)}
+.modal-actions{display:flex;gap:.6rem;margin-top:1.2rem;justify-content:flex-end}
+.color-picker-row{display:flex;gap:.42rem;flex-wrap:wrap}
+.color-swatch{width:25px;height:25px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s}
+.color-swatch:hover{transform:scale(1.15)}.color-swatch.selected{border-color:var(--gray-800)}
+.btn-primary{width:100%;padding:.8rem;background:var(--coral);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn-primary:hover{opacity:.9}
+.btn-secondary{padding:.58rem 1rem;background:var(--gray-100);color:var(--gray-700);border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:500;cursor:pointer}
+.btn-secondary:hover{background:var(--gray-200)}
+.btn-danger{padding:.58rem 1rem;background:#FEE2E2;color:#DC2626;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:500;cursor:pointer}
+.btn-danger:hover{background:#FECACA}
+.btn-save{padding:.58rem 1.3rem;background:var(--coral);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:600;cursor:pointer}
+.btn-save:hover{opacity:.9}
+.info-box{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:.65rem .85rem;font-size:.8rem;color:var(--gray-600);margin-bottom:.85rem;line-height:1.6}
+.info-box strong{color:var(--gray-800)}
+
+/* ── MULTI-LEAVE TOOL ── */
+.multi-section{margin-bottom:1.1rem}
+.multi-section-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-500);margin-bottom:.55rem;padding-bottom:.3rem;border-bottom:1px solid var(--gray-100)}
+.multi-profile-row{display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:6px;cursor:pointer;user-select:none;transition:background .1s}
+.multi-profile-row:hover{background:var(--gray-50)}
+.multi-checkbox{width:15px;height:15px;border:2px solid var(--gray-300);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:transparent;flex-shrink:0;transition:all .15s}
+.multi-checkbox.checked{background:var(--coral);border-color:var(--coral);color:#fff}
+.multi-env-rows{padding:.2rem 0 .2rem 1.3rem}
+.multi-env-row{display:flex;align-items:center;gap:.5rem;padding:.28rem .4rem;border-radius:5px;cursor:pointer;user-select:none}
+.multi-env-row:hover{background:var(--gray-50)}
+.multi-env-label{font-size:.8rem;color:var(--gray-600);flex:1}
+.multi-env-sub{font-size:.7rem;color:var(--gray-400)}
+.multi-summary{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:.7rem .9rem;font-size:.8rem;color:var(--gray-600);margin-top:.8rem;line-height:1.7}
+.multi-summary-row{display:flex;justify-content:space-between;align-items:center;padding:.1rem 0}
+.multi-summary-name{font-weight:600;color:var(--gray-700)}
+.multi-summary-ok{color:#059669;font-weight:600}
+.multi-summary-warn{color:#DC2626;font-weight:600}
+
+/* ── WEEK TABLE CALENDAR ── */
+.wt-wrapper{overflow-x:auto;padding-bottom:.5rem}
+.wt-table-wrap{overflow-x:auto;margin-bottom:1.25rem;border-radius:var(--radius);box-shadow:var(--shadow-sm)}
+.wt-table{border-collapse:collapse;background:#fff;width:100%;font-family:'DM Sans',sans-serif;border:1px solid var(--gray-200);border-radius:var(--radius);overflow:hidden}
+.wt-month-head{background:#D1E3FF;color:#1E3A6E;font-size:.68rem;font-weight:700;text-align:center;padding:.25rem .1rem;border-right:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200);white-space:nowrap}
+.wt-month-change{color:var(--coral)!important;font-weight:700!important}
+.wt-week-head{background:#EBF4FF;color:#1E40AF;font-size:.7rem;font-weight:700;text-align:center;padding:.3rem .1rem;border-right:2px solid var(--gray-200);border-bottom:1px solid var(--gray-200);white-space:nowrap}
+.wt-we-head{background:var(--gray-100);border-right:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200)}
+.wt-name-col{width:110px;min-width:110px;background:#EBF4FF;border-right:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200)}
+.wt-day-head{padding:.22rem .05rem;text-align:center;font-size:.58rem;font-weight:600;border-right:1px solid var(--gray-100);border-bottom:1px solid var(--gray-200);width:22px;min-width:18px;background:#fff;color:var(--gray-600)}
+.wt-day-head.wt-we{background:var(--gray-100);color:var(--gray-400)}
+.wt-day-head.wt-today{background:#FFF3F0}
+.wt-day-letter{display:block;font-size:.55rem;color:var(--gray-400);line-height:1}
+.wt-day-num{display:block;font-size:.62rem;font-weight:600;color:var(--gray-600);line-height:1.2}
+.wt-day-num.wt-today-num{color:var(--coral);font-weight:700}
+.wt-name-cell{padding:.25rem .5rem;border-right:1px solid var(--gray-200);border-bottom:1px solid var(--gray-100);background:#F0F7FF;vertical-align:middle;white-space:nowrap}
+.wt-profile-name{font-size:.75rem;font-weight:600;color:var(--gray-800);padding-left:.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.wt-cell{width:22px;min-width:18px;height:24px;border-right:1px solid var(--gray-100);border-bottom:1px solid var(--gray-100);text-align:center;vertical-align:middle;font-size:.6rem;padding:0}
+.wt-cell.wt-we{background:var(--gray-100)}
+.wt-cell.wt-out-range{background:var(--gray-50);opacity:.4}
+.wt-cell.wt-today-cell{background:#FFF3F0}
+.wt-cell.wt-leave{cursor:pointer;transition:opacity .15s}
+.wt-cell.wt-leave:hover{opacity:.75;filter:brightness(.95)}
+.wt-type{font-size:.58rem;font-weight:700;display:block;line-height:1;padding:1px 0}
+
+/* ── DAY SELECTION ── */
+.cal-cell.sel-on{background:#FEE2D5!important}.cal-cell.sel-start,.cal-cell.sel-end,.cal-cell.sel-mid{background:#FEE2D5!important}
+.cal-cell.sel-start .cal-date-num,.cal-cell.sel-end .cal-date-num{background:var(--coral);color:#fff;border-radius:50%}
+.cal-cell.sel-mid .cal-date-num{color:var(--coral)}
+.cal-cell.selectable:hover{background:#FFF0E8!important;cursor:pointer}
+.wt-cell.sel-on{background:#FEE2D5!important;cursor:pointer}.wt-cell.sel-start,.wt-cell.sel-end,.wt-cell.sel-mid{background:#FEE2D5!important;cursor:pointer}
+.wt-cell.sel-start{outline:2px solid var(--coral);outline-offset:-2px}
+.wt-cell.sel-end{outline:2px solid var(--coral);outline-offset:-2px}
+.wt-cell.selectable:hover:not(.wt-leave){background:#FFF0E8!important;cursor:pointer}
+.sel-bar{display:flex;align-items:center;gap:.75rem;background:var(--coral);color:#fff;padding:.55rem 1.25rem;border-radius:var(--radius-sm);position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);box-shadow:var(--shadow-lg);z-index:500;font-size:.85rem;font-weight:600;white-space:nowrap;animation:slideUp .2s ease}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.sel-bar button{background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:.3rem .75rem;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer}
+.sel-bar button:hover{background:rgba(255,255,255,.4)}
+.sel-bar .sel-cancel{background:transparent;border:1px solid rgba(255,255,255,.3);font-size:.75rem}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--gray-900);color:#fff;padding:.65rem 1.1rem;border-radius:var(--radius-sm);font-size:.82rem;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s ease}
+.toast.show{transform:translateY(0);opacity:1}.toast.success{background:#065F46}.toast.error{background:#991B1B}
+
+/* ══════════════════════════════════════════════════
+   MOBILE RESPONSIVE  (max-width: 768px)
+   ══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Header: compact, just logo + title + menu button */
+  .header { padding: 0 1rem; height: 52px; }
+  .header h1 { font-size: .95rem; }
+  .header-actions { display: none; }
+  .header-logo { width: 26px; height: 26px; font-size: 13px; }
+
+  /* Show mobile menu button */
+  .mob-menu-btn {
+    display: flex !important;
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 8px;
+    align-items: center; justify-content: center;
+    font-size: 18px; color: #fff; cursor: pointer;
+  }
+
+  /* Mobile bottom action button */
+  .mob-fab {
+    display: flex !important;
+    position: fixed; bottom: 1.25rem; right: 1.25rem;
+    width: 54px; height: 54px;
+    background: var(--coral); color: #fff;
+    border-radius: 50%; border: none;
+    font-size: 24px; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(232,86,58,.45);
+    cursor: pointer; z-index: 300;
+  }
+
+  /* Layout: no sidebar by default */
+  .main-layout { grid-template-columns: 1fr; }
+
+  /* Sidebar: slide-in drawer */
+  .sidebar {
+    position: fixed; top: 52px; left: 0; bottom: 0; width: 85vw; max-width: 320px;
+    z-index: 400; transform: translateX(-105%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow: 4px 0 24px rgba(0,0,0,.18);
+    overflow-y: auto;
+  }
+  .sidebar.mob-open { transform: translateX(0); }
+
+  /* Overlay behind sidebar */
+  .mob-overlay {
+    display: none;
+    position: fixed; inset: 0; background: rgba(0,0,0,.4);
+    z-index: 399; backdrop-filter: blur(2px);
+  }
+  .mob-overlay.mob-open { display: block; }
+
+  /* Content: full width, less padding */
+  .content { padding: .75rem .9rem; }
+
+  /* View tabs: scrollable horizontal strip */
+  .view-tabs {
+    width: 100%; overflow-x: auto; flex-wrap: nowrap;
+    margin-bottom: .75rem; gap: .25rem;
+    scrollbar-width: none;
+  }
+  .view-tabs::-webkit-scrollbar { display: none; }
+  .view-tab { padding: .4rem .75rem; font-size: .76rem; flex-shrink: 0; }
+
+  /* Top bar: stack nav + title */
+  .cal-topbar { flex-direction: column; align-items: flex-start; gap: .4rem; margin-bottom: .75rem; }
+  .cal-title { font-size: 1.1rem; }
+  .legend { gap: .3rem; }
+
+  /* Monthly: bigger cells for touch */
+  .cal-cell { min-height: 60px; padding: .25rem; }
+  .cal-date-num { width: 22px; height: 22px; font-size: .72rem; }
+  .cal-event { font-size: .6rem; padding: 1px 4px; }
+  .cal-day-name { font-size: .58rem; padding: .4rem .1rem; }
+
+  /* Week table: scrollable */
+  .wt-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .wt-table-wrap { border-radius: var(--radius-sm); }
+  .wt-profile-name { font-size: .68rem; max-width: 70px; }
+  .wt-name-cell { padding: .2rem .35rem; }
+  .wt-cell { min-width: 22px; height: 26px; }
+  .wt-day-head { min-width: 22px; }
+  .wt-day-letter { font-size: .5rem; }
+  .wt-day-num { font-size: .58rem; }
+  .wt-type { font-size: .55rem; }
+
+  /* Selection bar: full width at bottom */
+  .sel-bar {
+    width: calc(100% - 2rem); bottom: .75rem;
+    font-size: .8rem; padding: .6rem .9rem;
+    flex-wrap: wrap; gap: .5rem;
+  }
+
+  /* Modal: full screen on mobile */
+  .modal-overlay { align-items: flex-end; }
+  .modal {
+    width: 100%; max-width: 100%; border-radius: 20px 20px 0 0;
+    padding: 1.5rem 1.25rem 2rem; max-height: 90vh;
+  }
+
+  /* Toast: full width */
+  .toast { left: 1rem; right: 1rem; width: auto; transform: translateY(100px); }
+  .toast.show { transform: translateY(0); }
+
+  /* Bigger touch targets for forms */
+  .form-group input, .form-group select { padding: .75rem .85rem; font-size: .95rem; }
+  .btn-save, .btn-secondary, .btn-danger { padding: .75rem 1.1rem; font-size: .9rem; }
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions button { flex: 1; min-width: 100px; }
+
+  /* Sidebar profile toggles: bigger touch target */
+  .profile-row { padding: .65rem .6rem; }
+  .profile-toggle { width: 40px; height: 22px; }
+  .profile-toggle::after { width: 16px; height: 16px; top: 3px; left: 3px; }
+  .profile-toggle.on::after { transform: translateX(18px); }
+  .profile-name { font-size: .9rem; }
+}
+
+/* Hide mobile-only elements on desktop */
+.mob-menu-btn { display: none; }
+.mob-fab { display: none; }
+.mob-overlay { display: none; }
+
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN supprimé — session gérée par LOGAN -->
+
+<!-- CONFIG -->
+<div id="config-screen" style="display:none">
+  <div class="config-card">
+    <h1>🗓 Configuration Supabase</h1>
+    <p>Connectez votre base de données Supabase</p>
+    <div class="field-group"><label>URL Supabase</label><input type="text" id="supabase-url" placeholder="https://xxxxxxxxxxxx.supabase.co"/></div>
+    <div class="field-group"><label>Clé API (anon public)</label><input type="text" id="supabase-key" placeholder="eyJhbGciOiJIUzI1NiIs..."/></div>
+    <button class="btn-primary" onclick="connecterSupabase()">Se connecter →</button>
+    <div class="config-hint"><strong>Première utilisation ?</strong><br>Exécutez <code>setup.sql</code> dans l'éditeur SQL Supabase avant de continuer.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Mobile overlay + FAB -->
+  <div class="mob-overlay" id="mob-overlay" onclick="mobCloseSidebar()"></div>
+  <button class="mob-fab" onclick="openAddLeaveModal()" title="Poser des congés">＋</button>
+
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-logo">🗓</div>
+      <h1>Holidays App</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="openMultiLeaveModal()" style="background:rgba(232,86,58,.25);border-color:rgba(232,86,58,.5)">⚡ Pose multiple</button>
+      <button class="btn-icon" onclick="openAddLeaveModal()">＋ Poser des congés</button>
+      <button class="btn-icon" onclick="openAddEnvelopeModal()">📋 Compteur</button>
+      <button class="btn-icon" onclick="openAddProfileModal()">👤 Profil</button>
+      <a href="https://iamtsuba.github.io/L.O.G.A.N" class="btn-logan">L.O.G.A.N</a>
+    </div>
+    <button class="mob-menu-btn" onclick="mobToggleSidebar()" aria-label="Menu">☰</button>
+  </header>
+
+  <div class="main-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section-title">Profils</div>
+      <div id="profiles-list"></div>
+      <button class="btn-add" onclick="openAddProfileModal()">+ Ajouter un profil</button>
+    </aside>
+
+    <main class="content">
+      <div class="view-tabs">
+        <button class="view-tab active" onclick="setView('mensuel',this)">Mensuel</button>
+        <button class="view-tab" onclick="setView('annuel',this)">Annuel</button>
+        <button class="view-tab" onclick="setView('cp',this)">Congés payés</button>
+        <button class="view-tab" onclick="setView('nounou',this)">Congés nounou</button>
+      </div>
+      <div class="cal-topbar">
+        <div class="cal-nav">
+          <button class="nav-btn" onclick="navPrev()">‹</button>
+          <button class="today-btn" onclick="navToday()">Aujourd'hui</button>
+          <button class="nav-btn" onclick="navNext()">›</button>
+        </div>
+        <div class="cal-title" id="cal-title"></div>
+        <div class="legend" id="cal-legend"></div>
+      </div>
+      <div id="view-mensuel"></div>
+      <div id="view-annuel" style="display:none"></div>
+      <div id="view-cp" style="display:none"></div>
+      <div id="view-nounou" style="display:none"></div>
+    </main>
+  </div>
+</div>
+
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModalBg(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+// ── CONSTANTS ──
+var APP_VERSION='02/06/2026 11:58:17';
+var SB_URL='https://tkimdlsokrqdfpkfapgc.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
+var COLORS=['#E8563A','#3B82F6','#10B981','#F59E0B','#8B5CF6','#EC4899','#14B8A6','#F97316','#06B6D4','#6366F1'];
+var TYPES=['CP','RC','CA','MAL','JFER','ENF','ARR'];
+var TYPE_LABELS={CP:'Congés payés',RC:'Récupération',CA:'Congé annuel',MAL:'Maladie',JFER:'Jours fériés',ENF:'Enfant malade',ARR:'Arrêt maladie'};
+var MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+var DAYS_FR=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+var MONTHS_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+var DAYS_MINI=['Lu','Ma','Me','Je','Ve','Sa','Di'];
+
+var sbClient=null,profiles=[],envelopes=[],leaves=[],currentUserId=null;
+var activeProfiles=new Set();
+var currentView='mensuel';
+var navState={mensuel:new Date(),annuel:new Date(),cp:new Date(),nounou:new Date()};
+var editingProfile=null,editingEnvelope=null,editingLeave=null;
+
+// ── INIT
+function initSupabase(){
+  var lib=window.supabase||window.supabaseJs;
+  if(!lib||!lib.createClient)return;
+  sbClient=lib.createClient(SB_URL,SB_KEY);
+  document.getElementById('app').style.display='block';
+  loadData().then(render);
+}
+
+function doLogout(){}
+
+// ── LEGACY CONFIG (kept for manual override if needed) 
+function connecterSupabase(){
+  var url=document.getElementById('supabase-url').value.trim();
+  var key=document.getElementById('supabase-key').value.trim();
+  if(!url||!key)return toast('Renseignez l\'URL et la clé','error');
+  var lib=window.supabase||window.supabaseJs;
+  if(!lib)return toast('SDK non chargé','error');
+  sbClient=lib.createClient(url,key);
+  document.getElementById('config-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  loadData().then(render);
+}
+
+// ── DATA 
+async function loadData(){
+  if(!currentUserId){
+    // 1. Injecté par LOGAN directement
+    if(window.LOGAN_USER_ID){
+      currentUserId=window.LOGAN_USER_ID;
+    } else {
+      // 2. Lecture dans user_apps — prend le premier match
+      var uR=await sbClient.from('user_apps').select('user_id').contains('app_ids',['Holidays App.html']);
+      if(uR.error||!uR.data||!uR.data.length)return toast('Utilisateur non trouvé dans user_apps','error');
+      currentUserId=uR.data[0].user_id;
+    }
+  }
+  var pR=await sbClient.from('holidaysapp_profiles').select('*').eq('user_id',currentUserId).order('name');
+  var eR=await sbClient.from('holidaysapp_envelopes').select('*').order('start_date');
+  var lR=await sbClient.from('holidaysapp_leaves').select('*').order('start_date');
+  if(pR.error)return toast('Erreur profils: '+pR.error.message,'error');
+  if(eR.error)return toast('Erreur compteurs: '+eR.error.message,'error');
+  if(lR.error)return toast('Erreur congés: '+lR.error.message,'error');
+  profiles=pR.data||[];envelopes=eR.data||[];leaves=lR.data||[];
+  activeProfiles=new Set(profiles.map(function(p){return p.id;}));
+}
+
+// ── UTILS 
+
+function parseFrDate(s){
+  if(!s)return '';
+  s=s.trim();
+  // Already ISO yyyy-mm-dd
+  if(s.match(/^\d{4}-\d{2}-\d{2}$/))return s;
+  var p=s.split('/');
+  if(p.length===3){
+    var a=parseInt(p[0]),b=parseInt(p[1]),c2=parseInt(p[2]);
+    // French format dd/mm/yyyy: first part <= 31, second <= 12
+    // English format mm/dd/yyyy: first part could be > 12 (impossible for month)
+    if(a>12){
+      // Must be dd/mm/yyyy (day > 12, can't be month)
+      return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
+    } else if(b>12){
+      // Must be mm/dd/yyyy (day in second position > 12)
+      return p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');
+    } else {
+      // Ambiguous: assume French dd/mm/yyyy
+      return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
+    }
+  }
+  return s;
+}
+function formatFrDate(iso){
+  if(!iso)return '';
+  var p=iso.split('-');
+  if(p.length===3)return p[2]+'/'+p[1]+'/'+p[0];
+  return iso;
+}
+function countWorkdays(start,end,halfStart,halfEnd){
+  var count=0,s=new Date(start+'T00:00:00'),e=new Date(end+'T00:00:00'),cur=new Date(s);
+  while(cur<=e){
+    var d=cur.getDay();
+    if(d!==0&&d!==6){
+      var key=cur.toISOString().slice(0,10);
+      var val=1;
+      var isStart=(key===start), isEnd=(key===end);
+      var hs=halfStart==='am'||halfStart==='pm';
+      var he=halfEnd==='am'||halfEnd==='pm';
+      if(isStart&&isEnd){
+        // single day: half applies if either half option chosen
+        if(hs||he)val=0.5;
+      } else if(isStart&&hs){
+        val=0.5;
+      } else if(isEnd&&he){
+        val=0.5;
+      }
+      count+=val;
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+  return Math.round(count*2)/2; // round to nearest 0.5
+}
+function fmtDate(str){
+  if(!str)return '';
+  return new Date(str+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function usedDays(envId){
+  return leaves.filter(function(l){return l.envelope_id===envId;}).reduce(function(s,l){return s+parseFloat(l.days_count||0);},0);
+}
+function isoDate(d){var y=d.getFullYear();var m=String(d.getMonth()+1).padStart(2,"0");var day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day;}
+function buildEvMap(){
+  var m={};
+  leaves.forEach(function(lv){
+    var env=envelopes.find(function(e){return e.id===lv.envelope_id;});
+    if(!env||!activeProfiles.has(env.profile_id))return;
+    var p=profiles.find(function(x){return x.id===env.profile_id;});
+    if(!p)return;
+    var s=new Date(lv.start_date+'T00:00:00'),e=new Date(lv.end_date+'T00:00:00'),cur=new Date(s);
+    while(cur<=e){
+      var key=isoDate(cur);
+      if(!m[key])m[key]=[];
+      m[key].push({lv:lv,env:env,profile:p});
+      cur.setDate(cur.getDate()+1);
+    }
+  });
+  return m;
+}
+
+// ── RENDER 
+function render(){
+  // Premier lancement : aucun profil → invite de création
+  var overlay=document.getElementById('empty-state-overlay');
+  if(!profiles.length){
+    if(!overlay){
+      document.getElementById('app').insertAdjacentHTML('beforeend',
+        '<div id="empty-state-overlay" style="position:fixed;inset:0;background:rgba(17,24,39,.7);display:flex;align-items:center;justify-content:center;z-index:8000;">'
+        +'<div style="background:#fff;border-radius:20px;padding:2.5rem 2rem;width:360px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.25);">'
+        +'<div style="font-size:2.5rem;margin-bottom:1rem;">🗓</div>'
+        +'<h2 style="font-family:\'Playfair Display\',serif;font-size:1.4rem;color:#111827;margin-bottom:.5rem;">Bienvenue sur Holidays App</h2>'
+        +'<p style="color:#6B7280;font-size:.88rem;margin-bottom:1.75rem;">Aucun profil trouvé.<br>Commencez par en créer un pour gérer vos congés.</p>'
+        +'<button onclick="document.getElementById(\'empty-state-overlay\').remove();openAddProfileModal();" '
+        +'style="width:100%;padding:.82rem;background:var(--coral);color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;">Créer mon premier profil →</button>'
+        +'</div></div>'
+      );
+    }
+    return; // ne pas rendre le calendrier vide
+  } else {
+    if(overlay)overlay.remove();
+  }
+  renderSidebar();renderLegend();renderCurrentView();
+}
+
+function renderSidebar(){
+  var el=document.getElementById('profiles-list');
+  if(!profiles.length){el.innerHTML='<div style="font-size:.8rem;color:var(--gray-400);padding:.4rem 0">Aucun profil</div>';return;}
+  el.innerHTML=profiles.map(function(p){
+    var on=activeProfiles.has(p.id);
+    // Get active (non-archived) envelopes for this profile
+    var pEnvs=envelopes.filter(function(e){return e.profile_id===p.id;});
+    var activeEnvs=pEnvs.filter(function(e){return !e.archived;});
+    var archivedEnvs=pEnvs.filter(function(e){return e.archived;});
+
+    var envcards=activeEnvs.map(function(env){return renderEnvCard(env,p,false);}).join('');
+    // Show archived ones collapsed
+    var archHtml='';
+    if(archivedEnvs.length){
+      archHtml='<div style="font-size:.65rem;color:var(--gray-400);padding:.15rem .2rem;margin-top:.1rem">'
+        +archivedEnvs.length+' compteur'+(archivedEnvs.length>1?'s':'')+' archivé'+(archivedEnvs.length>1?'s':'')
+        +' — <span style="cursor:pointer;text-decoration:underline" onclick="toggleArchivedEnvs(\''+p.id+'\')">voir</span></div>'
+        +'<div id="archived-envs-'+p.id+'" style="display:none">'+archivedEnvs.map(function(env){return renderEnvCard(env,p,true);}).join('')+'</div>';
+    }
+
+    return '<div class="profile-block">'
+      +'<div class="profile-row'+(on?' active':'')+'" onclick="toggleProfile(\''+p.id+'\')">'
+      +'<div class="profile-dot" style="background:'+p.color+'"></div>'
+      +'<span class="profile-name">'+p.name+'</span>'
+      +'<div class="profile-toggle'+(on?' on':'')+'"></div>'
+      +'<button class="icon-btn" onclick="event.stopPropagation();openEditProfileModal(\''+p.id+'\')" title="Modifier">✎</button>'
+      +'</div>'
+      +(on?'<div class="env-cards">'+envcards+archHtml+'<button class="btn-add" style="margin-top:.35rem" onclick="openAddEnvelopeModal(\''+p.id+'\')">+ Compteur</button></div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function toggleArchivedEnvs(profileId){
+  var el=document.getElementById('archived-envs-'+profileId);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function renderEnvCard(env,p,isArchived){
+  var used=usedDays(env.id),max=env.max_days||0;
+  var pct=max>0?Math.min(100,Math.round((used/max)*100)):0;
+  var fill=pct>=90?'#DC2626':pct>=70?'#D97706':(p?p.color:'#059669');
+  var rem=max>0?max-used:null;
+  return '<div class="env-card'+(isArchived?' archived-card':'')+'">'
+    +'<div class="env-card-header">'
+    +'<span class="env-type-badge" style="background:'+p.color+'22;color:'+(['MAL','JFER','ARR'].indexOf(env.type)>=0?'#DC2626':p.color)+';border:1.5px solid '+p.color+'">'+env.type+'</span>'
+    +'<span class="env-dates">'+fmtDate(env.start_date)+' → '+fmtDate(env.end_date)+'</span>'
+    +'<button class="env-card-edit" onclick="openEditEnvelopeModal(\''+env.id+'\')" title="Modifier">✎</button>'
+    +'</div>'
+    +(max>0
+      ?'<div class="env-progress-bar"><div class="env-progress-fill" style="width:'+pct+'%;background:'+fill+'"></div></div>'
+       +'<div class="env-progress-label"><span>'+used+' j posés</span><span class="val" style="color:'+(pct>=90?'#DC2626':pct>=70?'#D97706':'inherit')+'">'+(rem!==null?rem+' j restants / '+max:'—')+'</span></div>'
+      :'<div style="font-size:.68rem;color:var(--gray-400)">'+used+' j posés — pas de quota</div>')
+    +(isArchived
+      ?'<div class="archived-label">Archivé</div>'
+      :'<button class="env-archive-btn" onclick="toggleArchiveEnvelope(\''+env.id+'\',true)" title="Archiver">⬇ Archiver cette compteur</button>')
+    +'</div>';
+}
+
+function renderLegend(){
+  document.getElementById('cal-legend').innerHTML=profiles
+    .filter(function(p){return activeProfiles.has(p.id);})
+    .map(function(p){return '<div class="legend-item"><div class="legend-dot" style="background:'+p.color+'"></div>'+p.name+'</div>';}).join('');
+}
+
+// ── ARCHIVE 
+async function toggleArchiveEnvelope(id,archive){
+  var res=await sbClient.from('holidaysapp_envelopes').update({archived:archive}).eq('id',id);
+  if(res.error)return toast('Erreur: '+res.error.message,'error');
+  toast(archive?'Compteur archivé ✓':'Compteur restaurée ✓','success');
+  await loadData();render();
+}
+
+// ── VIEW SWITCHING 
+function setView(v,btn){
+  currentView=v;
+  document.querySelectorAll('.view-tab').forEach(function(t){t.classList.remove('active');});
+  btn.classList.add('active');
+  ['mensuel','annuel','cp','nounou'].forEach(function(id){
+    document.getElementById('view-'+id).style.display=(id===v)?'block':'none';
+  });
+  renderCurrentView();
+}
+function navPrev(){
+  var d=navState[currentView];
+  if(currentView==='mensuel')d.setMonth(d.getMonth()-1);
+  else d.setFullYear(d.getFullYear()-1);
+  renderCurrentView();
+}
+function navNext(){
+  var d=navState[currentView];
+  if(currentView==='mensuel')d.setMonth(d.getMonth()+1);
+  else d.setFullYear(d.getFullYear()+1);
+  renderCurrentView();
+}
+function navToday(){navState[currentView]=new Date();renderCurrentView();}
+function renderCurrentView(){
+  if(currentView==='mensuel')renderMensuel();
+  else if(currentView==='annuel')renderAnnuel();
+  else if(currentView==='cp')renderPeriodCal('cp');
+  else renderPeriodCal('nounou');
+}
+
+// ── MONTHLY 
+function renderMensuel(){
+  var d=navState.mensuel,year=d.getFullYear(),month=d.getMonth();
+  document.getElementById('cal-title').textContent=MONTHS_FR[month]+' '+year;
+  var firstDay=new Date(year,month,1),lastDay=new Date(year,month+1,0);
+  var startDow=firstDay.getDay();startDow=startDow===0?6:startDow-1;
+  var today=new Date(),cells=[];
+  for(var i=startDow-1;i>=0;i--)cells.push({date:new Date(year,month,-i),other:true});
+  for(var dd=1;dd<=lastDay.getDate();dd++)cells.push({date:new Date(year,month,dd),other:false});
+  var rem=42-cells.length;
+  for(var dd2=1;dd2<=rem;dd2++)cells.push({date:new Date(year,month+1,dd2),other:true});
+  var evMap=buildEvMap();
+  var isToday=function(x){return x.toDateString()===today.toDateString();};
+  var header='<div class="cal-days-header">'+DAYS_FR.map(function(x){return '<div class="cal-day-name">'+x+'</div>';}).join('')+'</div>';
+  var body='<div class="cal-body-monthly">'+cells.map(function(c){
+    var key=isoDate(c.date),evts=evMap[key]||[],shown=evts.slice(0,3),more=evts.length-3;
+    var dow=c.date.getDay(),isWe=(dow===0||dow===6);
+    var dStr=isoDate(c.date);
+    return '<div class="cal-cell selectable'+(c.other?' other-month':'')+(isToday(c.date)?' today-cell':'')+(isWe?' weekend':'')+'" data-date="'+dStr+'" onmousedown="selMouseDown(this)" onmouseenter="selMouseEnter(this)" onmouseup="selMouseUp(this)" style="user-select:none"><div class="cal-date-num">'+c.date.getDate()+'</div>'
+      +shown.map(function(x){
+        var half=(x.lv.half_start&&x.lv.half_start!=='full'&&key===x.lv.start_date)||(x.lv.half_end&&x.lv.half_end!=='full'&&key===x.lv.end_date)?'½ ':'';
+        var monTxt=['MAL','JFER','ARR'].indexOf(x.env.type)>=0?'#DC2626':'#111827';
+        return '<div class="cal-event" style="background:'+x.profile.color+'22;color:'+monTxt+';border-left:3px solid '+x.profile.color+'"'
+          +' onclick="openEditLeaveModal(\''+x.lv.id+'\')" title="'+x.profile.name+' · '+TYPE_LABELS[x.env.type]+' · '+x.lv.days_count+'j">'
+          +half+x.profile.name.split(' ')[0]+' · '+x.env.type+'</div>';
+      }).join('')
+      +(more>0?'<div class="cal-event-more">+'+more+' autre'+(more>1?'s':'')+'</div>':'')
+      +'</div>';
+  }).join('')+'</div>';
+  document.getElementById('view-mensuel').innerHTML='<div class="cal-monthly">'+header+body+'</div>';
+}
+
+// ── WEEK-TABLE CALENDAR (Annuel / CP / Nounou) ────────────────────────────
+// Renders a "weeks as columns, profiles as rows" table like the reference image
+
+function getWeeksInRange(startDate, endDate){
+  // Returns array of week start dates (Monday) covering the range
+  var weeks=[];
+  var d=new Date(startDate+'T00:00:00');
+  // Go to Monday of that week
+  var dow=d.getDay(); dow=dow===0?6:dow-1;
+  d.setDate(d.getDate()-dow);
+  var end=new Date(endDate+'T00:00:00');
+  while(d<=end){
+    weeks.push(new Date(d));
+    d.setDate(d.getDate()+7);
+  }
+  return weeks;
+}
+
+function getWeekNum(d){
+  var date=new Date(d.getTime());
+  date.setHours(0,0,0,0);
+  date.setDate(date.getDate()+3-(date.getDay()+6)%7);
+  var week1=new Date(date.getFullYear(),0,4);
+  return 1+Math.round(((date.getTime()-week1.getTime())/86400000-3+(week1.getDay()+6)%7)/7);
+}
+
+var DAYS_SHORT=['L','M','M','J','V','S','D'];
+var TYPE_COLORS={
+  CP:'#4338CA',RC:'#059669',CA:'#EA580C',MAL:'#E11D48',
+  JFER:'#7C3AED',ENF:'#BE185D',ARR:'#B45309'
+};
+var TYPE_BG={
+  CP:'#EEF2FF',RC:'#ECFDF5',CA:'#FFF7ED',MAL:'#FFF1F2',
+  JFER:'#F5F3FF',ENF:'#FFF0F9',ARR:'#FFF8EC'
+};
+
+function renderWeekTable(viewId, titleText, startDateStr, endDateStr){
+  document.getElementById('cal-title').textContent=titleText;
+
+  var visProfiles=profiles.filter(function(p){return activeProfiles.has(p.id);});
+  if(!visProfiles.length){
+    document.getElementById('view-'+viewId).innerHTML='<div style="padding:2rem;color:var(--gray-400);text-align:center">Activez des profils dans la sidebar.</div>';
+    return;
+  }
+
+  // Build event map
+  var evMap=buildEvMap();
+  var todayStr=isoDate(new Date());
+
+  var weeks=getWeeksInRange(startDateStr, endDateStr);
+  // Limit to avoid too wide: if >20 weeks, chunk into segments of 14
+  var CHUNK=10; // weeks per row-group
+
+  var html='<div class="wt-wrapper">';
+
+  for(var chunk=0; chunk<weeks.length; chunk+=CHUNK){
+    var chunkWeeks=weeks.slice(chunk, chunk+CHUNK);
+
+    // ── HEADER: week numbers ──
+    html+='<div class="wt-table-wrap"><table class="wt-table">';
+    html+='<thead><tr><th class="wt-name-col"></th>';
+    var prevSemNum=-1;
+    chunkWeeks.forEach(function(wStart){
+      var semNum=getWeekNum(wStart);
+      var display=semNum!==prevSemNum?'Sem. '+semNum:'';
+      prevSemNum=semNum;
+      html+='<th class="wt-week-head" colspan="5">'+display+'</th>';
+      html+='<th class="wt-we-head" colspan="2"></th>';
+    });
+    html+='</tr>';
+
+    // ── MONTH ROW ──
+    // For each day cell, detect month changes and emit colspan spans
+    html+='<tr><th class="wt-name-col"></th>';
+    // Collect all 7*chunkWeeks.length days
+    var allDays=[];
+    chunkWeeks.forEach(function(wStart){
+      for(var di=0;di<7;di++){
+        var dd=new Date(wStart);
+        dd.setDate(dd.getDate()+di);
+        allDays.push(dd);
+      }
+    });
+    // Group consecutive days by month
+    var mGroups=[];
+    var curM=allDays[0].getMonth(), curY=allDays[0].getFullYear(), curCount=0;
+    allDays.forEach(function(dd){
+      if(dd.getMonth()===curM&&dd.getFullYear()===curY){
+        curCount++;
+      } else {
+        mGroups.push({m:curM,y:curY,count:curCount});
+        curM=dd.getMonth();curY=dd.getFullYear();curCount=1;
+      }
+    });
+    mGroups.push({m:curM,y:curY,count:curCount});
+    mGroups.forEach(function(g){
+      html+='<th class="wt-month-head" colspan="'+g.count+'">'+MONTHS_SHORT[g.m]+'</th>';
+    });
+    html+='</tr>';
+
+    // ── DAY LETTERS + NUMBERS ──
+    html+='<tr><th class="wt-name-col" style="font-size:.62rem;color:var(--gray-400);font-weight:600;text-align:left;padding:.3rem .6rem">Nom</th>';
+    chunkWeeks.forEach(function(wStart){
+      for(var di=0;di<7;di++){
+        var dd=new Date(wStart);
+        dd.setDate(dd.getDate()+di);
+        var isWe=(di>=5);
+        var dayNum=dd.getDate();
+        var isToday=isoDate(dd)===todayStr;
+        // First day of month: show month abbr instead of day letter
+        var isFirstOfMonth=(dayNum===1);
+        html+='<th class="wt-day-head'+(isWe?' wt-we':'')+(isToday?' wt-today':'')+'">'
+          +'<span class="wt-day-letter'+(isFirstOfMonth?' wt-month-change':'')+'">'+DAYS_SHORT[di]+'</span>'
+          +'<span class="wt-day-num'+(isToday?' wt-today-num':'')+(isFirstOfMonth?' wt-month-change':'')+'">'+dayNum+'</span>'
+          +'</th>';
+      }
+    });
+    html+='</tr></thead><tbody>';
+
+    // ── ROWS: one per visible profile ──
+    visProfiles.forEach(function(p){
+      html+='<tr>';
+      html+='<td class="wt-name-cell"><div class="wt-profile-name" style="border-left:3px solid '+p.color+'">'+p.name+'</div></td>';
+      chunkWeeks.forEach(function(wStart){
+        for(var di=0;di<7;di++){
+          var dd=new Date(wStart);
+          dd.setDate(dd.getDate()+di);
+          var key=isoDate(dd);
+          var isWe=(di>=5);
+          var isToday=(key===todayStr);
+          // Check if date is in our range
+          var inRange=(key>=startDateStr&&key<=endDateStr);
+          var evts=(evMap[key]||[]).filter(function(x){return x.profile.id===p.id;});
+          var cellCls='wt-cell'+(isWe?' wt-we':'')+(isToday?' wt-today-cell':'')+(inRange?'':' wt-out-range');
+          if(evts.length>0&&inRange){
+            var ev=evts[0];
+            var isHalf=(key===ev.lv.start_date&&ev.lv.half_start!=='full')||(key===ev.lv.end_date&&ev.lv.half_end!=='full');
+            var wtTxt=['MAL','JFER','ARR'].indexOf(ev.env.type)>=0?'#DC2626':'#111827';
+            html+='<td class="'+cellCls+' wt-leave" data-date="'+key+'" style="background:'+p.color+'22" '
+              +'onclick="openEditLeaveModal(\''+ev.lv.id+'\')" '
+              +'title="'+p.name+' · '+TYPE_LABELS[ev.env.type]+(isHalf?' (½ j)':'')+'"><span class="wt-type" style="color:'+wtTxt+';font-weight:700">'+(isHalf?'½ ':'')+ev.env.type+'</span></td>';
+          } else {
+            html+='<td class="'+cellCls+' selectable" data-date="'+key+'" onmousedown="selMouseDown(this)" onmouseenter="selMouseEnter(this)" onmouseup="selMouseUp(this)" style="user-select:none"></td>';
+          }
+        }
+      });
+      html+='</tr>';
+    });
+
+    html+='</tbody></table></div>';
+  }
+
+  html+='</div>';
+  document.getElementById('view-'+viewId).innerHTML=html;
+}
+
+function renderAnnuel(){
+  var year=navState.annuel.getFullYear();
+  renderWeekTable('annuel', String(year), year+'-01-01', year+'-12-31');
+}
+
+function renderPeriodCal(view){
+  var refYear=navState[view].getFullYear();
+  var startMonth=view==='cp'?5:8;
+  var startDate=refYear+'-'+(startMonth+1<10?'0':'')+(startMonth+1)+'-01';
+  var endYear=refYear+1;
+  var endMonth=(startMonth+11)%12;
+  var endDay=new Date(endYear,endMonth+1,0).getDate();
+  var endDate=endYear+'-'+(endMonth+1<10?'0':'')+(endMonth+1)+'-'+endDay;
+  var label=view==='cp'?'Congés payés — ':'Congés nounou — ';
+  renderWeekTable(view, label+refYear+'/'+(refYear+1), startDate, endDate);
+}
+
+
+// ── MODALS 
+function openModal(html){document.getElementById('modal-content').innerHTML=html;document.getElementById('modal-overlay').style.display='flex';}
+function closeModalBg(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+function closeModal(){document.getElementById('modal-overlay').style.display='none';}
+function toggleProfile(id){activeProfiles.has(id)?activeProfiles.delete(id):activeProfiles.add(id);render();}
+
+// PROFILES
+function openAddProfileModal(){editingProfile=null;openModal(profileForm(null));}
+function openEditProfileModal(id){editingProfile=profiles.find(function(p){return p.id===id;});openModal(profileForm(editingProfile));}
+function profileForm(p){
+  var name=p?p.name:'',color=p?p.color:COLORS[profiles.length%COLORS.length];
+  var sw=COLORS.map(function(c){return '<div class="color-swatch'+(c===color?' selected':'')+'" style="background:'+c+'" onclick="selectColor(\''+c+'\',this)"></div>';}).join('');
+  return '<h2>'+(p?'✎ Modifier le profil':'👤 Nouveau profil')+'</h2>'
+    +'<div class="form-group"><label>Nom</label><input type="text" id="p-name" value="'+name+'" placeholder="Ex: Thomas, Marie..."/></div>'
+    +'<div class="form-group"><label>Couleur</label><div class="color-picker-row">'+sw+'</div><input type="hidden" id="p-color" value="'+color+'"/></div>'
+    +'<div class="modal-actions">'+(p?'<button class="btn-danger" onclick="deleteProfile(\''+p.id+'\')">Supprimer</button>':'')
+    +'<button class="btn-secondary" onclick="closeModal()">Annuler</button>'
+    +'<button class="btn-save" onclick="saveProfile()">Enregistrer</button></div>';
+}
+function selectColor(c,el){document.querySelectorAll('.color-swatch').forEach(function(s){s.classList.remove('selected');});el.classList.add('selected');document.getElementById('p-color').value=c;}
+async function saveProfile(){
+  var name=document.getElementById('p-name').value.trim(),color=document.getElementById('p-color').value;
+  if(!name)return toast('Entrez un nom','error');
+  var res=editingProfile?await sbClient.from('holidaysapp_profiles').update({name:name,color:color}).eq('id',editingProfile.id):await sbClient.from('holidaysapp_profiles').insert({name:name,color:color,user_id:currentUserId});
+  if(res.error)return toast('Erreur: '+res.error.message,'error');
+  toast(editingProfile?'Profil mis à jour ✓':'Profil créé ✓','success');closeModal();await loadData();render();
+}
+async function deleteProfile(id){
+  if(!confirm('Supprimer ce profil et toutes ses données ?'))return;
+  var envIds=envelopes.filter(function(e){return e.profile_id===id;}).map(function(e){return e.id;});
+  if(envIds.length)await sbClient.from('holidaysapp_leaves').delete().in('envelope_id',envIds);
+  await sbClient.from('holidaysapp_envelopes').delete().eq('profile_id',id);
+  var res=await sbClient.from('holidaysapp_profiles').delete().eq('id',id);
+  if(res.error)return toast('Erreur: '+res.error.message,'error');
+  activeProfiles.delete(id);toast('Profil supprimé','success');closeModal();await loadData();render();
+}
+
+// ENVELOPES
+function openAddEnvelopeModal(pre){editingEnvelope=null;openModal(envelopeForm(null,pre));}
+function openEditEnvelopeModal(id){editingEnvelope=envelopes.find(function(e){return e.id===id;});openModal(envelopeForm(editingEnvelope));}
+function envelopeForm(env,pre){
+  var pO=profiles.map(function(p){return '<option value="'+p.id+'" '+(env?env.profile_id===p.id?'selected':'':pre===p.id?'selected':'')+'>'+p.name+'</option>';}).join('');
+  var tO=TYPES.map(function(t){return '<option value="'+t+'" '+(env&&env.type===t?'selected':'')+'>'+t+' — '+TYPE_LABELS[t]+'</option>';}).join('');
+  return '<h2>'+(env?'✎ Modifier l\'compteur':'📋 Nouvelle compteur')+'</h2>'
+    +'<div class="info-box">Définit la période d\'acquisition et le quota de jours. Les congés posés sont déduits.</div>'
+    +'<div class="form-row"><div class="form-group"><label>Profil</label><select id="env-profile">'+pO+'</select></div>'
+    +'<div class="form-group"><label>Type</label><select id="env-type">'+tO+'</select></div></div>'
+    +'<div class="form-row"><div class="form-group"><label>Début</label><input type="text" id="env-start" value="'+(env?formatFrDate(env.start_date):'')+'" placeholder="jj/mm/aaaa"/></div>'
+    +'<div class="form-group"><label>Fin</label><input type="text" id="env-end" value="'+(env?formatFrDate(env.end_date):'')+'" placeholder="jj/mm/aaaa"/></div></div>'
+    +'<div class="form-group"><label>Quota de jours max</label><input type="number" id="env-max" value="'+(env&&env.max_days?env.max_days:'')+'" placeholder="Ex: 25" min="0"/></div>'
+    +'<div class="form-group"><label>Libellé (optionnel)</label><input type="text" id="env-notes" value="'+(env&&env.notes?env.notes:'')+'" placeholder="Ex: CP 2025-2026"/></div>'
+    +(env?'<div class="form-group"><label>Statut</label>'
+      +'<select id="env-archived"><option value="0" '+(env.archived?'':'selected')+'>Active</option>'
+      +'<option value="1" '+(env.archived?'selected':'')+'>Archivé</option></select></div>':'')
+    +'<div class="modal-actions">'+(env?'<button class="btn-danger" onclick="deleteEnvelope(\''+env.id+'\')">Supprimer</button>':'')
+    +'<button class="btn-secondary" onclick="closeModal()">Annuler</button>'
+    +'<button class="btn-save" onclick="saveEnvelope()">Enregistrer</button></div>';
+}
+async function saveEnvelope(){
+  var profile_id=document.getElementById('env-profile').value;
+  var type=document.getElementById('env-type').value;
+  var start_date=parseFrDate(document.getElementById('env-start').value);
+  var end_date=parseFrDate(document.getElementById('env-end').value);
+  var max_days=parseInt(document.getElementById('env-max').value)||null;
+  var notes=document.getElementById('env-notes').value.trim()||null;
+  var archived=document.getElementById('env-archived')?document.getElementById('env-archived').value==='1':false;
+  if(!profile_id)return toast('Sélectionnez un profil','error');
+  if(!start_date||!end_date)return toast('Renseignez les dates','error');
+  if(start_date>end_date)return toast('La date de fin doit être après le début','error');
+  var data={profile_id:profile_id,type:type,start_date:start_date,end_date:end_date,max_days:max_days,notes:notes,archived:archived};
+  var res=editingEnvelope?await sbClient.from('holidaysapp_envelopes').update(data).eq('id',editingEnvelope.id):await sbClient.from('holidaysapp_envelopes').insert(data);
+  if(res.error)return toast('Erreur: '+res.error.message,'error');
+  toast(editingEnvelope?'Compteur mise à jour ✓':'Compteur créée ✓','success');closeModal();await loadData();render();
+}
+async function deleteEnvelope(id){
+  if(!confirm('Supprimer cette compteur et tous les congés posés ?'))return;
+  await sbClient.from('holidaysapp_leaves').delete().eq('envelope_id',id);
+  var res=await sbClient.from('holidaysapp_envelopes').delete().eq('id',id);
+  if(res.error)return toast('Erreur: '+res.error.message,'error');
+  toast('Compteur supprimée','success');closeModal();await loadData();render();
+}
+
+// LEAVES
+function openAddLeaveModal(preEnvId){editingLeave=null;openModal(leaveForm(null,preEnvId));}
+function openEditLeaveModal(id){editingLeave=leaves.find(function(l){return l.id===id;});openModal(leaveForm(editingLeave));}
+function leaveForm(leave,preEnvId){
+  var selPid=leave?(envelopes.find(function(e){return e.id===leave.envelope_id;})||{}).profile_id||'':(profiles[0]?profiles[0].id:'');
+  if(preEnvId){var pe=envelopes.find(function(e){return e.id===preEnvId;});if(pe)selPid=pe.profile_id;}
+  var pO=profiles.map(function(p){return '<option value="'+p.id+'" '+(p.id===selPid?'selected':'')+'>'+p.name+'</option>';}).join('');
+  var envs=envelopes.filter(function(e){return e.profile_id===selPid&&!e.archived;});
+  var selEnvId=leave?leave.envelope_id:(preEnvId||'');
+  var eO=buildEnvOpts(envs,selEnvId,leave?leave.envelope_id:null,leave?leave.days_count:0);
+  var hs=leave&&leave.half_start?leave.half_start:'full';
+  var he=leave&&leave.half_end?leave.half_end:'full';
+  return '<h2>'+(leave?'✎ Modifier les congés':'＋ Poser des congés')+'</h2>'
+    +'<div class="form-row"><div class="form-group"><label>Profil</label><select id="lv-profile" onchange="refreshEnvSelect()">'+pO+'</select></div>'
+    +'<div class="form-group"><label>Compteur</label><select id="lv-env" onchange="updateDaysInfo()">'+eO+'</select></div></div>'
+    +'<div class="form-row"><div class="form-group"><label>Date de début</label><input type="text" id="lv-start" value="'+(leave?formatFrDate(leave.start_date):'')+'" placeholder="jj/mm/aaaa" oninput="updateDaysInfo()"/></div>'
+    +'<div class="form-group"><label>Date de fin</label><input type="text" id="lv-end" value="'+(leave?formatFrDate(leave.end_date):'')+'" placeholder="jj/mm/aaaa" oninput="updateDaysInfo()"/></div></div>'
+    +'<div class="form-group">'
+    +'<label>Demi-journée</label>'
+    +'<select id="lv-half" onchange="updateDaysInfo()">'
+    +'<option value="full" '+(hs!=='full'||he!=='full'?'':'selected')+'>Non — journée(s) entière(s)</option>'
+    +'<option value="half" '+(hs!=='full'||he!=='full'?'selected':'')+'>Oui — 0,5 jour ouvré</option>'
+    +'</select>'
+    +'</div>'
+    +'<div class="info-box" id="days-info">'+(leave?'Durée : <strong>'+leave.days_count+' jours ouvrés</strong>':'Sélectionnez les dates pour voir le décompte.')+'</div>'
+    +'<div class="form-group"><label>Notes (optionnel)</label><input type="text" id="lv-notes" value="'+(leave&&leave.notes?leave.notes:'')+'" placeholder="Ex: Vacances été..."/></div>'
+    +'<div class="modal-actions">'+(leave?'<button class="btn-danger" onclick="deleteLeave(\''+leave.id+'\')">Supprimer</button>':'')
+    +'<button class="btn-secondary" onclick="closeModal()">Annuler</button>'
+    +'<button class="btn-save" onclick="saveLeave()">Enregistrer</button></div>';
+}
+function buildEnvOpts(envs,selEnvId,editEnvId,editDays){
+  if(!envs.length)return '<option value="">Aucun compteur active</option>';
+  return envs.map(function(e){
+    var used=usedDays(e.id),excl=(editEnvId===e.id)?(parseFloat(editDays)||0):0;
+    var rem=e.max_days!=null?(e.max_days-used+excl):null;
+    return '<option value="'+e.id+'" '+(e.id===selEnvId?'selected':'')+'>'+TYPE_LABELS[e.type]+' ('+fmtDate(e.start_date)+' → '+fmtDate(e.end_date)+')'+(rem!=null?' — '+rem+' j restants':'')+'</option>';
+  }).join('');
+}
+function refreshEnvSelect(){
+  var pid=document.getElementById('lv-profile').value;
+  document.getElementById('lv-env').innerHTML=buildEnvOpts(envelopes.filter(function(e){return e.profile_id===pid&&!e.archived;}),'',null,0);
+  updateDaysInfo();
+}
+function updateDaysInfo(){
+  var start=document.getElementById('lv-start')?document.getElementById('lv-start').value:'';
+  var end=document.getElementById('lv-end')?document.getElementById('lv-end').value:'';
+  var envId=document.getElementById('lv-env')?document.getElementById('lv-env').value:'';
+  var hvEl=document.getElementById('lv-half');
+  var hv=hvEl?hvEl.value:'full';
+  var hs=hv==='half'?'am':'full';
+  var he=hv==='half'?'am':'full';
+  var box=document.getElementById('days-info');if(!box)return;
+  start=parseFrDate(start);end=parseFrDate(end);
+  // If discontinuous list mode
+  var daysListEl2=document.getElementById('lv-days-list');
+  if(daysListEl2){
+    var dl=JSON.parse(daysListEl2.value);
+    var hv2=document.getElementById('lv-half')?document.getElementById('lv-half').value:'full';
+    var tot=dl.length*(hv2==='half'?0.5:1);tot=Math.round(tot*2)/2;
+    var env2=envelopes.find(function(e){return e.id===envId;});
+    var msg2='<strong>'+tot+' jour'+(tot>1&&tot!==0.5?'s':'')+' ouvré'+(tot>1&&tot!==0.5?'s':'')+'</strong>';
+    if(env2&&env2.max_days!=null){var rem2=env2.max_days-usedDays(envId),aft=rem2-tot;var col2=aft<0?'#DC2626':aft<3?'#D97706':'#059669';msg2+=' · Solde : <strong style="color:'+col2+'">'+(aft>=0?aft+' j restants':Math.abs(aft)+' j dépassé')+'</strong> / '+env2.max_days;}
+    box.innerHTML=msg2;return;
+  }
+  if(!start||!end||start>end){box.innerHTML='Sélectionnez des dates valides.';return;}
+  var days=countWorkdays(start,end,hs,he);
+  var env=envelopes.find(function(e){return e.id===envId;});
+  var msg='Durée : <strong>'+days+' jour'+(days>1&&days!==0.5?'s':'')+' ouvré'+(days>1&&days!==0.5?'s':'')+'</strong>';
+  if(env&&env.max_days!=null){
+    var excl=editingLeave&&editingLeave.envelope_id===envId?(parseFloat(editingLeave.days_count)||0):0;
+    var rem=env.max_days-usedDays(envId)+excl,after=rem-days;
+    var col=after<0?'#DC2626':after<3?'#D97706':'#059669';
+    msg+=' &nbsp;·&nbsp; Solde : <strong style="color:'+col+'">'+(after>=0?after+' j restants':Math.abs(after)+' j en dépassement')+'</strong> / '+env.max_days;
+  }
+  box.innerHTML=msg;
+}
+
+async function saveLeaveFromList(envelope_id,daysList){
+  if(!envelope_id)return toast('Sélectionnez un compteur','error');
+  var hvEl=document.getElementById('lv-half');
+  var hv=hvEl?hvEl.value:'full';
+  var notes=document.getElementById('lv-notes')?document.getElementById('lv-notes').value.trim()||null:null;
+  var env=envelopes.find(function(e){return e.id===envelope_id;});
+
+  // Group contiguous days into ranges
+  var sorted=daysList.slice().sort();
+  var ranges=[];
+  var rStart=sorted[0], rEnd=sorted[0], rDays=1;
+  for(var i=1;i<sorted.length;i++){
+    var prev=new Date(sorted[i-1]+'T00:00:00');
+    var cur2=new Date(sorted[i]+'T00:00:00');
+    prev.setDate(prev.getDate()+1);
+    if(isoDate(prev)===sorted[i]){rEnd=sorted[i];rDays++;}
+    else{ranges.push({start:rStart,end:rEnd,days:rDays});rStart=sorted[i];rEnd=sorted[i];rDays=1;}
+  }
+  ranges.push({start:rStart,end:rEnd,days:rDays});
+
+  // Validate total
+  var total=sorted.reduce(function(s,d){
+    var half=(hv==='half')?0.5:1;
+    return s+half;
+  },0);
+  total=Math.round(total*2)/2;
+
+  if(env&&env.max_days!=null){
+    var rem=env.max_days-usedDays(envelope_id);
+    if(total>rem)return toast('Quota dépassé ! Il reste '+rem+' j, vous posez '+total+' j','error');
+  }
+  if(env){
+    for(var ri=0;ri<ranges.length;ri++){
+      if(ranges[ri].start<env.start_date||ranges[ri].end>env.end_date)
+        return toast('Dates hors période du compteur','error');
+    }
+  }
+
+  // Insert one record per contiguous range
+  var inserts=ranges.map(function(r){
+    var dc=r.days*(hv==='half'?0.5:1);
+    return {envelope_id:envelope_id,start_date:r.start,end_date:r.end,days_count:Math.round(dc*2)/2,half_start:hv==='half'?'am':'full',half_end:hv==='half'?'am':'full',notes:notes};
+  });
+  var res=await sbClient.from('holidaysapp_leaves').insert(inserts);
+  if(res.error)return toast('Erreur: '+res.error.message,'error');
+  toast(inserts.length+' période'+(inserts.length>1?'s':'')+' enregistrée'+(inserts.length>1?'s':'')+' ✓','success');
+  closeModal();await loadData();render();
+}
+
+async function saveLeave(){
+  var envelope_id=document.getElementById('lv-env').value;
+  var daysListEl=document.getElementById('lv-days-list');
+  var daysList=daysListEl?JSON.parse(daysListEl.value):null;
+  // If we have a discontinuous list, save each day separately grouped by contiguous range
+  if(daysList&&daysList.length){
+    return saveLeaveFromList(envelope_id,daysList);
+  }
+  var start_date=parseFrDate(document.getElementById('lv-start')?document.getElementById('lv-start').value:'');
+  var end_date=parseFrDate(document.getElementById('lv-end')?document.getElementById('lv-end').value:'');
+  var notes=document.getElementById('lv-notes').value.trim()||null;
+  var hvEl2=document.getElementById('lv-half');
+  var half_start=hvEl2&&hvEl2.value==='half'?'am':'full';
+  var half_end=hvEl2&&hvEl2.value==='half'?'am':'full';
+  start_date=parseFrDate(start_date);end_date=parseFrDate(end_date);
+  if(!envelope_id)return toast('Sélectionnez un compteur','error');
+  if(!start_date||!end_date)return toast('Renseignez les dates','error');
+  if(start_date>end_date)return toast('La date de fin doit être après le début','error');
+  var days_count=countWorkdays(start_date,end_date,half_start,half_end);
+  var env=envelopes.find(function(e){return e.id===envelope_id;});
+  if(env){
+    if(start_date<env.start_date||end_date>env.end_date)return toast('Dates hors période de l\'compteur ('+fmtDate(env.start_date)+' → '+fmtDate(env.end_date)+')','error');
+    if(env.max_days!=null){
+      var excl=editingLeave&&editingLeave.envelope_id===envelope_id?(parseFloat(editingLeave.days_count)||0):0;
+      var rem=env.max_days-usedDays(envelope_id)+excl;
+      if(days_count>rem)return toast('Quota dépassé ! Il reste '+rem+' j, vous posez '+days_count+' j','error');
+    }
+  }
+  var data={envelope_id:envelope_id,start_date:start_date,end_date:end_date,days_count:days_count,half_start:half_start,half_end:half_end,notes:notes};
+  var res=editingLeave?await sbClient.from('holidaysapp_leaves').update(data).eq('id',editingLeave.id):await sbClient.from('holidaysapp_leaves').insert(data);
+  if(res.error)return toast('Erreur: '+res.error.message,'error');
+  toast(editingLeave?'Congés mis à jour ✓':'Congés posés ✓','success');closeModal();await loadData();render();
+}
+async function deleteLeave(id){
+  if(!confirm('Supprimer ces congés ?'))return;
+  var res=await sbClient.from('holidaysapp_leaves').delete().eq('id',id);
+  if(res.error)return toast('Erreur: '+res.error.message,'error');
+  toast('Congés supprimés','success');closeModal();await loadData();render();
+}
+
+
+// ── MULTI-LEAVE TOOL 
+var multiState={start:'',end:'',halfStart:'full',halfEnd:'full',notes:'',selections:[]};
+// selections = [{profileId, envId}]
+
+function openMultiLeaveModal(){
+  multiState={start:'',end:'',halfStart:'full',halfEnd:'full',notes:'',selections:[]};
+  openModal(buildMultiModal());
+}
+
+function buildMultiModal(){
+  var ms=multiState;
+  var dateSection='<div class="multi-section">'
+    +'<div class="multi-section-title">1. Période de congés</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Date de début</label><input type="date" id="ml-start" value="'+ms.start+'" onchange="mlUpdateDate()"/></div>'
+    +'<div class="form-group"><label>Date de fin</label><input type="date" id="ml-end" value="'+ms.end+'" onchange="mlUpdateDate()"/></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Demi-journée début</label>'
+    +'<select id="ml-hs" onchange="mlUpdateDate()">'
+    +'<option value="full" '+(ms.halfStart==='full'?'selected':'')+'>Journée entière</option>'
+    +'<option value="am" '+(ms.halfStart==='am'?'selected':'')+'>Matin seulement</option>'
+    +'<option value="pm" '+(ms.halfStart==='pm'?'selected':'')+'>Après-midi seulement</option>'
+    +'</select></div>'
+    +'<div class="form-group"><label>Demi-journée fin</label>'
+    +'<select id="ml-he" onchange="mlUpdateDate()">'
+    +'<option value="full" '+(ms.halfEnd==='full'?'selected':'')+'>Journée entière</option>'
+    +'<option value="am" '+(ms.halfEnd==='am'?'selected':'')+'>Matin seulement</option>'
+    +'<option value="pm" '+(ms.halfEnd==='pm'?'selected':'')+'>Après-midi seulement</option>'
+    +'</select></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Notes (optionnel)</label><input type="text" id="ml-notes" value="'+ms.notes+'" placeholder="Ex: Vacances Noël..."/></div>'
+    +'</div>';
+
+  var profSection='<div class="multi-section">'
+    +'<div class="multi-section-title">2. Profils & compteurs</div>';
+  profSection+=profiles.map(function(p){
+    var pEnvs=envelopes.filter(function(e){return e.profile_id===p.id&&!e.archived;});
+    if(!pEnvs.length)return '';
+    var envRows=pEnvs.map(function(env){
+      var isSel=multiState.selections.some(function(s){return s.profileId===p.id&&s.envId===env.id;});
+      var used=usedDays(env.id),rem=env.max_days!=null?env.max_days-used:null;
+      var remTxt=rem!=null?' · '+rem+'j restants':'';
+      var chk='<div class="multi-checkbox'+(isSel?' checked':'')+'">'+(isSel?'✓':'')+'</div>';
+      var dot='<div class="profile-dot" style="background:'+p.color+';width:7px;height:7px;flex-shrink:0"></div>';
+      var badge='<span class="env-type-badge" style="font-size:.65rem;padding:1px 5px;background:'+p.color+'22;color:'+(['MAL','JFER','ARR'].indexOf(env.type)>=0?'#DC2626':p.color)+'">'+(env.type)+'</span>';
+      var sub='<span class="multi-env-sub">'+fmtDate(env.start_date)+' → '+fmtDate(env.end_date)+remTxt+'</span>';
+      return '<div class="multi-env-row" data-pid="'+p.id+'" data-eid="'+env.id+'" onclick="mlToggleEnvEl(this)">'
+        +chk+dot
+        +'<span class="multi-env-label">'+badge+'</span>'
+        +sub
+        +'</div>';
+    }).join('');
+    var pLabel='<div style="display:flex;align-items:center;gap:.5rem;padding:.2rem .3rem;font-size:.82rem;font-weight:600;color:var(--gray-700)">'
+      +'<div class="profile-dot" style="background:'+p.color+'"></div>'+p.name+'</div>';
+    return '<div style="margin-bottom:.5rem">'+pLabel+'<div class="multi-env-rows">'+envRows+'</div></div>';
+  }).join('');
+        profSection+='</div>';
+  var summary=buildMultiSummary();
+
+  var actions='<div class="modal-actions">'
+    +'<button class="btn-secondary" onclick="closeModal()">Annuler</button>'
+    +'<button class="btn-save" onclick="saveMultiLeave()">Enregistrer tout</button>'
+    +'</div>';
+
+  return '<h2>⚡ Pose multiple</h2>'+dateSection+profSection+summary+actions;
+}
+
+function buildMultiSummary(){
+  var ms=multiState;
+  if(!ms.start||!ms.end||ms.start>ms.end||!ms.selections.length){
+    return '<div class="multi-summary" id="ml-summary" style="color:var(--gray-400);font-size:.78rem">Sélectionnez des dates et au moins un profil + compteur.</div>';
+  }
+  var days=countWorkdays(ms.start,ms.end,ms.halfStart,ms.halfEnd);
+  var rows=ms.selections.map(function(sel){
+    var p=profiles.find(function(x){return x.id===sel.profileId;});
+    var env=envelopes.find(function(e){return e.id===sel.envId;});
+    if(!p||!env)return '';
+    var rem=env.max_days!=null?env.max_days-usedDays(env.id):null;
+    var ok=rem===null||days<=rem;
+    var remTxt=rem!==null?'('+rem+'j restants)':'(pas de quota)';
+    return '<div class="multi-summary-row">'
+      +'<span><div class="profile-dot" style="background:'+p.color+';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px"></div>'
+      +'<span class="multi-summary-name">'+p.name+'</span> · '
+      +'<span class="env-type-badge type-'+env.type+'" style="font-size:.65rem;padding:1px 5px;border:1px solid currentColor">'+env.type+'</span></span>'
+      +'<span class="'+(ok?'multi-summary-ok':'multi-summary-warn')+'">'+(ok?'✓ '+days+'j':'✗ '+days+'j '+remTxt)+'</span>'
+      +'</div>';
+  }).join('');
+  return '<div class="multi-summary" id="ml-summary">'
+    +'<div style="font-weight:600;margin-bottom:.4rem">Récapitulatif — <strong>'+days+' jour'+(days>1?'s':'')+' ouvrés</strong></div>'
+    +rows+'</div>';
+}
+
+function mlUpdateDate(){
+  multiState.start=document.getElementById('ml-start').value;
+  multiState.end=document.getElementById('ml-end').value;
+  multiState.halfStart=document.getElementById('ml-hs').value;
+  multiState.halfEnd=document.getElementById('ml-he').value;
+  multiState.notes=document.getElementById('ml-notes').value;
+  // Re-render only summary
+  var sumEl=document.getElementById('ml-summary');
+  if(sumEl)sumEl.outerHTML=buildMultiSummary();
+}
+
+function mlToggleEnvEl(el){mlToggleEnv(el.getAttribute("data-pid"),el.getAttribute("data-eid"));}
+function mlToggleEnv(profileId,envId){
+  // Save current form state before re-render
+  var startEl=document.getElementById('ml-start');
+  if(startEl){multiState.start=startEl.value;multiState.end=document.getElementById('ml-end').value;multiState.halfStart=document.getElementById('ml-hs').value;multiState.halfEnd=document.getElementById('ml-he').value;multiState.notes=document.getElementById('ml-notes').value;}
+  var idx=multiState.selections.findIndex(function(s){return s.profileId===profileId&&s.envId===envId;});
+  if(idx>=0)multiState.selections.splice(idx,1);
+  else multiState.selections.push({profileId:profileId,envId:envId});
+  openModal(buildMultiModal());
+}
+
+async function saveMultiLeave(){
+  var startEl=document.getElementById('ml-start');
+  multiState.start=startEl?startEl.value:'';
+  multiState.end=document.getElementById('ml-end')?document.getElementById('ml-end').value:'';
+  multiState.halfStart=document.getElementById('ml-hs')?document.getElementById('ml-hs').value:'full';
+  multiState.halfEnd=document.getElementById('ml-he')?document.getElementById('ml-he').value:'full';
+  multiState.notes=document.getElementById('ml-notes')?document.getElementById('ml-notes').value:'';
+  var ms=multiState;
+  if(!ms.start||!ms.end)return toast('Renseignez les dates','error');
+  if(ms.start>ms.end)return toast('La date de fin doit être après le début','error');
+  if(!ms.selections.length)return toast('Sélectionnez au moins un compteur','error');
+  var days_count=countWorkdays(ms.start,ms.end,ms.halfStart,ms.halfEnd);
+  // Validate all
+  var errors=[];
+  ms.selections.forEach(function(sel){
+    var env=envelopes.find(function(e){return e.id===sel.envId;});
+    var p=profiles.find(function(x){return x.id===sel.profileId;});
+    if(!env||!p)return;
+    if(ms.start<env.start_date||ms.end>env.end_date)
+      errors.push(p.name+' ('+env.type+'): dates hors période compteur');
+    else if(env.max_days!=null){
+      var rem=env.max_days-usedDays(env.id);
+      if(days_count>rem)errors.push(p.name+' ('+env.type+'): quota dépassé ('+rem+'j restants)');
+    }
+  });
+  if(errors.length)return toast(errors[0],'error');
+  // Save all
+  var inserts=ms.selections.map(function(sel){
+    return {envelope_id:sel.envId,start_date:ms.start,end_date:ms.end,days_count:days_count,half_start:ms.halfStart,half_end:ms.halfEnd,notes:ms.notes||null};
+  });
+  var res=await sbClient.from('holidaysapp_leaves').insert(inserts);
+  if(res.error)return toast('Erreur: '+res.error.message,'error');
+  toast(inserts.length+' entrée'+(inserts.length>1?'s':'')+' enregistrée'+(inserts.length>1?'s':'')+' ✓','success');
+  closeModal();await loadData();render();
+}
+
+
+// ── DAY SELECTION SYSTEM ────────────────────────────────────────────────────
+// Supports two modes:
+//  1. Click-drag → contiguous range selection
+//  2. Click individual days → toggle on/off (discontinuous)
+// Selected days are stored in selState.days (Set of ISO strings)
+
+var selState={days:new Set(), dragging:false, dragStart:null, dragMode:'add'};
+
+// Fix timezone: use local date not UTC
+function localIsoDate(d){
+  var y=d.getFullYear();
+  var m=String(d.getMonth()+1).padStart(2,'0');
+  var day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+
+function selReset(){
+  selState.days=new Set();
+  selState.dragging=false;
+  selState.dragStart=null;
+  document.querySelectorAll('.sel-on,.sel-start,.sel-end,.sel-mid').forEach(function(el){
+    el.classList.remove('sel-on','sel-start','sel-end','sel-mid');
+  });
+  var bar=document.getElementById('sel-bar');
+  if(bar)bar.remove();
+}
+
+function selRefresh(){
+  // Clear all selection classes
+  document.querySelectorAll('[data-date]').forEach(function(el){
+    el.classList.remove('sel-on','sel-start','sel-end','sel-mid');
+  });
+  if(!selState.days.size)return;
+
+  // Sort selected days
+  var sorted=Array.from(selState.days).sort();
+
+  // Apply classes
+  sorted.forEach(function(d,i){
+    document.querySelectorAll('[data-date="'+d+'"]').forEach(function(el){
+      el.classList.add('sel-on');
+      if(i===0)el.classList.add('sel-start');
+      if(i===sorted.length-1)el.classList.add('sel-end');
+    });
+  });
+
+  selShowBar(sorted);
+}
+
+function selShowBar(sortedDays){
+  var existing=document.getElementById('sel-bar');
+  if(existing)existing.remove();
+  if(!sortedDays||!sortedDays.length)return;
+
+  // Count only workdays in selection
+  var workdays=sortedDays.filter(function(d){
+    var dow=new Date(d+'T00:00:00').getDay();
+    return dow!==0&&dow!==6;
+  });
+  var days=workdays.length;
+
+  var first=formatFrDate(sortedDays[0]);
+  var last=sortedDays.length>1?' → '+formatFrDate(sortedDays[sortedDays.length-1]):'';
+  var countTxt=sortedDays.length>1?' ('+sortedDays.length+' jours sélectionnés)':'';
+
+  var bar=document.createElement('div');
+  bar.className='sel-bar';
+  bar.id='sel-bar';
+  bar.innerHTML='<span>📅 '+first+last+'<span style="opacity:.7;font-size:.78rem">'+countTxt+'</span> · <strong>'+days+' j ouvré'+(days>1?'s':'')+'</strong></span>'
+    +'<button onclick="selConfirm()">Poser les congés</button>'
+    +'<button class="sel-cancel" onclick="selReset()">✕</button>';
+  document.body.appendChild(bar);
+}
+
+function selMouseDown(el){
+  var d=el.getAttribute('data-date');
+  if(!d)return;
+  if(el.classList.contains('wt-leave')||el.classList.contains('cal-event'))return;
+  selState.dragging=true;
+  selState.dragStart=d;
+  // If day already selected → drag will remove, else add
+  selState.dragMode=selState.days.has(d)?'remove':'add';
+  // Toggle the clicked day
+  if(selState.dragMode==='add')selState.days.add(d);
+  else selState.days.delete(d);
+  selRefresh();
+}
+function selMouseEnter(el){
+  if(!selState.dragging)return;
+  var d=el.getAttribute('data-date');
+  if(!d)return;
+  // Fill range from dragStart to current
+  var s=selState.dragStart, e=d;
+  if(s>e){var t=s;s=e;e=t;}
+  var cur=new Date(s+'T00:00:00');
+  var endD=new Date(e+'T00:00:00');
+  while(cur<=endD){
+    var key=localIsoDate(cur);
+    if(selState.dragMode==='add')selState.days.add(key);
+    else selState.days.delete(key);
+    cur.setDate(cur.getDate()+1);
+  }
+  selRefresh();
+}
+function selMouseUp(el){
+  if(!selState.dragging)return;
+  selState.dragging=false;
+  var d=el.getAttribute('data-date');
+  if(d){
+    var s=selState.dragStart, e=d;
+    if(s>e){var t=s;s=e;e=t;}
+    var cur=new Date(s+'T00:00:00');
+    var endD=new Date(e+'T00:00:00');
+    while(cur<=endD){
+      var key=localIsoDate(cur);
+      if(selState.dragMode==='add')selState.days.add(key);
+      else selState.days.delete(key);
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+  selRefresh();
+}
+
+function selConfirm(){
+  if(!selState.days.size)return;
+  var sorted=Array.from(selState.days).sort();
+  var workdays=sorted.filter(function(d){
+    var dow=new Date(d+'T00:00:00').getDay();
+    return dow!==0&&dow!==6;
+  });
+  // Pass all selected dates to leave form
+  editingLeave=null;
+  openModal(leaveFormWithDates(sorted[0], sorted[sorted.length-1], workdays));
+  setTimeout(function(){updateDaysInfo();},50);
+  selReset();
+}
+
+function leaveFormWithDates(startIso, endIso, workdaysList){
+  var selPid=profiles[0]?profiles[0].id:'';
+  var pO=profiles.map(function(p){return '<option value="'+p.id+'" '+(p.id===selPid?'selected':'')+'>'+p.name+'</option>';}).join('');
+  var envs=envelopes.filter(function(e){return e.profile_id===selPid&&!e.archived;});
+  var eO=buildEnvOpts(envs,'',null,0);
+  var days=workdaysList?workdaysList.length:countWorkdays(startIso,endIso,'full','full');
+  // Store selected days for multi-day non-contiguous saving
+  var daysJson=workdaysList?JSON.stringify(workdaysList):'';
+  return '<h2>＋ Poser des congés</h2>'
+    +'<div class="form-row"><div class="form-group"><label>Profil</label>'
+    +'<select id="lv-profile" onchange="refreshEnvSelect()">'+pO+'</select></div>'
+    +'<div class="form-group"><label>Compteur</label>'
+    +'<select id="lv-env" onchange="updateDaysInfo()">'+eO+'</select></div></div>'
+    +(daysJson?'<input type="hidden" id="lv-days-list" value=\''+daysJson.replace(/'/g,"&#39;")+'\'/>'
+      +'<div class="info-box">Jours sélectionnés : <strong>'+days+' jour'+(days>1?'s':'')+' ouvré'+(days>1?'s':'')+'</strong>'
+      +(days<workdaysList.length?'':'')+' — <span style="font-size:.8em;color:var(--gray-500)">'+workdaysList.map(function(d){return formatFrDate(d);}).join(', ')+'</span></div>'
+      :'<div class="form-row">'
+      +'<div class="form-group"><label>Date de début</label>'
+      +'<input type="text" id="lv-start" value="'+formatFrDate(startIso)+'" placeholder="jj/mm/aaaa" oninput="updateDaysInfo()"/></div>'
+      +'<div class="form-group"><label>Date de fin</label>'
+      +'<input type="text" id="lv-end" value="'+formatFrDate(endIso)+'" placeholder="jj/mm/aaaa" oninput="updateDaysInfo()"/></div>'
+      +'</div>')
+    +'<div class="form-group">'
+    +'<label>Demi-journée</label>'
+    +'<select id="lv-half" onchange="updateDaysInfo()"><option value="full">Non — journée(s) entière(s)</option><option value="half">Oui — 0,5 jour ouvré</option></select>'
+    +'</div>'
+    +(daysJson?'<div class="info-box" id="days-info" style="margin-top:.5rem">Solde après pose : en attente de sélection du compteur</div>'
+      :'<div class="info-box" id="days-info">Calcul en cours...</div>')
+    +'<div class="form-group"><label>Notes (optionnel)</label>'
+    +'<input type="text" id="lv-notes" value="" placeholder="Ex: Vacances été..."/></div>'
+    +'<div class="modal-actions">'
+    +'<button class="btn-secondary" onclick="closeModal()">Annuler</button>'
+    +'<button class="btn-save" onclick="saveLeave()">Enregistrer</button></div>';
+}
+
+// Prevent text selection during drag
+document.addEventListener('selectstart',function(e){if(selState.dragging)e.preventDefault();});
+document.addEventListener('mouseup',function(){
+  if(selState.dragging){selState.dragging=false;selRefresh();}
+});
+document.addEventListener('touchend',function(){
+  if(selState.dragging){selState.dragging=false;selRefresh();}
+});
+
+
+
+// ── MOBILE SIDEBAR ──────────────────────────────────────────────────────────
+function mobToggleSidebar(){
+  var sb=document.querySelector('.sidebar');
+  var ov=document.getElementById('mob-overlay');
+  if(!sb||!ov)return;
+  var isOpen=sb.classList.contains('mob-open');
+  if(isOpen){mobCloseSidebar();}
+  else{sb.classList.add('mob-open');ov.classList.add('mob-open');}
+}
+function mobCloseSidebar(){
+  var sb=document.querySelector('.sidebar');
+  var ov=document.getElementById('mob-overlay');
+  if(sb)sb.classList.remove('mob-open');
+  if(ov)ov.classList.remove('mob-open');
+}
+// Close sidebar when a view tab is clicked on mobile
+document.addEventListener('click',function(e){
+  if(e.target.classList.contains('view-tab'))mobCloseSidebar();
+});
+function toast(msg,type){
+  type=type||'success';var el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast '+type+' show';
+  setTimeout(function(){el.classList.remove('show');},3500);
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+// ── AUTO-INIT
+window.addEventListener('DOMContentLoaded',function(){
+  initSupabase();
+});
+</script>
+</body>
+</html>
