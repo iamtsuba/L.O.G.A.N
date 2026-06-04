@@ -3152,15 +3152,27 @@ function safeInit() {
 }
 
 function showFatalError(msg) {
-  document.body.insertAdjacentHTML('beforeend', `
+  const html = `
     <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1A1A18;color:#FAF7F2;padding:32px;font-family:system-ui,sans-serif;z-index:9999;">
       <div style="max-width:520px;background:#FAF7F2;color:#1A1A18;padding:40px;border-radius:20px;text-align:center;">
         <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
         <h2 style="margin:0 0 12px;color:#C8654A;">Problème de chargement</h2>
-        <p style="margin:0 0 20px;line-height:1.6;">${msg}</p>
+        <p style="margin:0 0 20px;line-height:1.6;"></p>
         <button onclick="location.reload()" style="padding:12px 24px;border:none;border-radius:10px;background:#C8654A;color:white;font-size:14px;font-weight:600;cursor:pointer;">Recharger la page</button>
       </div>
-    </div>`);
+    </div>`;
+  const inject = () => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    // Injecte le message sans template literal pour éviter tout problème d'échappement
+    div.querySelector('p').textContent = msg;
+    document.body.appendChild(div.firstElementChild);
+  };
+  if (document.body) {
+    inject();
+  } else {
+    document.addEventListener('DOMContentLoaded', inject);
+  }
 }
 
 // Lancement : avec defer, le DOM est déjà parsé, mais on gère les deux cas.
