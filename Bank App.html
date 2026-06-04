@@ -48,13 +48,13 @@
   }
   .app-name span { color: var(--muted); font-weight: 400; }
   .user-badge {
-    font-size: 11px; color: var(--muted);
+    font-size: 11px; color: var(--accent2);
     background: var(--surface2);
     border: 1px solid var(--border);
     padding: 4px 10px; border-radius: 4px;
     font-family: var(--font-mono);
   }
-  .user-badge b { color: var(--accent2); }
+  .user-badge b { color: var(--accent2); font-weight: 500; }
   .logan-btn {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -379,8 +379,8 @@
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <div class="app-name">BANK<span>APP</span></div>
     <div class="user-badge" id="userBadge">…</div>
+    <div class="app-name">BANK<span>APP</span></div>
   </div>
   <a href="https://iamtsuba.github.io/L.O.G.A.N" class="logan-btn">L.O.G.A.N</a>
 </div>
@@ -647,7 +647,27 @@ async function init() {
     return;
   }
 
-  document.getElementById("userBadge").innerHTML = `user <b>${currentUserId.slice(0,8)}…</b>`;
+  // Récupérer l'email depuis user_apps ou auth session
+  let userEmail = null;
+  try {
+    // Priorité 1 : session JWT active → email dispo directement
+    const { data: { session } } = await db.auth.getSession();
+    if (session?.user?.email) {
+      userEmail = session.user.email;
+    } else {
+      // Priorité 2 : colonne email dans user_apps si elle existe
+      const { data: udata } = await db
+        .from("user_apps")
+        .select("email")
+        .eq("user_id", currentUserId)
+        .maybeSingle();
+      if (udata?.email) userEmail = udata.email;
+    }
+  } catch (_) {}
+
+  document.getElementById("userBadge").innerHTML = userEmail
+    ? `<b>${userEmail}</b>`
+    : `<b>${currentUserId.slice(0,8)}…</b>`;
 
   await loadCategories();
   await loadAccounts();
