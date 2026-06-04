@@ -826,7 +826,7 @@
       grid-template-columns: 1fr auto 1fr !important;
       align-items: center !important;
       gap: 16px !important;
-      padding: 8px 16px !important;
+      padding: 6px 16px !important;
     }
     #print-area .fiche-header-nanny-print {
       display: block !important;
@@ -837,6 +837,26 @@
     }
     #print-area .fiche-title-block { text-align: right; }
 
+    /* ── Récap mensuel réduit (≈35% hauteur) ── */
+    #print-area .fiche-section:not(.recap-section) { padding: 3px 10px !important; }
+    #print-area .fiche-section-title { font-size: 6px !important; margin-bottom: 2px !important; letter-spacing: 1px !important; }
+    #print-area .fiche-total-bar { padding: 3px 16px !important; }
+    #print-area .fiche-total-label { font-size: 7px !important; }
+    #print-area .fiche-total-amount { font-size: 14px !important; }
+    #print-area .fiche-total-bar > div:last-child { font-size: 7px !important; opacity: .4 !important; }
+
+    /* Tableau récap mois très compact */
+    #print-area .fiche-recap-table { font-size: 6.5px !important; }
+    #print-area .fiche-recap-table thead th { font-size: 5.5px !important; padding: 1px 3px !important; }
+    #print-area .fiche-recap-table tbody th { font-size: 6.5px !important; padding: 1px 6px !important; }
+    #print-area .fiche-recap-table tbody td { padding: 1px 3px !important; font-size: 6.5px !important; }
+    #print-area .fiche-recap-table tr.row-spacer td { padding: 2px !important; }
+    #print-area .fiche-recap-table tr.row-highlight td,
+    #print-area .fiche-recap-table tr.row-highlight th { font-size: 7px !important; }
+
+    /* ── Récap annuel agrandi (≈65% hauteur) ── */
+    #print-area .recap-section { padding: 4px 10px !important; }
+
     /* Colonnes calendrier égales + pleine largeur + centré */
     .fiche-grand-table {
       width: 100% !important;
@@ -845,27 +865,30 @@
     }
     .fiche-grand-table col.col-label { width: 2% !important; }
     .fiche-grand-table col.col-total { width: 6% !important; }
-    /* colonnes mois = 7.5% — calculé en JS via style inline */
 
-    /* Cellules du grand tableau très compactes pour tout faire tenir */
+    /* Cellules du grand tableau optimisées pour 65% de la page */
     #print-area .fiche-grand-table thead th {
-      font-size: 5.5px !important;
+      font-size: 6px !important;
       padding: 2px 1px !important;
       text-align: center !important;
     }
     #print-area .fiche-grand-table .cal-row th,
     #print-area .fiche-grand-table .cal-cell {
-      font-size: 5px !important;
+      font-size: 5.5px !important;
     }
+    #print-area .fiche-grand-table .cal-cell { height: 11px !important; }
     #print-area .fiche-grand-table .data-row th,
     #print-area .fiche-grand-table .data-row td {
-      font-size: 5.5px !important;
+      font-size: 6px !important;
       padding: 1px !important;
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
     }
-    #print-area .fiche-section { padding: 4px 10px !important; }
+    #print-area .fiche-cal-color-legend { font-size: 5.5px !important; gap: 6px !important; margin-bottom: 2px !important; }
+    #print-area .fiche-cal-color-legend .dot { width: 6px !important; height: 6px !important; }
+    #print-area .fiche-letter-legend { font-size: 5.5px !important; gap: 1px 8px !important; margin-top: 3px !important; }
+    #print-area [style*="font-size:10px"] { font-size: 6px !important; margin-bottom: 2px !important; }
 
     /* Bloque tout sur 1 page */
     #print-area, #print-area * {
