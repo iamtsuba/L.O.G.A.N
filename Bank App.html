@@ -41,6 +41,7 @@
     position: sticky; top: 0; z-index: 100;
   }
   .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
   .app-name {
     font-family: var(--font-display);
     font-weight: 800; font-size: 18px;
@@ -379,10 +380,12 @@
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <div class="user-badge" id="userBadge">…</div>
     <div class="app-name">BANK<span>APP</span></div>
   </div>
-  <a href="https://iamtsuba.github.io/L.O.G.A.N" class="logan-btn">L.O.G.A.N</a>
+  <div class="topbar-right">
+    <div class="user-badge" id="userBadge">…</div>
+    <a href="https://iamtsuba.github.io/L.O.G.A.N" class="logan-btn">L.O.G.A.N</a>
+  </div>
 </div>
 
 <!-- MAIN -->
@@ -621,23 +624,23 @@ let selectedColorAccount = ACCOUNT_COLORS[1];
 async function init() {
   db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  // Resolve user_id
+  // Resolve user_id — ordre de priorité :
+  // 1. Injecté par LOGAN (window.LOGAN_USER_ID)
+  // 2. localStorage (même navigateur, session précédente)
+  // 3. Session JWT Supabase active
   if (window.LOGAN_USER_ID) {
     currentUserId = window.LOGAN_USER_ID;
+    localStorage.setItem("bankapp_user_id", currentUserId);
   } else {
-    // Try JWT session
-    const { data: { session } } = await db.auth.getSession();
-    if (session?.user?.id) {
-      currentUserId = session.user.id;
+    const stored = localStorage.getItem("bankapp_user_id");
+    if (stored) {
+      currentUserId = stored;
     } else {
-      // Fallback: find user by app entry in user_apps
-      const { data } = await db
-        .from("user_apps")
-        .select("user_id")
-        .contains("app_ids", [APP_FILE])
-        .limit(1)
-        .single();
-      if (data) currentUserId = data.user_id;
+      const { data: { session } } = await db.auth.getSession();
+      if (session?.user?.id) {
+        currentUserId = session.user.id;
+        localStorage.setItem("bankapp_user_id", currentUserId);
+      }
     }
   }
 
