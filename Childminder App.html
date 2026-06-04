@@ -963,6 +963,8 @@
   .prevu-cell.s-ferie { background: var(--gold); color: var(--white); }
   .prevu-cell.s-cp { background: var(--terracotta); color: var(--white); font-size: 9px; }
   .prevu-cell.s-cnp { background: var(--danger); color: var(--white); font-size: 9px; }
+  .prevu-cell.s-jhc { background: #7B2FBE; color: var(--white); font-size: 9px; }
+  .prevu-cell.s-ccp { background: #E8A838; color: var(--white); font-size: 9px; }
   .prevu-cell.s-future { background: var(--warm); color: var(--light); }
 
   /* KPI cards */
@@ -1104,6 +1106,8 @@
   .mini-prevu-cell.s-ferie { background: var(--gold); color: var(--white); }
   .mini-prevu-cell.s-cp { background: var(--terracotta); color: var(--white); font-size: 7px; }
   .mini-prevu-cell.s-cnp { background: var(--danger); color: var(--white); font-size: 7px; }
+  .mini-prevu-cell.s-jhc { background: #7B2FBE; color: var(--white); font-size: 7px; }
+  .mini-prevu-cell.s-ccp { background: #E8A838; color: var(--white); font-size: 7px; }
 
   /* ── FICHE GRAND TABLE (calendrier + données combinés) ── */
   .fiche-grand-table {
@@ -1160,6 +1164,7 @@
   .cal-cell.s-cp      { background: var(--terracotta); color: var(--white); font-size: 7px; }
   .cal-cell.s-cnp     { background: var(--danger); color: var(--white); font-size: 7px; }
   .cal-cell.s-jhc     { background: #7B2FBE; color: var(--white); font-size: 7px; }
+  .cal-cell.s-ccp     { background: #E8A838; color: var(--white); font-size: 7px; }
 
   /* Spacer between calendar and data */
   .grand-spacer td { height: 5px; background: transparent; }
@@ -1915,7 +1920,7 @@ function buildCalendar() {
     const state = calendarState[d] || (isWeekend ? 'weekend' : 'work');
     // CSS class mapping: 'work' => 'worked' (existing CSS), other states use same name as state
     const cssState = state === 'work' ? 'worked' : state;
-    const labels = { work: '✓', ferie: 'F', cp: 'CP', cnp: 'CNP', jhc: 'JHC', off: 'R', weekend: '' };
+    const labels = { work: '✓', ferie: 'F', cp: 'CP', cnp: 'CNP', jhc: 'JHC', ccp: 'CCP', off: 'R', weekend: '' };
     const onClick = `onclick="cycleDay(${d})"`;
     html += `<div class="saisie-day ${cssState}" id="day-${d}" ${onClick}>
       <span class="day-num">${d}</span>
@@ -1927,8 +1932,8 @@ function buildCalendar() {
 }
 
 // Cycles: 5 states each; weekday default = 'work', weekend default = 'weekend'
-const CYCLE_WEEKDAY = ['off', 'work', 'ferie', 'cp', 'cnp', 'jhc'];
-const CYCLE_WEEKEND = ['weekend', 'work', 'ferie', 'cp', 'cnp', 'jhc'];
+const CYCLE_WEEKDAY = ['off', 'work', 'ferie', 'cp', 'ccp', 'cnp', 'jhc'];
+const CYCLE_WEEKEND = ['weekend', 'work', 'ferie', 'cp', 'ccp', 'cnp', 'jhc'];
 
 function cycleDay(d) {
   const dt = new Date(selectedYear, selectedMonth - 1, d);
@@ -1951,7 +1956,7 @@ function resetMonth() {
 
 function getSummary() {
   const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-  let worked = 0, ferie = 0, cp = 0, cnp = 0, jhc = 0;
+  let worked = 0, ferie = 0, cp = 0, cnp = 0, jhc = 0, ccp = 0;
   for (let d = 1; d <= daysInMonth; d++) {
     const dt = new Date(selectedYear, selectedMonth - 1, d);
     const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
@@ -1961,13 +1966,15 @@ function getSummary() {
     else if (state === 'cp') cp++;
     else if (state === 'cnp') cnp++;
     else if (state === 'jhc') jhc++;
+    else if (state === 'ccp') ccp++; // 0 jours travaillés, mais −1 CP
     // 'weekend' and 'off' are not counted
   }
-  return { worked, ferie, cp, cnp, jhc };
+  // CCP déduit du total CP
+  return { worked, ferie, cp: cp + ccp, cnp, jhc, ccp };
 }
 
 function updateSaisieSummary() {
-  const { worked, ferie, cp, cnp, jhc } = getSummary();
+  const { worked, ferie, cp, cnp, jhc, ccp } = getSummary();
   const indicator = autoSaveStatus
     ? `<div style="grid-column:1/-1;text-align:center;font-size:11px;color:${autoSaveStatus.color};margin-top:8px;">${autoSaveStatus.text}</div>`
     : '';
@@ -1982,7 +1989,7 @@ function updateSaisieSummary() {
     </div>
     <div style="text-align:center;">
       <div style="font-size:24px;font-weight:700;color:var(--terracotta);">${cp}</div>
-      <div style="font-size:11px;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;">CP</div>
+      <div style="font-size:11px;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;">CP <span style="font-size:9px;opacity:.6;">(dont ${ccp} CCP)</span></div>
     </div>
     <div style="text-align:center;">
       <div style="font-size:24px;font-weight:700;color:var(--danger);">${cnp}</div>
@@ -2051,7 +2058,7 @@ async function generateFiche() {
   const n = allNounous.find(x => x.id === currentNounouId);
   const contrat = (n?.contrats || []).find(c => c.id === currentContratId);
   if (!contrat) { alert('Contrat introuvable.'); return; }
-  const { worked, ferie, cp, cnp, jhc } = getSummary();
+  const { worked, ferie, cp, cnp, jhc, ccp } = getSummary();
   const profile = currentUser.user_metadata?.full_name || currentUser.email;
 
   const totalRepas = worked * parseFloat(contrat.prix_repas || 0);
@@ -2214,7 +2221,7 @@ async function generateFiche() {
   `;
 
   // Labels pour les cellules du calendrier dans la grand-table
-  const miniLabel = { off: '', weekend: '', work: '1', ferie: 'F', cp: 'CP', cnp: 'CNP', jhc: 'JHC' };
+  const miniLabel = { off: '', weekend: '', work: '1', ferie: 'F', cp: 'CP', cnp: 'CNP', jhc: 'JHC', ccp: 'CCP' };
 
   document.getElementById('print-area').innerHTML = `
     <div class="fiche-header">
@@ -2548,9 +2555,9 @@ document.addEventListener('keydown', e => {
 let prevuContrat = null;
 let prevuState = {}; // { "2025-09-15": "work" | "off" | "ferie" | "cp" | "cnp" }
 let prevuMonths = []; // [{year, month}, ...] from start to end
-const PREVU_CYCLE_WEEKDAY = ['off', 'work', 'ferie', 'cp', 'cnp', 'jhc'];
-const PREVU_CYCLE_WEEKEND = ['weekend', 'work', 'ferie', 'cp', 'cnp', 'jhc'];
-const PREVU_LABEL = { off: 'R', work: '1', ferie: 'F', cp: 'CP', cnp: 'CNP', jhc: 'JHC', weekend: '' };
+const PREVU_CYCLE_WEEKDAY = ['off', 'work', 'ferie', 'cp', 'ccp', 'cnp', 'jhc'];
+const PREVU_CYCLE_WEEKEND = ['weekend', 'work', 'ferie', 'cp', 'ccp', 'cnp', 'jhc'];
+const PREVU_LABEL = { off: 'R', work: '1', ferie: 'F', cp: 'CP', cnp: 'CNP', jhc: 'JHC', ccp: 'CCP', weekend: '' };
 
 async function openContratPrevu(contratId) {
   // Find contrat
@@ -3074,6 +3081,7 @@ if (document.readyState === 'loading') {
           <div class="legend-item"><div class="legend-dot" style="background:var(--forest)"></div>Travaillé</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Férié</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--terracotta)"></div>Congé payé</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#E8A838"></div>Compensation CP (CCP)</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>Congé non payé</div>
           <div class="legend-item"><div class="legend-dot" style="background:#7B2FBE"></div>Hors contrat (JHC)</div>
           <div class="legend-item"><div class="legend-dot" style="background:#f5d4d0"></div>Repos</div>
