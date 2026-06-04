@@ -1132,7 +1132,9 @@
     checkbox.disabled = true;
     try {
       const newActive = isActive ? 1 : 0;
-      const res = await fetch(SUPABASE_URL + '/rest/v1/user_apps?user_id=eq.' + userId, {
+
+      // 1. Essai PATCH (met à jour si la ligne existe)
+      const patch = await fetch(SUPABASE_URL + '/rest/v1/user_apps?user_id=eq.' + userId, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1142,15 +1144,37 @@
         },
         body: JSON.stringify({ active: newActive })
       });
-      if (!res.ok) throw new Error('Erreur réseau');
-      // Update badge in the same row
+
+      if (!patch.ok) throw new Error('Erreur PATCH ' + patch.status);
+
+      // 2. Si aucune ligne n'existait, le PATCH ne crée rien → on INSERT
+      // Vérifier avec un GET rapide
+      const check = await fetch(SUPABASE_URL + '/rest/v1/user_apps?user_id=eq.' + userId + '&select=user_id', {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      }).then(r => r.json());
+
+      if (!check || check.length === 0) {
+        // Créer la ligne avec active seulement
+        await fetch(SUPABASE_URL + '/rest/v1/user_apps', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ user_id: userId, active: newActive, app_ids: [] })
+        });
+      }
+
+      // Mettre à jour le badge
       const badge = checkbox.closest('tr').querySelector('.status-badge');
       if (badge) {
         badge.className = 'status-badge ' + (isActive ? 'active' : 'inactive');
         badge.textContent = isActive ? 'Actif' : 'Inactif';
       }
     } catch(e) {
-      checkbox.checked = !isActive; // revert
+      checkbox.checked = !isActive; // annuler
       alert('Erreur : ' + e.message);
     } finally {
       checkbox.disabled = false;
