@@ -812,12 +812,9 @@
       left: 0;
       right: 0;
       margin: 0 auto;
-      zoom: 0.95;
-      width: calc(210mm / 0.95);
-      height: calc(297mm / 0.95);
-      overflow: hidden;
       border-radius: 0;
       box-shadow: none;
+      /* zoom calculé dynamiquement par JS avant impression */
     }
 
     #print-area .fiche-nanny-bar { display: none !important; }
@@ -1385,6 +1382,50 @@ function showLoganRequired() {
 // ══════════════════════════════════════════
 //  APP START
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  IMPRESSION — zoom automatique
+// ══════════════════════════════════════════
+function smartPrint() {
+  const el = document.getElementById('print-area');
+  if (!el) { window.print(); return; }
+
+  // Reset zoom pour mesurer la vraie hauteur
+  el.style.zoom = '';
+  el.style.width = '';
+  el.style.height = '';
+  el.style.overflow = '';
+
+  // A4 en pixels à 96dpi
+  const A4_W = 794;
+  const A4_H = 1123;
+
+  // Mesure la hauteur réelle de la fiche
+  const ficheH = el.scrollHeight;
+  const ficheW = el.scrollWidth;
+
+  // Calcul du zoom pour tenir en 1 page (prend le plus contraignant)
+  const zoomH = A4_H / ficheH;
+  const zoomW = A4_W / ficheW;
+  const zoom  = Math.min(zoomH, zoomW, 1); // jamais > 1
+
+  // Applique le zoom + dimensions
+  el.style.zoom     = zoom;
+  el.style.width    = (A4_W / zoom) + 'px';
+  el.style.height   = (A4_H / zoom) + 'px';
+  el.style.overflow = 'hidden';
+
+  // Lance l'impression puis restaure
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => {
+      el.style.zoom     = '';
+      el.style.width    = '';
+      el.style.height   = '';
+      el.style.overflow = '';
+    }, 500);
+  }, 100);
+}
+
 function startApp() {
   document.getElementById('app').style.display = 'block';
   const email = currentUser.email;
@@ -3130,7 +3171,7 @@ if (document.readyState === 'loading') {
       <!-- Fiche de paie -->
       <div id="fiche-zone" style="display:none;">
         <div class="flex-row flex-end" style="margin-bottom:16px;" id="fiche-actions">
-          <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimer</button>
+          <button class="btn btn-ghost btn-sm" onclick="smartPrint()">🖨️ Imprimer</button>
           <button class="btn btn-ghost btn-sm" onclick="closeFiche()">← Retour à la saisie</button>
         </div>
         <div id="print-area"></div>
