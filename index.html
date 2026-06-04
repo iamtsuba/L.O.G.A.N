@@ -1078,30 +1078,32 @@
     const bodyEl  = document.getElementById('admin-users-body');
     const countEl = document.getElementById('admin-users-count');
     loadEl.style.display = 'flex';
+    loadEl.innerHTML = '<span class="spinner dark"></span> Chargement…';
     tableEl.style.display = 'none';
 
     try {
-      // Fetch all users from auth via user_apps (user_id + active)
-      const userApps = await fetch(SUPABASE_URL + '/rest/v1/user_apps?select=user_id,app_ids,active', {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-      }).then(r => r.json());
-
-      // Fetch emails from auth.users via admin RPC — fallback to showing UUIDs only
-      let emailMap = {};
-      try {
-        const authUsers = await fetch(SUPABASE_URL + '/auth/v1/admin/users', {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + (currentUser?.access_token || SUPABASE_KEY) }
-        }).then(r => r.json());
-        if (authUsers && authUsers.users) {
-          authUsers.users.forEach(u => { emailMap[u.id] = u.email; });
+      // Single query on the admin_users view (email + active joined)
+      const users = await fetch(SUPABASE_URL + '/rest/v1/admin_users?select=user_id,email,active', {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY
         }
-      } catch(e) {}
+      }).then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.message || data.hint || JSON.stringify(data));
+        return data;
+      });
 
-      countEl.textContent = userApps.length + ' utilisateur(s)';
-      bodyEl.innerHTML = userApps.map(u => {
-        const email = emailMap[u.user_id] || '—';
-        const active = u.active === undefined ? 1 : Number(u.active);
-        const shortId = u.user_id ? u.user_id.substring(0, 8) + '…' : '—';
+      if (!Array.isArray(users) || users.length === 0) {
+        loadEl.innerHTML = '<span style="color:var(--text-muted);font-size:13px;">Aucun utilisateur trouvé. Vérifiez que la vue <code>admin_users</code> est créée dans Supabase.</span>';
+        return;
+      }
+
+      countEl.textContent = users.length + ' utilisateur(s)';
+      bodyEl.innerHTML = users.map(u => {
+        const active   = u.active === undefined || u.active === null ? 1 : Number(u.active);
+        const email    = u.email || '—';
+        const shortId  = u.user_id ? u.user_id.substring(0, 8) + '…' : '—';
         return `<tr>
           <td style="font-size:13px;">${email}</td>
           <td class="user-id-cell" title="${u.user_id}">${shortId}</td>
@@ -1122,7 +1124,7 @@
       loadEl.style.display = 'none';
       tableEl.style.display = 'table';
     } catch(e) {
-      loadEl.innerHTML = '<span style="color:var(--danger)">Erreur : ' + e.message + '</span>';
+      loadEl.innerHTML = '<span style="color:var(--danger);font-size:13px;">Erreur : ' + e.message + '</span>';
     }
   }
 
