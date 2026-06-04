@@ -2565,8 +2565,31 @@ async function generateFiche() {
 
   // ── Ouvrir dans un nouvel onglet ──
   const ficheHTML = document.getElementById('print-area').innerHTML;
+  // Copie les styles SAUF les blocs @media print (qui casseraient le rendu du nouvel onglet)
   const styles = Array.from(document.querySelectorAll('style'))
-    .map(s => `<style>${s.innerHTML}</style>`).join('\n');
+    .map(s => {
+      // Retire tous les blocs @media print { ... } (gestion des accolades imbriquées)
+      let css = s.innerHTML;
+      let out = '';
+      let i = 0;
+      while (i < css.length) {
+        const idx = css.indexOf('@media print', i);
+        if (idx === -1) { out += css.slice(i); break; }
+        out += css.slice(i, idx);
+        // Trouve l'accolade ouvrante
+        let braceStart = css.indexOf('{', idx);
+        if (braceStart === -1) { break; }
+        // Compte les accolades imbriquées
+        let depth = 1, j = braceStart + 1;
+        while (j < css.length && depth > 0) {
+          if (css[j] === '{') depth++;
+          else if (css[j] === '}') depth--;
+          j++;
+        }
+        i = j; // saute tout le bloc @media print
+      }
+      return `<style>${out}</style>`;
+    }).join('\n');
   const fonts = `<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">`;
 
   const newTab = window.open('', '_blank');
@@ -2615,17 +2638,16 @@ async function generateFiche() {
       box-shadow: 0 4px 32px rgba(0,0,0,0.15);
     }
 
-    /* ── À l'impression : 1 page A4 exacte ── */
+    /* ── À l'impression : la fiche garde le zoom appliqué par fitAndPrint ── */
     @media print {
       @page { size: A4 portrait; margin: 0; }
       html, body { background: white; margin: 0; padding: 0; }
       #print-bar { display: none !important; }
-      #fiche-wrap { margin: 0; padding: 0; display: block; }
+      #fiche-wrap { margin: 0 !important; padding: 0 !important; display: block !important; }
       #print-area {
-        position: fixed; top: 0; left: 0;
-        width: 100%; height: 100%;
-        box-shadow: none;
-        overflow: hidden;
+        position: absolute; top: 0; left: 0;
+        box-shadow: none !important;
+        margin: 0 !important;
       }
     }
   </style>
@@ -2643,25 +2665,28 @@ async function generateFiche() {
   <script>
     function fitAndPrint() {
       const el = document.getElementById('print-area');
-      const A4_H = 1123, A4_W = 794;
+      const A4_H = 1123, A4_W = 794; // A4 à 96dpi
+      // Reset
       el.style.zoom = '';
-      el.style.transform = '';
+      el.style.width = A4_W + 'px';
+      el.style.height = '';
+      el.style.overflow = '';
+      // Mesure la hauteur réelle à largeur A4
       const h = el.scrollHeight;
-      const w = el.scrollWidth;
-      const zoom = Math.min(A4_H / h, A4_W / w, 1);
+      // Zoom pour remplir exactement la hauteur A4
+      const zoom = A4_H / h;
       el.style.zoom = zoom;
-      el.style.width = (A4_W / zoom) + 'px';
-      el.style.height = (A4_H / zoom) + 'px';
+      el.style.height = A4_H + 'px';
       el.style.overflow = 'hidden';
       setTimeout(() => {
         window.print();
         setTimeout(() => {
           el.style.zoom = '';
-          el.style.width = '794px';
+          el.style.width = A4_W + 'px';
           el.style.height = '';
           el.style.overflow = '';
-        }, 500);
-      }, 150);
+        }, 600);
+      }, 200);
     }
   <\/script>
 <\/body>
