@@ -898,9 +898,9 @@
             <div class="dash-card-path">${app.path}</div>
           </div>
         </div>
-        <a class="open-link" href="${app.url}" target="_blank" rel="noopener" onclick="openApp(event, '${app.url}')">
+        <button class="open-link" style="border:none;background:none;padding:0;cursor:pointer;font:inherit;text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:5px;" onclick="window.openAppLink('${app.url}')">
           <i class="ti ti-external-link" style="font-size:13px;"></i> Ouvrir
-        </a>
+        </button>
       </div>
     `).join('');
   }
@@ -982,22 +982,26 @@
   }
 
   /* ── Open app with token injected in URL ── */
-  function openApp(e, baseUrl) {
-    e.preventDefault();
+  function openAppLink(baseUrl) {
     try {
       const raw = localStorage.getItem(SESSION_KEY);
-      if (!raw) { window.open(baseUrl, '_blank'); return; }
+      if (!raw) {
+        window.open(baseUrl, '_blank');
+        return;
+      }
       const session = JSON.parse(raw);
       const url = new URL(baseUrl);
-      // Inject token params so the guard can authenticate on any device/domain
-      url.searchParams.set('logan_token',   session.token);
+      url.searchParams.set('logan_token', session.token);
       url.searchParams.set('logan_refresh', session.refreshToken || '');
-      url.searchParams.set('logan_user',    session.user?.id || '');
+      url.searchParams.set('logan_user', session.user?.id || '');
+      console.log('Ouverture app avec token:', url.toString());
       window.open(url.toString(), '_blank');
     } catch(e) {
+      console.error('Erreur openAppLink:', e);
       window.open(baseUrl, '_blank');
     }
   }
+  window.openAppLink = openAppLink;
 
 
   document.addEventListener('keydown', e => {
