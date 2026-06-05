@@ -6,7 +6,7 @@
 <title>Bank App — LOGAN</title>
 
 <!-- LOGAN Guard — doit être en premier -->
-<script src="https://iamtsuba.github.io/L.O.G.A.N/logan-guard.js"></script>
+<script src="/L.O.G.A.N/logan-guard.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
@@ -611,6 +611,13 @@ function showLoganAccessError() {
 }
 
 async function init() {
+  // Attendre que le guard LOGAN ait injecté window.LOGAN_USER_ID (max 2s)
+  let attempt = 0;
+  while (!window.LOGAN_USER_ID && attempt < 20) {
+    await new Promise(r => setTimeout(r, 100));
+    attempt++;
+  }
+
   // Vérifier que le token LOGAN est présent
   if (!window.LOGAN_USER_ID) {
     showLoganAccessError();
