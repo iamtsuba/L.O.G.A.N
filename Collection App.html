@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <!-- LOGAN Guard — doit être en premier -->
-  <script src="https://iamtsuba.github.io/L.O.G.A.N/logan-guard.js"></script>
+  <script src="/L.O.G.A.N/logan-guard.js"></script>
   
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -289,15 +289,17 @@
 
 <script>
 // ============================================================
-// SUPABASE CONFIG - À PERSONNALISER
+// SUPABASE CONFIG
 // ============================================================
-// Configuration Supabase injectée par LOGAN Guard
+const SUPABASE_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
+
 let db = null;
+let currentUserId = null;
 
 // ============================================================
 // STATE
 // ============================================================
-let currentUser = null;
 let currentView = 'collections'; // 'collections' | 'products'
 let currentCollection = null;
 let collections = [];
@@ -327,28 +329,45 @@ function getTypeLabel(typeId) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// INIT — Vérifie que LOGAN Guard a fourni l'accès
+// INIT — Attend LOGAN Guard et lance l'app
 // ══════════════════════════════════════════════════════════════
-function initApp() {
-  // LOGAN Guard injecte window.LOGAN_USER et window.LOGAN_SESSION si authentifié
-  if (!window.LOGAN_USER) {
+async function initApp() {
+  // Attendre que le guard LOGAN ait injecté window.LOGAN_USER_ID (max 2s)
+  let attempt = 0;
+  while (!window.LOGAN_USER_ID && attempt < 20) {
+    await new Promise(r => setTimeout(r, 100));
+    attempt++;
+  }
+
+  // Vérifier que le token LOGAN est présent
+  if (!window.LOGAN_USER_ID) {
     showAccessDenied();
     return;
   }
-  
-  // Injecter la session Supabase depuis LOGAN
-  if (window.LOGAN_SESSION && db) {
-    db.auth.setSession(window.LOGAN_SESSION).then(({ data, error }) => {
-      if (!error && data?.user) {
-        currentUser = data.user;
-        startApp();
-      } else {
-        showAccessDenied();
-      }
-    }).catch(() => showAccessDenied());
-  } else {
-    showAccessDenied();
-  }
+
+  currentUserId = window.LOGAN_USER_ID;
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  // Afficher l'email depuis user_apps
+  let userEmail = null;
+  try {
+    const { data: udata } = await db
+      .from('user_apps')
+      .select('email')
+      .eq('user_id', currentUserId)
+      .maybeSingle();
+    if (udata?.email) userEmail = udata.email;
+  } catch (_) {}
+
+  document.getElementById('header-user').textContent = userEmail
+    ? userEmail
+    : currentUserId.slice(0, 8) + '…';
+
+  // Charger les données
+  await loadCollections();
+
+  document.getElementById('app').style.display = 'block';
+  renderCollectionsView();
 }
 
 function showAccessDenied() {
@@ -376,12 +395,6 @@ function showAccessDenied() {
     </div>`;
 }
 
-function startApp() {
-  document.getElementById('app').style.display = 'block';
-  document.getElementById('header-user').textContent = currentUser.email;
-  loadCollections().then(() => renderCollectionsView());
-}
-
 
 async function logout() {
   // Appelle la déconnexion LOGAN si disponible, sinon redirige vers LOGAN
@@ -401,7 +414,7 @@ async function loadCollections() {
   const { data, error } = await db
     .from('collectapp_collections')
     .select('*')
-    .eq('user_id', currentUser.id)
+    .eq('user_id', currentUserId)
     .order('created_at', { ascending: false });
   collections = data || [];
 }
@@ -419,7 +432,7 @@ async function createCollection(name, typeId, customType) {
   const finalType = typeId === 'custom' ? customType : typeId;
   const { data, error } = await db
     .from('collectapp_collections')
-    .insert({ user_id: currentUser.id, name, type_id: finalType })
+    .insert({ user_id: currentUserId, name, type_id: finalType })
     .select().single();
   if (error) { toast('Erreur: ' + error.message, 'error'); return; }
   collections.unshift(data);
@@ -818,7 +831,7 @@ async function handleImageUpload(input, previewId = 'img-preview', searchFieldId
     if (prev) prev.innerHTML = `<img src="${base64}" style="max-height:100px;border-radius:8px;margin-top:8px">`;
     
     // Upload to Supabase Storage
-    const filename = `${currentUser.id}/${Date.now()}_${file.name}`;
+    const filename = `${currentUserId}/${Date.now()}_${file.name}`;
     const { data, error } = await db.storage.from('collectapp-images').upload(filename, file, { upsert: true });
     if (!error) {
       const { data: urlData } = db.storage.from('collectapp-images').getPublicUrl(filename);
@@ -1026,24 +1039,7 @@ function toast(msg, type='success') {
 // BOOT — Initialisation après chargement de LOGAN Guard
 // ══════════════════════════════════════════════════════════════
 function bootApp() {
-  // Attend que LOGAN Guard ait injecté Supabase et créé le client
-  if (!window.db || typeof window.db !== 'object') {
-    let tries = 0;
-    const wait = setInterval(() => {
-      tries++;
-      if (window.db && typeof window.db.from === 'function') {
-        clearInterval(wait);
-        db = window.db;
-        initApp();
-      } else if (tries > 50) {
-        clearInterval(wait);
-        showAccessDenied();
-      }
-    }, 200);
-    return;
-  }
-  db = window.db;
-  initApp();
+  initApp().catch(() => showAccessDenied());
 }
 
 if (document.readyState === 'loading') {
