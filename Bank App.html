@@ -5,417 +5,135 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Bank App — LOGAN</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,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"/>
-
-<!-- LOGAN Guard — doit être en premier -->
 <script src="/L.O.G.A.N/logan-guard.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
-  :root {
-    --bg: #F5F6FA;
-    --surface: #FFFFFF;
-    --surface2: #F0F1F5;
-    --border: #E2E4EB;
-    --primary: #1652C9;
-    --primary-light: #EBF0FC;
-    --primary-dark: #0F3A8A;
-    --green: #0BA360;
-    --green-light: #E8F8F0;
-    --red: #E03131;
-    --red-light: #FDECEC;
-    --orange: #F59F00;
-    --text: #1A1D26;
-    --text2: #4A4F5E;
-    --muted: #8B90A0;
-    --font: 'Plus Jakarta Sans', -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-    --shadow-lg: 0 10px 30px rgba(0,0,0,0.08);
-    --radius: 12px;
-    --radius-sm: 8px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    min-height: 100vh;
-    overflow-x: hidden;
-    line-height: 1.5;
-  }
-
-  /* ── TOPBAR ── */
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 28px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 100;
-    box-shadow: var(--shadow-sm);
-  }
-  .topbar-left { display: flex; align-items: center; gap: 14px; }
-  .topbar-right { display: flex; align-items: center; gap: 12px; }
-  .app-logo {
-    width: 36px; height: 36px; border-radius: 8px;
-    cursor: help;
-    transition: transform 0.15s;
-  }
-  .app-logo:hover { transform: scale(1.08); }
-  .app-name {
-    font-weight: 800; font-size: 18px;
-    letter-spacing: -0.03em; color: var(--primary);
-  }
-  .app-name span { color: var(--muted); font-weight: 500; }
-  .user-badge {
-    font-size: 13px; color: var(--text2);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 6px 14px; border-radius: 20px;
-    font-weight: 500;
-  }
-  .logan-btn {
-    background: var(--primary);
-    border: none;
-    color: #fff;
-    font-family: var(--font);
-    font-size: 12px; font-weight: 700;
-    letter-spacing: 0.04em;
-    padding: 8px 14px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: background 0.15s, transform 0.1s;
-  }
-  .logan-btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
-
-  /* ── LAYOUT ── */
-  .main { padding: 28px; max-width: 1400px; margin: 0 auto; }
-
-  /* ── GRID STATS ── */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px; margin-bottom: 28px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 22px 24px;
-    position: relative; overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.2s, transform 0.15s;
-  }
-  .stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-  .stat-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    border-radius: var(--radius) var(--radius) 0 0;
-    background: var(--accent-line, var(--primary));
-  }
-  .stat-icon { font-size: 24px; margin-bottom: 10px; }
-  .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }
-  .stat-value { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .positive { color: var(--green); }
-  .negative { color: var(--red); }
-
-  /* ── SECTION ── */
-  .section-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px;
-  }
-  .section-title {
-    font-size: 14px; font-weight: 700;
-    letter-spacing: 0.02em; text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  /* ── CHARTS ── */
-  .charts-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px; margin-bottom: 28px;
-  }
-  .chart-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    box-shadow: var(--shadow-sm);
-  }
-  .chart-card.wide { grid-column: 1 / -1; }
-  .chart-title {
-    font-size: 14px; font-weight: 700;
-    margin-bottom: 18px; color: var(--text);
-  }
-  .chart-wrap { position: relative; height: 240px; }
-  .chart-wrap.tall { height: 300px; }
-
-  /* ── ACCOUNTS ── */
-  .accounts-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px; margin-bottom: 28px;
-  }
-  .account-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 22px;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: var(--shadow-sm);
-  }
-  .account-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--primary); }
-  .account-dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    display: inline-block; margin-right: 8px;
-  }
-  .account-name { font-weight: 700; font-size: 15px; }
-  .account-type { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin: 4px 0 14px; }
-  .account-balance { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
-  .account-iban { font-size: 11px; color: var(--muted); margin-top: 8px; font-family: var(--font-mono); }
-
-  /* ── TOOLBAR ── */
-  .toolbar {
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 20px; flex-wrap: wrap;
-  }
-  .btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 13px; font-weight: 500;
-    padding: 8px 18px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
-  .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600; }
-  .btn.primary:hover { background: var(--primary-dark); }
-  .btn.danger { border-color: var(--red); color: var(--red); }
-  .btn.danger:hover { background: var(--red-light); }
-  select, input[type="month"], input[type="text"] {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 13px;
-    padding: 8px 14px;
-    border-radius: var(--radius-sm);
-    outline: none;
-  }
-  select:focus, input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(22,82,201,0.1); }
-  option { background: var(--surface); }
-
-  /* ── TABLE ── */
-  .table-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-  }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th {
-    text-align: left;
-    padding: 14px 18px;
-    font-size: 11px; font-weight: 700;
-    letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-    background: var(--surface2);
-  }
-  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-  tbody tr:hover { background: var(--primary-light); }
-  tbody tr:last-child { border-bottom: none; }
-  td { padding: 13px 18px; }
-  .td-amount { font-family: var(--font-mono); font-weight: 600; font-size: 13px; text-align: right; }
-  .cat-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    border: 1px solid;
-  }
-  .td-actions { display: flex; gap: 6px; align-items: center; }
-  .mini-btn {
-    background: none; border: 1px solid var(--border);
-    color: var(--muted); font-size: 11px;
-    padding: 4px 10px; cursor: pointer; font-family: var(--font);
-    border-radius: 6px;
-    transition: all 0.15s;
-  }
-  .mini-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
-
-  /* ── PAGINATION ── */
-  .pagination { display: flex; gap: 8px; align-items: center; padding: 14px 18px; border-top: 1px solid var(--border); }
-  .page-info { font-size: 12px; color: var(--muted); flex: 1; }
-
-  /* ── MODAL ── */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.4);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000; backdrop-filter: blur(6px);
-  }
-  .modal-overlay.hidden { display: none; }
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 36px; min-width: 480px; max-width: 560px;
-    box-shadow: var(--shadow-lg);
-  }
-  .modal-title {
-    font-size: 22px; font-weight: 800;
-    letter-spacing: -0.02em; margin-bottom: 8px;
-    color: var(--text);
-  }
-  .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
-  .form-field { margin-bottom: 16px; }
-  .form-field label { display: block; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-  .form-field input, .form-field select {
-    width: 100%;
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text); font-family: var(--font); font-size: 14px;
-    padding: 11px 14px; border-radius: var(--radius-sm); outline: none;
-  }
-  .form-field input:focus, .form-field select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(22,82,201,0.1); }
-  .modal-actions { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
-  .color-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .color-dot {
-    width: 28px; height: 28px; border-radius: 50%;
-    cursor: pointer; border: 3px solid transparent;
-    transition: border-color 0.15s, transform 0.1s;
-  }
-  .color-dot:hover { transform: scale(1.1); }
-  .color-dot.selected { border-color: var(--primary); }
-
-  /* ── TOAST ── */
-  .toast {
-    position: fixed; bottom: 24px; right: 24px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 14px 22px; font-size: 13px; font-weight: 500;
-    z-index: 9999;
-    box-shadow: var(--shadow-md);
-    transform: translateY(80px); opacity: 0;
-    transition: all 0.3s;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { border-color: var(--green); color: var(--green); }
-  .toast.error { border-color: var(--red); color: var(--red); }
-
-  /* ── EMPTY ── */
-  .empty-state {
-    text-align: center; padding: 60px 24px;
-    color: var(--muted); font-size: 14px;
-  }
-  .empty-state .e-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-
-  /* ── LOADING ── */
-  .loader {
-    position: fixed; inset: 0;
-    background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9000; flex-direction: column; gap: 16px;
-  }
-  .loader.hidden { display: none; }
-  .loader-ring {
-    width: 44px; height: 44px;
-    border: 3px solid var(--border);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loader-text { font-size: 13px; font-weight: 600; color: var(--muted); }
-
-  /* ── TABS ── */
-  .tabs {
-    display: flex; gap: 4px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 4px;
-    margin-bottom: 28px;
-    box-shadow: var(--shadow-sm);
-  }
-  .tab {
-    padding: 10px 22px; font-size: 13px; cursor: pointer;
-    border-radius: var(--radius-sm);
-    color: var(--muted);
-    font-weight: 600;
-    transition: all 0.15s;
-  }
-  .tab:hover { color: var(--text); background: var(--surface2); }
-  .tab.active { color: #fff; background: var(--primary); }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 768px) {
-    .charts-grid { grid-template-columns: 1fr; }
-    .main { padding: 16px; }
-    .modal { min-width: calc(100vw - 32px); border-radius: 12px; }
-    .topbar { padding: 10px 16px; }
-  }
-
-  /* ── MISC ── */
-  .cat-select {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text); font-family: var(--font); font-size: 13px;
-    padding: 4px 8px; cursor: pointer; outline: none;
-    border-radius: 6px;
-  }
-  .cat-select:focus { border-color: var(--primary); }
-  .drop-zone {
-    border: 2px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 40px; text-align: center;
-    cursor: pointer; transition: all 0.2s;
-    margin-bottom: 16px;
-    background: var(--surface);
-  }
-  .drop-zone:hover, .drop-zone.over { border-color: var(--primary); background: var(--primary-light); }
-  .drop-zone-text { font-size: 14px; color: var(--muted); }
-  .drop-zone-text b { color: var(--primary); display: block; font-size: 17px; margin-bottom: 6px; }
-  #fileInput { display: none; }
-  .month-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-  .month-pill {
-    font-size: 12px; padding: 5px 14px;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    cursor: pointer; color: var(--muted);
-    transition: all 0.15s; background: var(--surface);
-    font-family: var(--font); font-weight: 500;
-  }
-  .month-pill.active { border-color: var(--primary); color: #fff; background: var(--primary); }
+:root {
+  --bg:#F5F6FA;--surface:#FFF;--surface2:#F0F1F5;--border:#E2E4EB;
+  --primary:#1652C9;--primary-light:#EBF0FC;--primary-dark:#0F3A8A;
+  --green:#0BA360;--green-light:#E8F8F0;--red:#E03131;--red-light:#FDECEC;
+  --orange:#F59F00;--text:#1A1D26;--text2:#4A4F5E;--muted:#8B90A0;
+  --font:'Plus Jakarta Sans',-apple-system,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 12px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04);
+  --R:12px;--Rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden;line-height:1.5}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 28px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.app-logo{width:36px;height:36px;border-radius:8px;cursor:help;transition:transform .15s}
+.app-logo:hover{transform:scale(1.08)}
+.app-name{font-weight:800;font-size:18px;letter-spacing:-.03em;color:var(--primary)}
+.app-name span{color:var(--muted);font-weight:500}
+.user-badge{font-size:13px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);padding:6px 14px;border-radius:20px;font-weight:500}
+.logan-btn{background:var(--primary);border:none;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;letter-spacing:.04em;padding:8px 14px;border-radius:var(--Rs);cursor:pointer;text-decoration:none;display:inline-block;transition:background .15s}
+.logan-btn:hover{background:var(--primary-dark)}
+.main{padding:28px;max-width:1400px;margin:0 auto}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--R);padding:20px 22px;position:relative;overflow:hidden;box-shadow:var(--shadow-sm);transition:box-shadow .2s,transform .15s}
+.stat-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--R) var(--R) 0 0;background:var(--accent-line,var(--primary))}
+.stat-icon{font-size:22px;margin-bottom:8px}
+.stat-label{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.stat-value{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.positive{color:var(--green)}.negative{color:var(--red)}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--R);padding:24px;box-shadow:var(--shadow-sm)}
+.chart-card.wide{grid-column:1/-1}
+.chart-title{font-size:14px;font-weight:700;margin-bottom:18px}
+.chart-wrap{position:relative;height:240px}.chart-wrap.tall{height:300px}
+.accounts-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:28px}
+.account-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--R);padding:22px;transition:all .2s;box-shadow:var(--shadow-sm)}
+.account-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);border-color:var(--primary)}
+.account-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px}
+.account-name{font-weight:700;font-size:15px}
+.account-type{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin:4px 0 14px}
+.account-balance{font-size:24px;font-weight:800}
+.account-iban{font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.btn{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;font-weight:500;padding:8px 18px;border-radius:var(--Rs);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:600}
+.btn.primary:hover{background:var(--primary-dark)}
+.btn.danger{border-color:var(--red);color:var(--red)}.btn.danger:hover{background:var(--red-light)}
+select,input[type="month"],input[type="text"],input[type="number"]{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:8px 14px;border-radius:var(--Rs);outline:none}
+select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(22,82,201,.1)}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--R);overflow:hidden;box-shadow:var(--shadow-sm)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:14px 18px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:var(--primary-light)}
+tbody tr:last-child{border-bottom:none}
+td{padding:12px 16px}
+.td-amount{font-family:var(--mono);font-weight:600;font-size:13px;text-align:right}
+.cat-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid}
+.cat-inline{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:12px;padding:4px 8px;border-radius:6px;cursor:pointer;outline:none;max-width:160px}
+.cat-inline:focus{border-color:var(--primary)}
+.mini-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;font-family:var(--font);border-radius:6px;transition:all .15s}
+.mini-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.pagination{display:flex;gap:8px;align-items:center;padding:14px 18px;border-top:1px solid var(--border)}
+.page-info{font-size:12px;color:var(--muted);flex:1}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(6px)}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;min-width:480px;max-width:560px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.modal-title{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.form-field{margin-bottom:16px}
+.form-field label{display:block;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.form-field input,.form-field select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:14px;padding:11px 14px;border-radius:var(--Rs);outline:none}
+.form-field input:focus,.form-field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(22,82,201,.1)}
+.modal-actions{display:flex;gap:10px;margin-top:24px;justify-content:flex-end}
+.color-row{display:flex;gap:8px;flex-wrap:wrap}
+.color-dot{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15s}
+.color-dot:hover{transform:scale(1.1)}.color-dot.selected{border-color:var(--primary)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--Rs);padding:14px 22px;font-size:13px;font-weight:500;z-index:9999;box-shadow:var(--shadow-md);transform:translateY(80px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+.empty-state{text-align:center;padding:60px 24px;color:var(--muted);font-size:14px}
+.empty-state .e-icon{font-size:48px;margin-bottom:16px;opacity:.5}
+.loader{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9000;flex-direction:column;gap:16px}
+.loader.hidden{display:none}
+.loader-ring{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{font-size:13px;font-weight:600;color:var(--muted)}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--R);padding:4px;margin-bottom:28px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
+.tab{padding:10px 20px;font-size:13px;cursor:pointer;border-radius:var(--Rs);color:var(--muted);font-weight:600;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text);background:var(--surface2)}
+.tab.active{color:#fff;background:var(--primary)}
+.tab-content{display:none}.tab-content.active{display:block}
+@media(max-width:768px){.charts-grid{grid-template-columns:1fr}.main{padding:16px}.modal{min-width:calc(100vw - 32px)}}
+.drop-zone{border:2px dashed var(--border);border-radius:var(--R);padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;background:var(--surface)}
+.drop-zone:hover,.drop-zone.over{border-color:var(--primary);background:var(--primary-light)}
+.drop-zone-text{font-size:14px;color:var(--muted)}.drop-zone-text b{color:var(--primary);display:block;font-size:17px;margin-bottom:6px}
+#fileInput{display:none}
+.month-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.month-pill{font-size:12px;padding:5px 14px;border:1px solid var(--border);border-radius:20px;cursor:pointer;color:var(--muted);transition:all .15s;background:var(--surface);font-family:var(--font);font-weight:500}
+.month-pill.active{border-color:var(--primary);color:#fff;background:var(--primary)}
+.cat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--R);padding:16px 20px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-sm)}
+.cat-card .cat-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.cat-card .cat-name{font-weight:600;flex:1}
+.cat-card .cat-sub{font-size:12px;color:var(--muted);margin-left:26px}
+.cat-children{padding-left:36px}
+.savings-banner{background:linear-gradient(135deg,var(--primary),var(--primary-dark));border-radius:var(--R);padding:22px 28px;color:#fff;margin-bottom:28px;box-shadow:var(--shadow-md)}
+.savings-banner .sb-label{font-size:12px;opacity:.8;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.savings-banner .sb-value{font-size:28px;font-weight:800;margin-top:4px}
+.savings-banner .sb-detail{font-size:12px;opacity:.7;margin-top:4px}
 </style>
 </head>
 <body>
+<div class="loader" id="loader"><div class="loader-ring"></div><div class="loader-text">Chargement…</div></div>
 
-<!-- LOADER -->
-<div class="loader" id="loader">
-  <div class="loader-ring"></div>
-  <div class="loader-text">Chargement…</div>
-</div>
-
-<!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <img class="app-logo" src="data:image/png;base64,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" alt="Bank App" title="Version 26.6.5.1540"/>
+    <img class="app-logo" src="data:image/png;base64,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" alt="Bank App" title="Version 26.6.5.1720"/>
     <div class="app-name">BankApp</div>
   </div>
   <div class="topbar-right">
@@ -424,720 +142,381 @@
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main" id="mainApp" style="display:none">
-
-  <!-- TABS -->
   <div class="tabs">
     <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
     <div class="tab" onclick="switchTab('transactions')">Transactions</div>
     <div class="tab" onclick="switchTab('comptes')">Comptes</div>
+    <div class="tab" onclick="switchTab('categories')">Catégories</div>
     <div class="tab" onclick="switchTab('import')">Import CSV</div>
   </div>
 
-  <!-- TAB DASHBOARD -->
+  <!-- DASHBOARD -->
   <div class="tab-content active" id="tab-dashboard">
+    <div id="savingsBanner"></div>
+    <div class="month-pills" id="dashMonthPills"></div>
     <div class="stats-row" id="statsRow"></div>
     <div class="charts-grid">
-      <div class="chart-card wide">
-        <div class="chart-title">Flux mensuel — Revenus vs Dépenses</div>
-        <div class="chart-wrap tall"><canvas id="chartMonthly"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Répartition par catégorie</div>
-        <div class="chart-wrap"><canvas id="chartCat"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Évolution du solde cumulé</div>
-        <div class="chart-wrap"><canvas id="chartBalance"></canvas></div>
-      </div>
+      <div class="chart-card wide"><div class="chart-title">Flux mensuel — Revenus vs Dépenses</div><div class="chart-wrap tall"><canvas id="chartMonthly"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Répartition par catégorie</div><div class="chart-wrap"><canvas id="chartCat"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Évolution du solde cumulé</div><div class="chart-wrap"><canvas id="chartBalance"></canvas></div></div>
     </div>
   </div>
 
-  <!-- TAB TRANSACTIONS -->
+  <!-- TRANSACTIONS -->
   <div class="tab-content" id="tab-transactions">
     <div class="toolbar">
-      <select id="filterAccount" onchange="renderTransactions()">
-        <option value="">Tous les comptes</option>
-      </select>
-      <select id="filterCat" onchange="renderTransactions()">
-        <option value="">Toutes catégories</option>
-      </select>
+      <select id="filterAccount" onchange="renderTransactions()"><option value="">Tous les comptes</option></select>
+      <select id="filterCat" onchange="renderTransactions()"><option value="">Toutes catégories</option></select>
       <input type="text" id="searchTx" placeholder="Rechercher…" oninput="renderTransactions()" style="width:200px"/>
-      <select id="filterType" onchange="renderTransactions()">
-        <option value="">Débit + Crédit</option>
-        <option value="debit">Dépenses</option>
-        <option value="credit">Revenus</option>
-      </select>
+      <select id="filterType" onchange="renderTransactions()"><option value="">Débit + Crédit</option><option value="debit">Dépenses</option><option value="credit">Revenus</option></select>
     </div>
     <div class="month-pills" id="monthPills"></div>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Libellé</th>
-            <th>Compte</th>
-            <th>Catégorie</th>
-            <th style="text-align:right">Montant</th>
-            <th></th>
-          </tr>
-        </thead>
+        <thead><tr><th>Date</th><th>Libellé</th><th>Compte</th><th>Catégorie</th><th style="text-align:right">Montant</th></tr></thead>
         <tbody id="txBody"></tbody>
       </table>
-      <div class="pagination">
-        <div class="page-info" id="pageInfo"></div>
-        <button class="btn" onclick="changePage(-1)">←</button>
-        <button class="btn" onclick="changePage(1)">→</button>
-      </div>
+      <div class="pagination"><div class="page-info" id="pageInfo"></div><button class="btn" onclick="changePage(-1)">←</button><button class="btn" onclick="changePage(1)">→</button></div>
     </div>
   </div>
 
-  <!-- TAB COMPTES -->
+  <!-- COMPTES -->
   <div class="tab-content" id="tab-comptes">
-    <div class="toolbar">
-      <button class="btn primary" onclick="openAccountModal()">+ Ajouter un compte</button>
-    </div>
+    <div class="toolbar"><button class="btn primary" onclick="openAccountModal()">+ Ajouter un compte</button></div>
     <div class="accounts-row" id="accountsGrid"></div>
   </div>
 
-  <!-- TAB IMPORT -->
+  <!-- CATÉGORIES -->
+  <div class="tab-content" id="tab-categories">
+    <div class="toolbar">
+      <button class="btn primary" onclick="openCatCreateModal()">+ Nouvelle catégorie</button>
+      <button class="btn" onclick="openCatCreateModal(true)">+ Sous-catégorie</button>
+    </div>
+    <div id="categoriesList"></div>
+  </div>
+
+  <!-- IMPORT -->
   <div class="tab-content" id="tab-import">
     <div style="max-width:620px">
       <div class="section-title" style="margin-bottom:16px">Importer un fichier CSV La Banque Postale</div>
-      <div class="modal-sub" style="margin-bottom:20px">
-        Format attendu : export standard CSV La Banque Postale.<br>
-        Les doublons sont automatiquement détectés et ignorés par empreinte (date + libellé + montant).
+      <div class="modal-sub" style="margin-bottom:20px">Format attendu : export standard CSV La Banque Postale.<br>Les doublons sont automatiquement détectés et ignorés.</div>
+      <div style="margin-bottom:16px"><label class="form-field" style="margin-bottom:8px"><span style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase">Compte de destination</span></label>
+        <select id="importAccount" style="width:100%"><option value="">— Sélectionnez un compte —</option></select>
       </div>
-      <div style="margin-bottom:16px">
-        <label class="form-field" style="margin-bottom:8px">
-          <span style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase">Compte de destination</span>
-        </label>
-        <select id="importAccount" style="width:100%">
-          <option value="">— Sélectionnez un compte —</option>
-        </select>
-      </div>
-      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
-           ondragover="event.preventDefault();this.classList.add('over')"
-           ondragleave="this.classList.remove('over')"
-           ondrop="handleDrop(event)">
-        <div class="drop-zone-text">
-          <b>📂 Glisser ou cliquer</b>
-          pour importer un fichier CSV exporté depuis La Banque Postale
-        </div>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="handleDrop(event)">
+        <div class="drop-zone-text"><b>📂 Glisser ou cliquer</b>pour importer un fichier CSV</div>
       </div>
       <input type="file" id="fileInput" accept=".csv,.txt" onchange="handleFile(event)"/>
       <div id="importPreview"></div>
     </div>
   </div>
-
 </div>
 
 <!-- MODAL COMPTE -->
-<div class="modal-overlay hidden" id="modalAccount">
-  <div class="modal">
-    <div class="modal-title" id="accountModalTitle">Nouveau compte</div>
-    <div class="form-field">
-      <label>Nom</label>
-      <input id="aAccountName" type="text"/>
-    </div>
-    <div class="form-field">
-      <label>Type</label>
-      <select id="aAccountType">
-        <option value="courant">Compte courant</option>
-        <option value="epargne">Livret / Épargne</option>
-        <option value="joint">Compte joint</option>
-      </select>
-    </div>
-    <div class="form-field">
-      <label>IBAN</label>
-      <input id="aAccountIban" type="text"/>
-    </div>
-    <div class="form-field">
-      <label>Couleur</label>
-      <div class="color-row" id="accountColorRow"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('modalAccount')">Annuler</button>
-      <button class="btn primary" onclick="saveAccount()">Enregistrer</button>
-    </div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modalAccount"><div class="modal">
+  <div class="modal-title" id="accountModalTitle">Nouveau compte</div>
+  <div class="form-field"><label>Nom</label><input id="aName" type="text"/></div>
+  <div class="form-field"><label>Type</label><select id="aType"><option value="courant">Compte courant</option><option value="epargne">Livret / Épargne</option><option value="joint">Compte joint</option></select></div>
+  <div class="form-field"><label>IBAN</label><input id="aIban" type="text"/></div>
+  <div class="form-field"><label>Solde initial (€)</label><input id="aBalance" type="number" step="0.01" placeholder="Ex: 1154.32"/></div>
+  <div class="form-field"><label>Couleur</label><div class="color-row" id="accountColorRow"></div></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('modalAccount')">Annuler</button><button class="btn primary" onclick="saveAccount()">Enregistrer</button></div>
+</div></div>
 
 <!-- MODAL CATÉGORIE -->
-<div class="modal-overlay hidden" id="modalCatTx">
-  <div class="modal" style="min-width:360px">
-    <div class="modal-title">Changer la catégorie</div>
-    <div class="modal-sub" id="catTxLabel"></div>
-    <select id="catTxSelect" style="width:100%;margin-bottom:16px"></select>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('modalCatTx')">Annuler</button>
-      <button class="btn primary" onclick="saveCatTx()">Enregistrer</button>
-    </div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modalCatCreate"><div class="modal" style="min-width:400px">
+  <div class="modal-title" id="catCreateTitle">Nouvelle catégorie</div>
+  <div class="form-field"><label>Nom</label><input id="cName" type="text"/></div>
+  <div class="form-field" id="cParentField" style="display:none"><label>Catégorie parente</label><select id="cParent"></select></div>
+  <div class="form-field"><label>Couleur</label><div class="color-row" id="catColorRow"></div></div>
+  <div class="form-field"><label>Mots-clés (séparés par des virgules)</label><input id="cKeywords" type="text" placeholder="MOT1, MOT2, MOT3"/></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('modalCatCreate')">Annuler</button><button class="btn primary" onclick="saveCatCreate()">Créer</button></div>
+</div></div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script>
-// ══════════════════════════════════════════════
-// CONFIG
-// ══════════════════════════════════════════════
-const SUPABASE_URL = "https://tkimdlsokrqdfpkfapgc.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8";
-const APP_FILE = "Bank App.html";
-const PAGE_SIZE = 25;
-
-const ACCOUNT_COLORS = [
-  "#1652C9","#0BA360","#E03131","#7C3AED","#F59F00",
-  "#0891B2","#DB2777","#059669","#D97706","#6366F1"
+const SB_URL="https://tkimdlsokrqdfpkfapgc.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8";
+const PS=25;
+const COLORS=["#1652C9","#0BA360","#E03131","#7C3AED","#F59F00","#0891B2","#DB2777","#059669","#D97706","#6366F1"];
+const DEF_CATS=[
+  {name:"Alimentation",color:"#059669",keywords:["CARREFOUR","LECLERC","LIDL","ALDI","INTERMARCHE","SUPER U","CASINO","MONOPRIX","FRANPRIX","PICARD","EPICERIE","BOULANGERIE"]},
+  {name:"Transport",color:"#0891B2",keywords:["SNCF","RATP","NAVIGO","VELIB","UBER","BOLT","TAXI","PARKING","CARBURANT","SHELL","TOTAL","BP"]},
+  {name:"Logement",color:"#1652C9",keywords:["LOYER","EDF","GDF","ENGIE","VEOLIA","BOUYGUES","ORANGE","SFR","FREE","ASSURANCE","MUTUELLE"]},
+  {name:"Santé",color:"#D97706",keywords:["PHARMACIE","DOCTEUR","MEDECIN","CLINIQUE","HOPITAL","DENTISTE","OPTIQUE"]},
+  {name:"Loisirs",color:"#7C3AED",keywords:["NETFLIX","SPOTIFY","AMAZON","FNAC","CINEMA","THEATRE","MUSEE","SPORT"]},
+  {name:"Restauration",color:"#E03131",keywords:["RESTAURANT","BRASSERIE","MCDO","KFC","BURGER","PIZZA","SUSHI","DELIVEROO","UBER EATS"]},
+  {name:"Shopping",color:"#DB2777",keywords:["ZARA","H&M","PRIMARK","ASOS","ZALANDO","SHEIN","DECATHLON","BOULANGER","DARTY"]},
+  {name:"Revenus",color:"#0BA360",keywords:["SALAIRE","VIREMENT RECU","REMBOURSEMENT","ALLOCATIONS","CAF","CPAM"]},
+  {name:"Épargne",color:"#F59F00",keywords:["LIVRET","VIREMENT EPARGNE","PEA","ASSURANCE VIE"]},
+  {name:"Autre",color:"#8B90A0",keywords:[]},
 ];
 
-const DEFAULT_CATEGORIES = [
-  { name: "Alimentation",   color: "#059669", keywords: ["CARREFOUR","LECLERC","LIDL","ALDI","INTERMARCHE","SUPER U","CASINO","MONOPRIX","FRANPRIX","PICARD","EPICERIE","BOULANGERIE"] },
-  { name: "Transport",      color: "#0891B2", keywords: ["SNCF","RATP","NAVIGO","VELIB","FREE2MOVE","UBER","BOLT","TAXI","AUTOROUTE","PARKING","CARBURANT","SHELL","TOTAL","BP","ESSO"] },
-  { name: "Logement",       color: "#1652C9", keywords: ["LOYER","EDF","GDF","ENGIE","VEOLIA","BOUYGUES","ORANGE","SFR","FREE","ASSURANCE","MUTUELLE"] },
-  { name: "Santé",          color: "#D97706", keywords: ["PHARMACIE","DOCTEUR","MEDECIN","CLINIQUE","HOPITAL","DENTISTE","OPTIQUE"] },
-  { name: "Loisirs",        color: "#7C3AED", keywords: ["NETFLIX","SPOTIFY","AMAZON","FNAC","CINEMA","THEATRE","MUSEE","SPORT","SALLE"] },
-  { name: "Restauration",   color: "#E03131", keywords: ["RESTAURANT","BRASSERIE","BISTROT","MCDO","KFC","BURGER","PIZZA","SUSHI","DELIVEROO","UBER EATS","JUST EAT"] },
-  { name: "Shopping",       color: "#DB2777", keywords: ["ZARA","H&M","PRIMARK","ASOS","ZALANDO","SHEIN","AMAZON","DECATHLON","BOULANGER","DARTY","FNAC"] },
-  { name: "Revenus",        color: "#0BA360", keywords: ["SALAIRE","VIREMENT RECU","REMBOURSEMENT","ALLOCATIONS","CAF","CPAM"] },
-  { name: "Épargne",        color: "#F59F00", keywords: ["LIVRET","VIREMENT EPARGNE","PEA","ASSURANCE VIE"] },
-  { name: "Autre",          color: "#8B90A0", keywords: [] },
-];
+let db,uid=null,accounts=[],transactions=[],categories=[];
+let filteredTx=[],cPage=1,fMonth=null,dashMonth=null;
+let chM=null,chC=null,chB=null;
+let editAccId=null,selColor=COLORS[0],selCatColor=COLORS[0];
 
-// ══════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════
-let db, currentUserId = null;
-let accounts = [], transactions = [], categories = [];
-let filteredTx = [], currentPage = 1, currentFilterMonth = null;
-let chartMonthly = null, chartCat = null, chartBalance = null;
-let editingAccountId = null, catTxId = null;
-let selectedColorAccount = ACCOUNT_COLORS[0];
-
-// ══════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════
-function showLoganAccessError() {
+// ── INIT ──
+async function init(){
+  let a=0;while(!window.LOGAN_USER_ID&&a<20){await new Promise(r=>setTimeout(r,100));a++;}
+  if(!window.LOGAN_USER_ID){showBlock();return;}
+  uid=window.LOGAN_USER_ID;
+  db=window.supabase.createClient(SB_URL,SB_KEY);
+  let email=null;
+  try{const{data:u}=await db.from("user_apps").select("email").eq("user_id",uid).maybeSingle();if(u?.email)email=u.email;}catch(_){}
+  document.getElementById("userBadge").textContent=email||uid.slice(0,8)+"…";
+  await loadCategories();await loadAccounts();await loadTransactions();
   document.getElementById("loader").classList.add("hidden");
-  document.body.innerHTML = `
-    <div style="width:100%;height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);font-family:var(--font);flex-direction:column;gap:20px;text-align:center;padding:20px;">
-      <img src="data:image/png;base64,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" style="width:64px;height:64px;opacity:0.4"/>
-      <div style="font-size:24px;font-weight:800;color:var(--text);">Accès refusé</div>
-      <div style="color:var(--muted);max-width:440px;line-height:1.6;">
-        Impossible de récupérer votre identifiant LOGAN.<br>
-        <a href="https://iamtsuba.github.io/L.O.G.A.N" style="color:var(--primary);text-decoration:none;font-weight:600;">Retourner à LOGAN →</a>
-      </div>
-    </div>
-  `;
-}
-
-async function init() {
-  let attempt = 0;
-  while (!window.LOGAN_USER_ID && attempt < 20) {
-    await new Promise(r => setTimeout(r, 100));
-    attempt++;
-  }
-  if (!window.LOGAN_USER_ID) { showLoganAccessError(); return; }
-
-  currentUserId = window.LOGAN_USER_ID;
-  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-  // Email
-  let userEmail = null;
-  try {
-    const { data: udata } = await db.from("user_apps").select("email").eq("user_id", currentUserId).maybeSingle();
-    if (udata?.email) userEmail = udata.email;
-  } catch (_) {}
-  document.getElementById("userBadge").textContent = userEmail || currentUserId.slice(0,8) + "…";
-
-  await loadCategories();
-  await loadAccounts();
-  await loadTransactions();
-
-  document.getElementById("loader").classList.add("hidden");
-  document.getElementById("mainApp").style.display = "block";
+  document.getElementById("mainApp").style.display="block";
   renderAll();
 }
-
-// ══════════════════════════════════════════════
-// DATA LOAD
-// ══════════════════════════════════════════════
-async function loadCategories() {
-  const { data } = await db.from("bankapp_categories").select("*").eq("user_id", currentUserId).order("name");
-  if (!data || data.length === 0) {
-    const toInsert = DEFAULT_CATEGORIES.map(c => ({ ...c, user_id: currentUserId }));
-    const { data: inserted } = await db.from("bankapp_categories").insert(toInsert).select();
-    categories = inserted || [];
-  } else { categories = data; }
+function showBlock(){
+  document.getElementById("loader").classList.add("hidden");
+  document.body.innerHTML=`<div style="width:100%;height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);font-family:var(--font);flex-direction:column;gap:20px;text-align:center;padding:20px"><div style="font-size:24px;font-weight:800">Accès refusé</div><div style="color:var(--muted)"><a href="https://iamtsuba.github.io/L.O.G.A.N" style="color:var(--primary);font-weight:600;text-decoration:none">Retourner à LOGAN →</a></div></div>`;
 }
 
-async function loadAccounts() {
-  const { data } = await db.from("bankapp_accounts").select("*").eq("user_id", currentUserId).order("created_at");
-  accounts = data || [];
+// ── DATA ──
+async function loadCategories(){
+  const{data}=await db.from("bankapp_categories").select("*").eq("user_id",uid).order("name");
+  if(!data||data.length===0){
+    const ins=DEF_CATS.map(c=>({...c,user_id:uid}));
+    const{data:d}=await db.from("bankapp_categories").insert(ins).select();
+    categories=d||[];
+  }else{categories=data;}
+}
+async function loadAccounts(){
+  const{data}=await db.from("bankapp_accounts").select("*").eq("user_id",uid).order("created_at");
+  accounts=data||[];
+}
+async function loadTransactions(){
+  const{data}=await db.from("bankapp_transactions").select("*").eq("user_id",uid).order("date",{ascending:false});
+  transactions=data||[];
 }
 
-async function loadTransactions() {
-  const { data } = await db.from("bankapp_transactions").select("*").eq("user_id", currentUserId).order("date", { ascending: false });
-  transactions = data || [];
+// ── RENDER ALL ──
+function renderAll(){renderSavings();renderStats();renderAccountsGrid();renderTransactions();renderCharts();populateFilters();renderCategoriesList();renderDashMonths();}
+
+// ── SAVINGS BANNER ──
+function renderSavings(){
+  const sav=accounts.filter(a=>a.type==="epargne");
+  const el=document.getElementById("savingsBanner");
+  if(sav.length===0){el.innerHTML="";return;}
+  const total=sav.reduce((s,a)=>s+computeBalance(a.id),0);
+  el.innerHTML=`<div class="savings-banner"><div class="sb-label">💰 Épargne totale — ${sav.length} compte${sav.length>1?"s":""}</div><div class="sb-value">${fmt(total)}</div><div class="sb-detail">${sav.map(a=>`${a.label}: ${fmt(computeBalance(a.id))}`).join(" · ")}</div></div>`;
 }
 
-// ══════════════════════════════════════════════
-// RENDER
-// ══════════════════════════════════════════════
-function renderAll() {
-  renderStats(); renderAccountsGrid(); renderTransactions(); renderCharts(); populateFilters();
+// ── DASHBOARD MONTH FILTER ──
+function renderDashMonths(){
+  const ms=[...new Set(transactions.map(t=>t.date?.slice(0,7)).filter(Boolean))].sort().reverse();
+  document.getElementById("dashMonthPills").innerHTML=
+    `<button class="month-pill ${!dashMonth?'active':''}" onclick="setDashMonth(null)">Tout</button>`+
+    ms.slice(0,12).map(m=>`<button class="month-pill ${dashMonth===m?'active':''}" onclick="setDashMonth('${m}')">${monthLabel(m)}</button>`).join('');
+}
+function setDashMonth(m){dashMonth=m;renderStats();renderCharts();renderDashMonths();}
+
+// ── STATS ──
+function renderStats(){
+  const courants=accounts.filter(a=>a.type!=="epargne");
+  const totalBal=courants.reduce((s,a)=>s+computeBalance(a.id),0);
+  const txPool=dashMonth?transactions.filter(t=>t.date?.startsWith(dashMonth)):transactions.filter(t=>{const n=new Date();const m=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;return t.date?.startsWith(m);});
+  const income=txPool.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const expenses=txPool.filter(t=>t.amount<0).reduce((s,t)=>s+t.amount,0);
+  const lbl=dashMonth?monthLabel(dashMonth):monthLabel(`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`);
+  document.getElementById("statsRow").innerHTML=`
+    <div class="stat-card" style="--accent-line:var(--primary)"><div class="stat-icon">🏦</div><div class="stat-label">Solde courants</div><div class="stat-value">${fmt(totalBal)}</div><div class="stat-sub">${courants.length} compte${courants.length>1?'s':''}</div></div>
+    <div class="stat-card" style="--accent-line:var(--green)"><div class="stat-icon">📈</div><div class="stat-label">Revenus — ${lbl}</div><div class="stat-value positive">${fmt(income)}</div><div class="stat-sub">${txPool.filter(t=>t.amount>0).length} opérations</div></div>
+    <div class="stat-card" style="--accent-line:var(--red)"><div class="stat-icon">📉</div><div class="stat-label">Dépenses — ${lbl}</div><div class="stat-value negative">${fmt(expenses)}</div><div class="stat-sub">${txPool.filter(t=>t.amount<0).length} opérations</div></div>
+    <div class="stat-card" style="--accent-line:var(--orange)"><div class="stat-icon">⚖️</div><div class="stat-label">Bilan — ${lbl}</div><div class="stat-value ${income+expenses>=0?'positive':'negative'}">${fmt(income+expenses)}</div><div class="stat-sub">${transactions.length} tx total</div></div>`;
 }
 
-function renderStats() {
-  const totalBalance = accounts.reduce((s, a) => s + (a.balance_current || 0), 0);
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
-  const income = monthTx.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
-  const expenses = monthTx.filter(t => t.amount < 0).reduce((s,t) => s + t.amount, 0);
-
-  document.getElementById("statsRow").innerHTML = `
-    <div class="stat-card" style="--accent-line:var(--primary)">
-      <div class="stat-icon">🏦</div>
-      <div class="stat-label">Solde total</div>
-      <div class="stat-value">${fmt(totalBalance)}</div>
-      <div class="stat-sub">${accounts.length} compte${accounts.length > 1 ? 's' : ''}</div>
-    </div>
-    <div class="stat-card" style="--accent-line:var(--green)">
-      <div class="stat-icon">📈</div>
-      <div class="stat-label">Revenus — ${monthLabel(thisMonth)}</div>
-      <div class="stat-value positive">${fmt(income)}</div>
-      <div class="stat-sub">${monthTx.filter(t=>t.amount>0).length} opérations</div>
-    </div>
-    <div class="stat-card" style="--accent-line:var(--red)">
-      <div class="stat-icon">📉</div>
-      <div class="stat-label">Dépenses — ${monthLabel(thisMonth)}</div>
-      <div class="stat-value negative">${fmt(expenses)}</div>
-      <div class="stat-sub">${monthTx.filter(t=>t.amount<0).length} opérations</div>
-    </div>
-    <div class="stat-card" style="--accent-line:var(--orange)">
-      <div class="stat-icon">⚖️</div>
-      <div class="stat-label">Bilan du mois</div>
-      <div class="stat-value ${income+expenses >= 0 ? 'positive' : 'negative'}">${fmt(income+expenses)}</div>
-      <div class="stat-sub">${transactions.length} tx total</div>
-    </div>
-  `;
+function computeBalance(aid){
+  const acc=accounts.find(a=>a.id===aid);
+  const init=parseFloat(acc?.balance_initial)||0;
+  return init+transactions.filter(t=>t.account_id===aid).reduce((s,t)=>s+(t.amount||0),0);
 }
 
-function renderAccountsGrid() {
-  const grid = document.getElementById("accountsGrid");
-  if (accounts.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="e-icon">🏦</div>Aucun compte. Ajoutez-en un.</div>`;
-    return;
-  }
-  grid.innerHTML = accounts.map(a => {
-    const bal = computeBalance(a.id);
-    return `
-    <div class="account-card">
-      <div style="display:flex;align-items:center;margin-bottom:4px">
-        <span class="account-dot" style="background:${a.color}"></span>
-        <span class="account-name">${a.label}</span>
-      </div>
-      <div class="account-type">${a.type?.toUpperCase()}</div>
-      <div class="account-balance" style="color:${bal >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt(bal)}</div>
-      ${a.iban ? `<div class="account-iban">${a.iban}</div>` : ''}
-      <div style="margin-top:14px;display:flex;gap:8px">
-        <button class="mini-btn" onclick="openAccountModal('${a.id}')">Modifier</button>
-        <button class="mini-btn" style="border-color:var(--red);color:var(--red)" onclick="deleteAccount('${a.id}')">Supprimer</button>
-      </div>
-    </div>`;
-  }).join('');
+// ── ACCOUNTS ──
+function renderAccountsGrid(){
+  const g=document.getElementById("accountsGrid");
+  if(!accounts.length){g.innerHTML=`<div class="empty-state"><div class="e-icon">🏦</div>Aucun compte.</div>`;return;}
+  g.innerHTML=accounts.map(a=>{const b=computeBalance(a.id);return`<div class="account-card"><div style="display:flex;align-items:center;margin-bottom:4px"><span class="account-dot" style="background:${a.color}"></span><span class="account-name">${a.label}</span></div><div class="account-type">${a.type?.toUpperCase()}</div><div class="account-balance" style="color:${b>=0?'var(--green)':'var(--red)'}">${fmt(b)}</div>${a.iban?`<div class="account-iban">${a.iban}</div>`:''}<div style="font-size:11px;color:var(--muted);margin-top:4px">Solde initial: ${fmt(a.balance_initial||0)}</div><div style="margin-top:14px;display:flex;gap:8px"><button class="mini-btn" onclick="openAccountModal('${a.id}')">Modifier</button><button class="mini-btn" style="border-color:var(--red);color:var(--red)" onclick="deleteAccount('${a.id}')">Supprimer</button></div></div>`;}).join('');
 }
 
-function computeBalance(accountId) {
-  return transactions.filter(t => t.account_id === accountId).reduce((s,t) => s + (t.amount||0), 0);
+// ── TRANSACTIONS ──
+function populateFilters(){
+  document.getElementById("filterAccount").innerHTML=`<option value="">Tous les comptes</option>`+accounts.map(a=>`<option value="${a.id}">${a.label}</option>`).join('');
+  document.getElementById("importAccount").innerHTML=`<option value="">— Sélectionnez un compte —</option>`+accounts.map(a=>`<option value="${a.id}">${a.label}</option>`).join('');
+  document.getElementById("filterCat").innerHTML=`<option value="">Toutes catégories</option>`+categories.filter(c=>!c.parent_id).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const ms=[...new Set(transactions.map(t=>t.date?.slice(0,7)).filter(Boolean))].sort().reverse();
+  document.getElementById("monthPills").innerHTML=ms.slice(0,12).map(m=>`<button class="month-pill ${fMonth===m?'active':''}" onclick="setMonth('${m}')">${monthLabel(m)}</button>`).join('');
+}
+function setMonth(m){fMonth=(fMonth===m)?null:m;cPage=1;populateFilters();renderTransactions();}
+
+function catSelectHtml(txId,currentCatId){
+  const tops=categories.filter(c=>!c.parent_id);
+  let opts='';
+  tops.forEach(c=>{
+    opts+=`<option value="${c.id}" ${c.id===currentCatId?'selected':''}>${c.name}</option>`;
+    const subs=categories.filter(s=>s.parent_id===c.id);
+    subs.forEach(s=>{opts+=`<option value="${s.id}" ${s.id===currentCatId?'selected':''}>&nbsp;&nbsp;↳ ${s.name}</option>`;});
+  });
+  return `<select class="cat-inline" onchange="quickCat('${txId}',this.value)">${opts}</select>`;
 }
 
-// ══════════════════════════════════════════════
-// TRANSACTIONS
-// ══════════════════════════════════════════════
-function populateFilters() {
-  const sel = document.getElementById("filterAccount");
-  sel.innerHTML = `<option value="">Tous les comptes</option>` +
-    accounts.map(a => `<option value="${a.id}">${a.label}</option>`).join('');
-  const importSel = document.getElementById("importAccount");
-  importSel.innerHTML = `<option value="">— Sélectionnez un compte —</option>` +
-    accounts.map(a => `<option value="${a.id}">${a.label}</option>`).join('');
-  const catSel = document.getElementById("filterCat");
-  catSel.innerHTML = `<option value="">Toutes catégories</option>` +
-    categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-  const months = [...new Set(transactions.map(t => t.date?.slice(0,7)).filter(Boolean))].sort().reverse();
-  document.getElementById("monthPills").innerHTML = months.slice(0,12).map(m =>
-    `<button class="month-pill ${currentFilterMonth===m?'active':''}" onclick="setMonth('${m}')">${monthLabel(m)}</button>`
-  ).join('');
+async function quickCat(txId,catId){
+  await db.from("bankapp_transactions").update({category_id:catId}).eq("id",txId);
+  const tx=transactions.find(t=>t.id===txId);
+  if(tx)tx.category_id=catId;
+  showToast("Catégorie mise à jour","success");
 }
 
-function setMonth(m) {
-  currentFilterMonth = (currentFilterMonth === m) ? null : m;
-  currentPage = 1; populateFilters(); renderTransactions();
-}
-
-function renderTransactions() {
-  const accFilter = document.getElementById("filterAccount")?.value;
-  const catFilter = document.getElementById("filterCat")?.value;
-  const search = document.getElementById("searchTx")?.value?.toLowerCase();
-  const typeFilter = document.getElementById("filterType")?.value;
-
-  filteredTx = transactions.filter(t => {
-    if (accFilter && t.account_id !== accFilter) return false;
-    if (catFilter && t.category_id !== catFilter) return false;
-    if (currentFilterMonth && !t.date?.startsWith(currentFilterMonth)) return false;
-    if (typeFilter === "debit" && t.amount >= 0) return false;
-    if (typeFilter === "credit" && t.amount < 0) return false;
-    if (search && !t.label?.toLowerCase().includes(search)) return false;
+function renderTransactions(){
+  const af=document.getElementById("filterAccount")?.value;
+  const cf=document.getElementById("filterCat")?.value;
+  const s=document.getElementById("searchTx")?.value?.toLowerCase();
+  const tf=document.getElementById("filterType")?.value;
+  filteredTx=transactions.filter(t=>{
+    if(af&&t.account_id!==af)return false;
+    if(cf&&t.category_id!==cf)return false;
+    if(fMonth&&!t.date?.startsWith(fMonth))return false;
+    if(tf==="debit"&&t.amount>=0)return false;
+    if(tf==="credit"&&t.amount<0)return false;
+    if(s&&!t.label?.toLowerCase().includes(s))return false;
     return true;
   });
-
-  const total = filteredTx.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  currentPage = Math.min(currentPage, totalPages);
-  const slice = filteredTx.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
-  document.getElementById("pageInfo").textContent = `${total} transaction${total>1?'s':''} — page ${currentPage}/${totalPages}`;
-
-  const body = document.getElementById("txBody");
-  if (slice.length === 0) {
-    body.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="e-icon">📭</div>Aucune transaction</div></td></tr>`;
-    return;
-  }
-  body.innerHTML = slice.map(t => {
-    const acc = accounts.find(a => a.id === t.account_id);
-    const cat = categories.find(c => c.id === t.category_id);
-    const color = cat?.color || "#8B90A0";
-    return `
-    <tr>
-      <td style="color:var(--muted);font-family:var(--font-mono);font-size:12px">${t.date || "—"}</td>
-      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.label || "—"}</td>
-      <td>${acc ? `<span class="account-dot" style="background:${acc.color}"></span>${acc.label}` : "—"}</td>
-      <td><span class="cat-badge" style="color:${color};border-color:${color}30;background:${color}12">${cat?.name || "Non classé"}</span></td>
-      <td class="td-amount ${t.amount >= 0 ? 'positive' : 'negative'}">${fmt(t.amount)}</td>
-      <td class="td-actions"><button class="mini-btn" onclick="openCatModal('${t.id}','${t.label?.replace(/'/g,"\\'") || ""}')">Catégoriser</button></td>
-    </tr>`;
+  const tot=filteredTx.length,tp=Math.max(1,Math.ceil(tot/PS));
+  cPage=Math.min(cPage,tp);
+  const sl=filteredTx.slice((cPage-1)*PS,cPage*PS);
+  document.getElementById("pageInfo").textContent=`${tot} transaction${tot>1?'s':''} — page ${cPage}/${tp}`;
+  const b=document.getElementById("txBody");
+  if(!sl.length){b.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="e-icon">📭</div>Aucune transaction</div></td></tr>`;return;}
+  b.innerHTML=sl.map(t=>{
+    const acc=accounts.find(a=>a.id===t.account_id);
+    return`<tr><td style="color:var(--muted);font-family:var(--mono);font-size:12px">${t.date||"—"}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.label||"—"}</td><td>${acc?`<span class="account-dot" style="background:${acc.color}"></span>${acc.label}`:"—"}</td><td>${catSelectHtml(t.id,t.category_id)}</td><td class="td-amount ${t.amount>=0?'positive':'negative'}">${fmt(t.amount)}</td></tr>`;
   }).join('');
 }
+function changePage(d){const tp=Math.max(1,Math.ceil(filteredTx.length/PS));cPage=Math.max(1,Math.min(tp,cPage+d));renderTransactions();}
 
-function changePage(dir) {
-  const total = filteredTx.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  currentPage = Math.max(1, Math.min(totalPages, currentPage + dir));
-  renderTransactions();
+// ── CHARTS ──
+function renderCharts(){
+  const allM=[...new Set(transactions.map(t=>t.date?.slice(0,7)).filter(Boolean))].sort();
+  const months=dashMonth?allM.filter(m=>m===dashMonth):allM.slice(-12);
+  const iD=months.map(m=>transactions.filter(t=>t.date?.startsWith(m)&&t.amount>0).reduce((s,t)=>s+t.amount,0));
+  const eD=months.map(m=>Math.abs(transactions.filter(t=>t.date?.startsWith(m)&&t.amount<0).reduce((s,t)=>s+t.amount,0)));
+  if(chM)chM.destroy();
+  chM=new Chart(document.getElementById("chartMonthly"),{type:"bar",data:{labels:months.map(monthLabel),datasets:[{label:"Revenus",data:iD,backgroundColor:"#0BA36040",borderColor:"#0BA360",borderWidth:1.5,borderRadius:6},{label:"Dépenses",data:eD,backgroundColor:"#E0313140",borderColor:"#E03131",borderWidth:1.5,borderRadius:6}]},options:cOpts()});
+  const pool=dashMonth?transactions.filter(t=>t.date?.startsWith(dashMonth)&&t.amount<0):transactions.filter(t=>t.amount<0);
+  const cT={};pool.forEach(t=>{const c=categories.find(x=>x.id===t.category_id);const n=c?.name||"Autre";cT[n]=(cT[n]||0)+Math.abs(t.amount);});
+  const cN=Object.keys(cT).sort((a,b)=>cT[b]-cT[a]).slice(0,8);
+  const cCo=cN.map(n=>categories.find(c=>c.name===n)?.color||"#8B90A0");
+  if(chC)chC.destroy();
+  chC=new Chart(document.getElementById("chartCat"),{type:"doughnut",data:{labels:cN,datasets:[{data:cN.map(n=>cT[n]),backgroundColor:cCo.map(c=>c+"cc"),borderColor:cCo,borderWidth:1.5}]},options:{...cOpts(),cutout:"65%",plugins:{legend:{position:"right",labels:{color:"#8B90A0",font:{family:"Plus Jakarta Sans",size:11},boxWidth:12,padding:10}}}}});
+  let rb=0;const bM=months.map(m=>{rb+=transactions.filter(t=>t.date?.startsWith(m)).reduce((s,t)=>s+t.amount,0);return rb;});
+  if(chB)chB.destroy();
+  chB=new Chart(document.getElementById("chartBalance"),{type:"line",data:{labels:months.map(monthLabel),datasets:[{label:"Solde cumulé",data:bM,borderColor:"#1652C9",backgroundColor:"#1652C915",fill:true,tension:.4,borderWidth:2,pointRadius:4,pointBackgroundColor:"#1652C9"}]},options:cOpts()});
+}
+function cOpts(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#8B90A0",font:{family:"Plus Jakarta Sans",size:11},boxWidth:12}}},scales:{x:{ticks:{color:"#8B90A0",font:{family:"Plus Jakarta Sans",size:11}},grid:{color:"#E2E4EB"}},y:{ticks:{color:"#8B90A0",font:{family:"Plus Jakarta Sans",size:11},callback:v=>fmt(v)},grid:{color:"#E2E4EB"}}}};}
+
+// ── ACCOUNT CRUD ──
+function openAccountModal(id=null){
+  editAccId=id;document.getElementById("accountModalTitle").textContent=id?"Modifier le compte":"Nouveau compte";
+  renderColorPicker("accountColorRow");
+  if(id){const a=accounts.find(x=>x.id===id);document.getElementById("aName").value=a.label||"";document.getElementById("aType").value=a.type||"courant";document.getElementById("aIban").value=a.iban||"";document.getElementById("aBalance").value=a.balance_initial||0;selColor=a.color||COLORS[0];renderColorPicker("accountColorRow");}
+  else{document.getElementById("aName").value="";document.getElementById("aType").value="courant";document.getElementById("aIban").value="";document.getElementById("aBalance").value="";}
+  document.getElementById("modalAccount").classList.remove("hidden");
+}
+async function saveAccount(){
+  const label=document.getElementById("aName").value.trim();if(!label)return showToast("Nom requis","error");
+  const p={label,type:document.getElementById("aType").value,iban:document.getElementById("aIban").value.trim()||null,balance_initial:parseFloat(document.getElementById("aBalance").value)||0,color:selColor,user_id:uid};
+  if(editAccId)await db.from("bankapp_accounts").update(p).eq("id",editAccId);
+  else await db.from("bankapp_accounts").insert(p);
+  await loadAccounts();renderAll();closeModal("modalAccount");showToast("Compte enregistré","success");
+}
+async function deleteAccount(id){
+  if(!confirm("Supprimer ce compte et toutes ses transactions ?"))return;
+  await db.from("bankapp_transactions").delete().eq("account_id",id);
+  await db.from("bankapp_accounts").delete().eq("id",id);
+  await loadAccounts();await loadTransactions();renderAll();showToast("Compte supprimé","error");
+}
+function renderColorPicker(cid){
+  document.getElementById(cid).innerHTML=COLORS.map(c=>`<div class="color-dot ${c===selColor?'selected':''}" style="background:${c}" onclick="selColor='${c}';renderColorPicker('${cid}')"></div>`).join('');
 }
 
-// ══════════════════════════════════════════════
-// CHARTS
-// ══════════════════════════════════════════════
-function renderCharts() {
-  const months = [...new Set(transactions.map(t => t.date?.slice(0,7)).filter(Boolean))].sort().slice(-12);
-  const incomeData = months.map(m => transactions.filter(t => t.date?.startsWith(m) && t.amount>0).reduce((s,t)=>s+t.amount,0));
-  const expenseData = months.map(m => Math.abs(transactions.filter(t => t.date?.startsWith(m) && t.amount<0).reduce((s,t)=>s+t.amount,0)));
-
-  if (chartMonthly) chartMonthly.destroy();
-  chartMonthly = new Chart(document.getElementById("chartMonthly"), {
-    type: "bar",
-    data: {
-      labels: months.map(monthLabel),
-      datasets: [
-        { label: "Revenus", data: incomeData, backgroundColor: "#0BA36040", borderColor: "#0BA360", borderWidth: 1.5, borderRadius: 6 },
-        { label: "Dépenses", data: expenseData, backgroundColor: "#E0313140", borderColor: "#E03131", borderWidth: 1.5, borderRadius: 6 }
-      ]
-    },
-    options: chartOptions()
-  });
-
-  const catTotals = {};
-  transactions.filter(t => t.amount < 0).forEach(t => {
-    const cat = categories.find(c => c.id === t.category_id);
-    const name = cat?.name || "Autre";
-    catTotals[name] = (catTotals[name] || 0) + Math.abs(t.amount);
-  });
-  const catNames = Object.keys(catTotals).sort((a,b) => catTotals[b]-catTotals[a]).slice(0,8);
-  const catColors = catNames.map(n => categories.find(c => c.name===n)?.color || "#8B90A0");
-
-  if (chartCat) chartCat.destroy();
-  chartCat = new Chart(document.getElementById("chartCat"), {
-    type: "doughnut",
-    data: {
-      labels: catNames,
-      datasets: [{ data: catNames.map(n => catTotals[n]), backgroundColor: catColors.map(c => c+"cc"), borderColor: catColors, borderWidth: 1.5 }]
-    },
-    options: {
-      ...chartOptions(),
-      cutout: "65%",
-      plugins: { legend: { position: "right", labels: { color: "#8B90A0", font: { family: "Plus Jakarta Sans", size: 11 }, boxWidth: 12, padding: 10 } } }
-    }
-  });
-
-  let runBalance = 0;
-  const balByMonth = months.map(m => {
-    runBalance += transactions.filter(t => t.date?.startsWith(m)).reduce((s,t)=>s+t.amount,0);
-    return runBalance;
-  });
-
-  if (chartBalance) chartBalance.destroy();
-  chartBalance = new Chart(document.getElementById("chartBalance"), {
-    type: "line",
-    data: {
-      labels: months.map(monthLabel),
-      datasets: [{ label: "Solde cumulé", data: balByMonth, borderColor: "#1652C9", backgroundColor: "#1652C915", fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#1652C9" }]
-    },
-    options: chartOptions()
-  });
+// ── CATEGORIES ──
+function renderCategoriesList(){
+  const tops=categories.filter(c=>!c.parent_id).sort((a,b)=>a.name.localeCompare(b.name));
+  const el=document.getElementById("categoriesList");
+  el.innerHTML=tops.map(c=>{
+    const subs=categories.filter(s=>s.parent_id===c.id);
+    return`<div class="cat-card"><div class="cat-dot" style="background:${c.color}"></div><div class="cat-name">${c.name}</div><div style="font-size:11px;color:var(--muted)">${(c.keywords||[]).join(', ')}</div><button class="mini-btn" style="border-color:var(--red);color:var(--red)" onclick="deleteCat('${c.id}')">×</button></div>`+
+    (subs.length?`<div class="cat-children">${subs.map(s=>`<div class="cat-card"><div class="cat-dot" style="background:${s.color}"></div><div class="cat-name">↳ ${s.name}</div><div style="font-size:11px;color:var(--muted)">${(s.keywords||[]).join(', ')}</div><button class="mini-btn" style="border-color:var(--red);color:var(--red)" onclick="deleteCat('${s.id}')">×</button></div>`).join('')}</div>`:'');
+  }).join('');
+}
+function openCatCreateModal(isSub=false){
+  document.getElementById("catCreateTitle").textContent=isSub?"Nouvelle sous-catégorie":"Nouvelle catégorie";
+  document.getElementById("cParentField").style.display=isSub?"block":"none";
+  if(isSub){const tops=categories.filter(c=>!c.parent_id);document.getElementById("cParent").innerHTML=tops.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');}
+  document.getElementById("cName").value="";document.getElementById("cKeywords").value="";
+  selCatColor=COLORS[0];
+  document.getElementById("catColorRow").innerHTML=COLORS.map(c=>`<div class="color-dot ${c===selCatColor?'selected':''}" style="background:${c}" onclick="selCatColor='${c}';document.getElementById('catColorRow').innerHTML=this.parentElement.innerHTML"></div>`).join('');
+  document.getElementById("modalCatCreate").classList.remove("hidden");
+}
+async function saveCatCreate(){
+  const name=document.getElementById("cName").value.trim();if(!name)return showToast("Nom requis","error");
+  const kw=document.getElementById("cKeywords").value.split(",").map(s=>s.trim().toUpperCase()).filter(Boolean);
+  const parentId=document.getElementById("cParentField").style.display!=="none"?document.getElementById("cParent").value:null;
+  await db.from("bankapp_categories").insert({name,color:selCatColor,keywords:kw,parent_id:parentId,user_id:uid});
+  await loadCategories();renderAll();closeModal("modalCatCreate");showToast("Catégorie créée","success");
+}
+async function deleteCat(id){
+  if(!confirm("Supprimer cette catégorie ?"))return;
+  await db.from("bankapp_categories").delete().eq("id",id);
+  await loadCategories();renderAll();showToast("Catégorie supprimée","error");
 }
 
-function chartOptions() {
-  return {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: "#8B90A0", font: { family: "Plus Jakarta Sans", size: 11 }, boxWidth: 12 } } },
-    scales: {
-      x: { ticks: { color: "#8B90A0", font: { family: "Plus Jakarta Sans", size: 11 } }, grid: { color: "#E2E4EB" } },
-      y: { ticks: { color: "#8B90A0", font: { family: "Plus Jakarta Sans", size: 11 }, callback: v => fmt(v) }, grid: { color: "#E2E4EB" } }
-    }
-  };
+// ── CSV IMPORT ──
+function handleDrop(e){e.preventDefault();document.getElementById("dropZone").classList.remove("over");const f=e.dataTransfer.files[0];if(f)parseCSV(f);}
+function handleFile(e){const f=e.target.files[0];if(f)parseCSV(f);e.target.value="";}
+function parseCSV(file){
+  const aid=document.getElementById("importAccount").value;if(!aid)return showToast("Sélectionnez un compte","error");
+  Papa.parse(file,{skipEmptyLines:true,complete:async(r)=>{const p=detectAndParse(r.data);if(!p.length)return showToast("Format non reconnu","error");await importTx(p,aid);},error:()=>showToast("Erreur CSV","error")});
 }
-
-// ══════════════════════════════════════════════
-// ACCOUNTS CRUD
-// ══════════════════════════════════════════════
-function openAccountModal(id = null) {
-  editingAccountId = id;
-  const modal = document.getElementById("modalAccount");
-  document.getElementById("accountModalTitle").textContent = id ? "Modifier le compte" : "Nouveau compte";
-  renderColorPicker("accountColorRow", "account");
-  if (id) {
-    const a = accounts.find(x => x.id === id);
-    document.getElementById("aAccountName").value = a.label || "";
-    document.getElementById("aAccountType").value = a.type || "courant";
-    document.getElementById("aAccountIban").value = a.iban || "";
-    selectedColorAccount = a.color || ACCOUNT_COLORS[0];
-    renderColorPicker("accountColorRow", "account");
-  } else {
-    document.getElementById("aAccountName").value = "";
-    document.getElementById("aAccountType").value = "courant";
-    document.getElementById("aAccountIban").value = "";
-  }
-  modal.classList.remove("hidden");
+function detectAndParse(rows){
+  const out=[];for(const row of rows){if(!row||!row.length)continue;const r=row.map(c=>String(c||"").replace(/^"|"$/g,"").trim());let date=null,label=null,amount=null;const d1=parseDate(r[0]);if(d1){date=d1;if(r.length>=3){label=r[1]||r[2];for(let i=r.length-1;i>=2;i--){const v=parseAmount(r[i]);if(!isNaN(v)){amount=v;break;}}}}if(date&&label&&amount!==null&&!isNaN(amount))out.push({date,label:label.trim(),amount});}return out;
 }
-
-async function saveAccount() {
-  const label = document.getElementById("aAccountName").value.trim();
-  if (!label) return showToast("Nom requis", "error");
-  const payload = {
-    label, type: document.getElementById("aAccountType").value,
-    iban: document.getElementById("aAccountIban").value.trim() || null,
-    color: selectedColorAccount, user_id: currentUserId,
-  };
-  if (editingAccountId) { await db.from("bankapp_accounts").update(payload).eq("id", editingAccountId); }
-  else { await db.from("bankapp_accounts").insert(payload); }
-  await loadAccounts(); populateFilters(); renderAccountsGrid();
-  closeModal("modalAccount"); showToast("Compte enregistré", "success");
+function parseDate(s){s=String(s).trim();const m1=s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);if(m1)return`${m1[3]}-${m1[2]}-${m1[1]}`;const m2=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m2)return s;return null;}
+function parseAmount(s){s=String(s).replace(/\s/g,"").replace(",",".").replace(/[€$£]/g,"");return parseFloat(s);}
+async function importTx(parsed,aid){
+  const{data:ex}=await db.from("bankapp_transactions").select("hash").eq("account_id",aid).eq("user_id",uid);
+  const eH=new Set((ex||[]).map(r=>r.hash));const ins=[];let sk=0;
+  for(const tx of parsed){const h=makeHash(tx.date,tx.label,tx.amount);if(eH.has(h)){sk++;continue;}eH.add(h);ins.push({user_id:uid,account_id:aid,date:tx.date,label:tx.label,amount:tx.amount,category_id:autoClass(tx.label),hash:h});}
+  document.getElementById("importPreview").innerHTML=`<div style="margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--R);padding:20px;box-shadow:var(--shadow-sm)"><div style="font-size:13px;color:var(--muted);margin-bottom:12px"><b style="color:var(--green)">${ins.length}</b> nouvelle(s) · <b style="color:var(--muted)">${sk}</b> doublon(s)</div>${ins.length>0?`<button class="btn primary" onclick="window.confirmImport()">Confirmer l'import</button>`:""}</div>`;
+  window._pendingImport=ins;
 }
-
-async function deleteAccount(id) {
-  if (!confirm("Supprimer ce compte et toutes ses transactions ?")) return;
-  await db.from("bankapp_transactions").delete().eq("account_id", id);
-  await db.from("bankapp_accounts").delete().eq("id", id);
-  await loadAccounts(); await loadTransactions(); renderAll();
-  showToast("Compte supprimé", "error");
-}
-
-function renderColorPicker(containerId, scope) {
-  const selected = selectedColorAccount;
-  document.getElementById(containerId).innerHTML = ACCOUNT_COLORS.map(c =>
-    `<div class="color-dot ${c === selected ? 'selected' : ''}" style="background:${c}" onclick="selectColor('${c}','${containerId}')"></div>`
-  ).join('');
-}
-
-function selectColor(color, containerId) {
-  selectedColorAccount = color;
-  renderColorPicker(containerId, "account");
-}
-
-// ══════════════════════════════════════════════
-// CATEGORIZE TX
-// ══════════════════════════════════════════════
-function openCatModal(txId, label) {
-  catTxId = txId;
-  document.getElementById("catTxLabel").textContent = label;
-  const tx = transactions.find(t => t.id === txId);
-  document.getElementById("catTxSelect").innerHTML =
-    categories.map(c => `<option value="${c.id}" ${c.id === tx?.category_id ? 'selected' : ''}>${c.name}</option>`).join('');
-  document.getElementById("modalCatTx").classList.remove("hidden");
-}
-
-async function saveCatTx() {
-  const catId = document.getElementById("catTxSelect").value;
-  await db.from("bankapp_transactions").update({ category_id: catId }).eq("id", catTxId);
-  const tx = transactions.find(t => t.id === catTxId);
-  if (tx) tx.category_id = catId;
-  renderTransactions(); closeModal("modalCatTx");
-  showToast("Catégorie mise à jour", "success");
-}
-
-// ══════════════════════════════════════════════
-// CSV IMPORT
-// ══════════════════════════════════════════════
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById("dropZone").classList.remove("over");
-  const file = e.dataTransfer.files[0];
-  if (file) parseCSV(file);
-}
-
-function handleFile(e) {
-  const file = e.target.files[0];
-  if (file) parseCSV(file);
-  e.target.value = "";
-}
-
-function parseCSV(file) {
-  const accountId = document.getElementById("importAccount").value;
-  if (!accountId) return showToast("Sélectionnez d'abord un compte", "error");
-  Papa.parse(file, {
-    skipEmptyLines: true,
-    complete: async (results) => {
-      const rows = results.data;
-      const parsed = detectAndParse(rows);
-      if (!parsed.length) return showToast("Format CSV non reconnu", "error");
-      await importTransactions(parsed, accountId);
-    },
-    error: () => showToast("Erreur lecture CSV", "error")
-  });
-}
-
-function detectAndParse(rows) {
-  const out = [];
-  for (const row of rows) {
-    if (!row || !row.length) continue;
-    const r = row.map(c => String(c || "").replace(/^"|"$/g,"").trim());
-    let date = null, label = null, amount = null;
-    const d1 = parseDate(r[0]);
-    if (d1) {
-      date = d1;
-      if (r.length >= 3) {
-        label = r[1] || r[2];
-        for (let i = r.length-1; i >= 2; i--) {
-          const v = parseAmount(r[i]);
-          if (!isNaN(v)) { amount = v; break; }
-        }
-      }
-    }
-    if (date && label && amount !== null && !isNaN(amount)) {
-      out.push({ date, label: label.trim(), amount });
-    }
-  }
-  return out;
-}
-
-function parseDate(s) {
-  s = String(s).trim();
-  const m1 = s.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})$/);
-  if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
-  const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (m2) return s;
-  return null;
-}
-
-function parseAmount(s) {
-  s = String(s).replace(/\s/g,"").replace(",",".").replace(/[€$£]/g,"");
-  return parseFloat(s);
-}
-
-async function importTransactions(parsed, accountId) {
-  const { data: existing } = await db.from("bankapp_transactions").select("hash").eq("account_id", accountId).eq("user_id", currentUserId);
-  const existingHashes = new Set((existing || []).map(r => r.hash));
-  const toInsert = [];
-  let skipped = 0;
-  for (const tx of parsed) {
-    const hash = makeHash(tx.date, tx.label, tx.amount);
-    if (existingHashes.has(hash)) { skipped++; continue; }
-    existingHashes.add(hash);
-    const catId = autoClassify(tx.label);
-    toInsert.push({ user_id: currentUserId, account_id: accountId, date: tx.date, label: tx.label, amount: tx.amount, category_id: catId, hash });
-  }
-  const previewHtml = `
-    <div style="margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm)">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">
-        <b style="color:var(--green)">${toInsert.length}</b> nouvelle(s) transaction(s) à importer ·
-        <b style="color:var(--muted)">${skipped}</b> doublon(s) ignoré(s)
-      </div>
-      ${toInsert.length > 0 ? `<button class="btn primary" onclick="window.confirmImport()">Confirmer l'import</button>` : ""}
-    </div>`;
-  document.getElementById("importPreview").innerHTML = previewHtml;
-  window._pendingImport = toInsert;
-}
-
-// IMPORTANT: expose confirmImport on window for onclick
-window.confirmImport = async function() {
-  const data = window._pendingImport;
-  if (!data?.length) return;
-  const chunks = [];
-  for (let i = 0; i < data.length; i += 100) chunks.push(data.slice(i, i+100));
-  for (const chunk of chunks) await db.from("bankapp_transactions").insert(chunk);
-  await loadTransactions(); renderAll(); populateFilters();
-  document.getElementById("importPreview").innerHTML = "";
-  switchTab("dashboard");
-  showToast(`${data.length} transaction(s) importée(s) ✓`, "success");
+window.confirmImport=async function(){
+  const d=window._pendingImport;if(!d?.length)return;
+  const ch=[];for(let i=0;i<d.length;i+=100)ch.push(d.slice(i,i+100));
+  for(const c of ch)await db.from("bankapp_transactions").insert(c);
+  await loadTransactions();renderAll();document.getElementById("importPreview").innerHTML="";
+  switchTab("dashboard");showToast(`${d.length} transaction(s) importée(s) ✓`,"success");
 };
+function makeHash(d,l,a){return btoa(unescape(encodeURIComponent(`${d}|${l}|${a}`))).slice(0,40);}
+function autoClass(label){const u=label.toUpperCase();for(const c of categories){for(const k of(c.keywords||[])){if(u.includes(k))return c.id;}}return categories.find(c=>c.name==="Autre")?.id||null;}
 
-function makeHash(date, label, amount) {
-  return btoa(unescape(encodeURIComponent(`${date}|${label}|${amount}`))).slice(0, 40);
+// ── UTILS ──
+function fmt(n){return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(parseFloat(n)||0);}
+function monthLabel(m){if(!m)return"";const[y,mo]=m.split("-");const ms=["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];return`${ms[parseInt(mo)-1]} ${y}`;}
+function switchTab(n){
+  const names=["dashboard","transactions","comptes","categories","import"];
+  document.querySelectorAll(".tab").forEach((t,i)=>t.classList.toggle("active",names[i]===n));
+  document.querySelectorAll(".tab-content").forEach(t=>t.classList.remove("active"));
+  document.getElementById(`tab-${n}`).classList.add("active");
+  if(n==="dashboard")renderCharts();
 }
+function closeModal(id){document.getElementById(id).classList.add("hidden");}
+function showToast(msg,type="success"){const t=document.getElementById("toast");t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.classList.remove("show"),3500);}
 
-function autoClassify(label) {
-  const up = label.toUpperCase();
-  for (const cat of categories) {
-    for (const kw of (cat.keywords || [])) {
-      if (up.includes(kw)) return cat.id;
-    }
-  }
-  return categories.find(c => c.name === "Autre")?.id || null;
-}
-
-// ══════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════
-function fmt(n) {
-  const v = parseFloat(n) || 0;
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(v);
-}
-
-function monthLabel(m) {
-  if (!m) return "";
-  const [y, mo] = m.split("-");
-  const months = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
-  return `${months[parseInt(mo)-1]} ${y}`;
-}
-
-function switchTab(name) {
-  document.querySelectorAll(".tab").forEach((t,i) => {
-    const names = ["dashboard","transactions","comptes","import"];
-    t.classList.toggle("active", names[i] === name);
-  });
-  document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-  document.getElementById(`tab-${name}`).classList.add("active");
-  if (name === "dashboard") renderCharts();
-}
-
-function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
-
-function showToast(msg, type = "success") {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove("show"), 3500);
-}
-
-// ══════════════════════════════════════════════
-// BOOT
-// ══════════════════════════════════════════════
-window.addEventListener("DOMContentLoaded", init);
-</script>
-</body>
-</html>
+window.addEventListener("DOMContentLoaded",init);
+</script></body></html>
