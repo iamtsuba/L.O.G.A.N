@@ -622,6 +622,7 @@ function buildInitGS(players){
     partie:1,           // 1..3
     tour:1,             // 1..4 within a partie
     turn_idx:0,         // index in players array
+    finish_order:0,     // how many players have crossed finish this tour 4
     // Each player
     players:order.map((p,i)=>({
       user_id:p.user_id,
@@ -717,30 +718,17 @@ function drawTrack(){
     // Lane bg alternate
     ctx.fillStyle=i%2===0?'#141820':'#111620';
     ctx.fillRect(startX,y,trackW,laneH);
-    // Lane border
+    // Lane border only (no internal vertical markers)
     ctx.strokeStyle='#222a38'; ctx.lineWidth=1;
     ctx.strokeRect(startX,y,trackW,laneH);
-    // Distance markers every 25%
-    [25,50,75].forEach(pct=>{
-      const mx=startX+trackW*pct/100;
-      ctx.fillStyle='rgba(255,255,255,.04)';
-      ctx.fillRect(mx,y,1,laneH);
-    });
-    // Name label
-    ctx.fillStyle='#4a4a6a';
+    // Name label (muted)
+    ctx.fillStyle='#3a3a5a';
     ctx.font='10px "DM Mono",monospace';
     ctx.fillText(p.name,startX+6,y+14);
 
-    // Cards total label
-    const cardSum=p.cards_this_partie.reduce((a,b)=>a+b,0);
-    if(cardSum>0){
-      ctx.fillStyle=CAR[p.car_color];
-      ctx.font='bold 11px "Barlow Condensed"';
-      ctx.fillText(`${cardSum}`,startX+6,y+laneH-6);
-    }
-
-    // Show pending position preview for me
-    const drawPos=(p.user_id===uid&&pendingPos!==null)?pendingPos:p.position;
+    // Car — clamp draw position to track width (finish positions >100 are ordered but drawn at finish)
+    const rawPos=(p.user_id===uid&&pendingPos!==null)?pendingPos:p.position;
+    const drawPos=Math.min(100,rawPos);
     const carX=startX+trackW*drawPos/100;
     const carY=y+laneH/2;
     drawCar(ctx,carX,carY,p.car_color,46,29,p.user_id===uid);
@@ -931,16 +919,17 @@ function posFromX(clientX){
   const canvasX=(clientX-rect.left)*scaleX;
   const {startX,trackW}=getTrackBounds();
   let pct=((canvasX-startX)/trackW)*100;
-  // Can drag forward freely up to finish line
-  pct=Math.max(me.position+0.5, Math.min(100, pct));
+  // Can cross finish (100) only on tour 4, otherwise cap at 99
+  const cap=(GS.tour>=4)?100:99;
+  pct=Math.max(me.position+0.5, Math.min(cap, pct));
   return pct;
 }
 
 function clickTrack(e){
   const me=GS.players.find(p=>p.user_id===uid);
   if(!me||myCard===null)return;
-  // Click = advance by full card value (can reach finish)
-  pendingPos=Math.min(100, me.position + myCard * (100/24));
+  const cap=(GS.tour>=4)?100:99;
+  pendingPos=Math.min(cap, me.position + myCard*(100/24));
   drawTrack();
   updateCardZone();
 }
@@ -994,10 +983,19 @@ window.doConfirmMove=async function(){
   const meIdx=GS.players.findIndex(p=>p.user_id===uid);
   const me=GS.players[meIdx];
 
-  // Use dragged position, fallback to full card advance. No artificial cap — player
-  // can reach the finish line freely. The card value is only used as the fallback.
-  const fallback=Math.min(100, me.position + myCard*(100/24));
-  const finalPos=pendingPos!==null ? Math.min(100, pendingPos) : fallback;
+  // Cap at 99 before tour 4 — can only cross finish on last tour
+  const cap=(GS.tour>=4)?100:99;
+  const fallback=Math.min(cap, me.position + myCard*(100/24));
+  let finalPos=pendingPos!==null ? Math.min(cap, pendingPos) : fallback;
+
+  // Tour 4: if player crosses the finish line (dragged to 100),
+  // assign an ordered finish position: 1st = 100.00, 2nd = 99.99, 3rd = 99.98...
+  // This preserves arrival order while keeping them "at or past" the finish.
+  if(GS.tour>=4 && finalPos>=100){
+    GS.finish_order=(GS.finish_order||0)+1;
+    // 1st finisher = 100, 2nd = 99.99, 3rd = 99.98, etc.
+    finalPos=100 - (GS.finish_order-1)*0.01;
+  }
 
   GS.players[meIdx].position=finalPos;
   GS.players[meIdx].cards_this_partie=[...(me.cards_this_partie||[]),myCard];
@@ -1047,11 +1045,13 @@ window.doConfirmMove=async function(){
 
 /* ══════════════════════════════════════════
    PARTIE SCORE COMPUTATION
-  Rules:
-  - Sort by position (desc) → position ranking
+  Per-player rule:
+  - Sort by position % (desc) → position ranking
   - Sort by sum of cards (desc) → card ranking
-  - If rankings match: every player +3
-  - Else: every player +1
+  - Each player: if their rank in both lists is the SAME → +3, else → +1
+  Example: cards Thomas 14 > Marie 12 > Emma 10
+           piste  Thomas 91% > Emma 87% > Marie 85%
+  → Thomas rank1==rank1 → +3 ; Marie rank2≠rank3 → +1 ; Emma rank3≠rank2 → +1
 ══════════════════════════════════════════ */
 function computePartieScores(gs){
   const byPos=[...gs.players].sort((a,b)=>b.position-a.position);
@@ -1061,13 +1061,26 @@ function computePartieScores(gs){
     return sb-sa;
   });
 
-  let allMatch=byPos.every((p,i)=>p.user_id===byCards[i].user_id);
+  // Build rank maps (0-indexed)
+  const rankPos={}, rankCards={};
+  byPos.forEach((p,i)=>rankPos[p.user_id]=i);
+  byCards.forEach((p,i)=>rankCards[p.user_id]=i);
 
-  gs.players.forEach(p=>{p.total_score+=(allMatch?3:1);});
+  const perPlayer={};
+  gs.players.forEach(p=>{
+    const pts=(rankPos[p.user_id]===rankCards[p.user_id])?3:1;
+    p.total_score+=pts;
+    perPlayer[p.user_id]=pts;
+  });
 
   gs.partie_result={
-    allMatch,
-    byPos:byPos.map(p=>({user_id:p.user_id,name:p.name,color:p.car_color,pos:Math.round(p.position),cards:p.cards_this_partie})),
+    perPlayer,  // {user_id: points_earned}
+    byPos:byPos.map((p,i)=>({
+      user_id:p.user_id,name:p.name,color:p.car_color,
+      pct:Math.round(p.position),   // raw value (may be 100, 99.99…)
+      rank:i+1,                     // 1-based finish rank
+      finished:p.position>=99.98,   // crossed finish line
+    })),
     byCards:byCards.map(p=>({user_id:p.user_id,name:p.name,color:p.car_color,total:p.cards_this_partie.reduce((s,v)=>s+v,0)})),
   };
   return gs;
@@ -1081,42 +1094,57 @@ function showPartieResult(){
   const res=GS.partie_result;
   const partieNum=GS.partie_over?GS.partie:(GS.partie-1);
 
-  document.getElementById('rr-title').textContent=`FIN DE LA PARTIE ${partieNum}`;
+  document.getElementById('rr-title').textContent=`RÉVÉLATION — PARTIE ${partieNum}`;
+
+  // Build rank maps for display
+  const rankPos={}, rankCards={};
+  res.byPos.forEach((p,i)=>rankPos[p.user_id]=i);
+  res.byCards.forEach((p,i)=>rankCards[p.user_id]=i);
 
   let html='';
-  if(res.allMatch){
-    html+=`<div style="color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:10px;">✨ ORDRE PARFAIT — +3 POINTS CHACUN</div>`;
-  } else {
-    html+=`<div style="color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;margin-bottom:10px;">ORDRE NON RESPECTÉ — +1 POINT CHACUN</div>`;
-  }
 
-  // Explanation
-  html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">CLASSEMENT PISTE :</div>`;
+  // Side-by-side: piste ranking vs cartes ranking
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">`;
+
+  html+=`<div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;">🏁 CLASSEMENT PISTE</div>`;
   res.byPos.forEach((p,i)=>{
-    const sum=p.cards.reduce((s,v)=>s+v,0);
-    html+=`<div class="player-row" style="margin-bottom:5px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;width:24px;">${i+1}</div>
-      ${carSVG(p.color,28,18)}
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;flex:1;">${p.name}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">${sum}pts cartes</div>
+    html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;width:18px;color:var(--muted);">${i+1}</div>
+      ${carSVG(p.color,22,14)}
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;flex:1;">${p.name}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:${p.finished?'var(--accent)':'var(--muted)'};">${p.finished?'🏁 '+p.rank+'e arrivée':p.pct+'%'}</div>
     </div>`;
   });
+  html+=`</div>`;
 
-  html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin:10px 0 6px;letter-spacing:1px;">CLASSEMENT CARTES :</div>`;
+  html+=`<div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;">🃏 CLASSEMENT CARTES</div>`;
   res.byCards.forEach((p,i)=>{
-    html+=`<div class="player-row" style="margin-bottom:5px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;width:24px;">${i+1}</div>
-      ${carSVG(p.color,28,18)}
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;flex:1;">${p.name}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">${p.total} pts</div>
+    html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;width:18px;color:var(--muted);">${i+1}</div>
+      ${carSVG(p.color,22,14)}
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;flex:1;">${p.name}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);">${p.total}pts</div>
     </div>`;
   });
+  html+=`</div></div>`;
 
-  // Scores earned THIS partie only — total remains hidden (bluff!)
-  const earned=res.allMatch?3:1;
-  html+=`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">`;
-  html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;">POINTS GAGNÉS CE ROUND : <span style="color:var(--accent);">+${earned} chacun</span></div>`;
-  html+='</div>';
+  // Per-player points earned
+  html+=`<div style="border-top:1px solid var(--border);padding-top:12px;">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">POINTS GAGNÉS :</div>`;
+  // Display in piste order so it's readable
+  res.byPos.forEach(p=>{
+    const pts=res.perPlayer[p.user_id]||1;
+    const match=(rankPos[p.user_id]===rankCards[p.user_id]);
+    html+=`<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">
+      ${carSVG(p.color,24,15)}
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;flex:1;">${p.name}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:13px;color:${match?'var(--accent)':'var(--muted)'};">${match?'✓ BLUFF RÉUSSI':''}</span>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${match?'var(--accent)':'var(--text)'};">+${pts}</span>
+    </div>`;
+  });
+  html+=`</div>`;
 
   document.getElementById('rr-body').innerHTML=html;
   openOv('ov-round');
@@ -1136,7 +1164,7 @@ async function resumeNextPartie(){
   if(room.creator_id!==uid) return;
   // Reset for next partie
   GS.partie++;
-  GS.tour=1;GS.turn_idx=0;
+  GS.tour=1;GS.turn_idx=0;GS.finish_order=0;
   GS.partie_over=false;GS.partie_result=null;GS.game_over=false;
   GS.players.forEach(p=>{p.position=0;p.card_this_turn=null;p.cards_this_partie=[];});
   try{
