@@ -211,7 +211,7 @@ input[type=number].txt-input{margin-bottom:24px;}
     </div>
     <div class="turn-ind" id="turn-ind">EN ATTENTE...</div>
     <div class="ginfo">
-      <div class="ginfo-item"><div class="val" id="g-pts">0</div><div class="lbl">MES PTS</div></div>
+      <div class="ginfo-item"><div class="val" id="g-pts">—</div><div class="lbl">MES CARTES</div></div>
     </div>
   </div>
 
@@ -226,7 +226,7 @@ input[type=number].txt-input{margin-bottom:24px;}
   </div>
 
   <div class="scores-bar">
-    <div class="sbar-lbl">SCORES :</div>
+    <div class="sbar-lbl">JOUEURS :</div>
     <div id="scores-row" style="display:flex;gap:22px;"></div>
   </div>
 </div>
@@ -810,8 +810,13 @@ function rrect(ctx,x,y,w,h,r){
 function updateGameHUD(){
   document.getElementById('g-partie').textContent=`${GS.partie}/3`;
   document.getElementById('g-tour').textContent=`${GS.tour}/4`;
+  // BLUFF — only show cards played this partie by me (not total score)
   const me=GS.players.find(p=>p.user_id===uid);
-  if(me) document.getElementById('g-pts').textContent=me.total_score;
+  if(me){
+    const cards=(me.cards_this_partie||[]);
+    const sum=cards.reduce((a,b)=>a+b,0);
+    document.getElementById('g-pts').textContent=cards.length?`${sum} (${cards.join('+')})`:'—';
+  }
 
   const curP=GS.players[GS.turn_idx];
   const isMyTurn=curP&&curP.user_id===uid;
@@ -826,12 +831,19 @@ function updateGameHUD(){
 }
 
 function updateScoresBar(){
-  document.getElementById('scores-row').innerHTML=GS.players.map(p=>`
-    <div style="display:flex;align-items:center;gap:7px;">
+  // BLUFF — show only name + color. No scores, no card totals visible to others.
+  document.getElementById('scores-row').innerHTML=GS.players.map(p=>{
+    const isMe=p.user_id===uid;
+    const cards=(p.cards_this_partie||[]);
+    const sum=cards.reduce((a,b)=>a+b,0);
+    // Only you can see your own card total — others see nothing
+    const info=isMe&&cards.length?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-left:4px;">${sum}</span>`:'';
+    return `<div style="display:flex;align-items:center;gap:7px;">
       <div style="width:11px;height:11px;border-radius:2px;background:${CAR[p.car_color]}"></div>
-      <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;">${p.name}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">${p.total_score}pts</span>
-    </div>`).join('');
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;">${p.name}${isMe?' (moi)':''}</span>
+      ${info}
+    </div>`;
+  }).join('');
 }
 
 /* ══════════════════════════════════════════
@@ -917,17 +929,18 @@ function posFromX(clientX){
   const rect=canvas.getBoundingClientRect();
   const scaleX=canvas.width/rect.width;
   const canvasX=(clientX-rect.left)*scaleX;
-  const {startX,finX,trackW}=getTrackBounds();
+  const {startX,trackW}=getTrackBounds();
   let pct=((canvasX-startX)/trackW)*100;
-  pct=Math.max(me.position,Math.min(me.position+myCard*(100/24),pct));
+  // Can drag forward freely up to finish line
+  pct=Math.max(me.position+0.5, Math.min(100, pct));
   return pct;
 }
 
 function clickTrack(e){
   const me=GS.players.find(p=>p.user_id===uid);
   if(!me||myCard===null)return;
-  // Advance by card value directly
-  pendingPos=Math.min(100,me.position+myCard*(100/24));
+  // Click = advance by full card value (can reach finish)
+  pendingPos=Math.min(100, me.position + myCard * (100/24));
   drawTrack();
   updateCardZone();
 }
@@ -981,9 +994,10 @@ window.doConfirmMove=async function(){
   const meIdx=GS.players.findIndex(p=>p.user_id===uid);
   const me=GS.players[meIdx];
 
-  // finalPos = advance by card value (drag is only visual sugar — real advance is card-based)
-  const advance=myCard*(100/24);
-  const finalPos=Math.min(100,me.position+advance);
+  // Use dragged position, fallback to full card advance. No artificial cap — player
+  // can reach the finish line freely. The card value is only used as the fallback.
+  const fallback=Math.min(100, me.position + myCard*(100/24));
+  const finalPos=pendingPos!==null ? Math.min(100, pendingPos) : fallback;
 
   GS.players[meIdx].position=finalPos;
   GS.players[meIdx].cards_this_partie=[...(me.cards_this_partie||[]),myCard];
@@ -995,8 +1009,11 @@ window.doConfirmMove=async function(){
 
   if(wrappedAround){
     // Everyone played this tour
-    if(GS.tour>=4){
-      // Partie is done — compute scores
+    // Finish line crossed by any player → end this partie immediately
+    const finishCrossed=GS.players.some(p=>p.position>=100);
+    const lastTour=GS.tour>=4;
+
+    if(finishCrossed||lastTour){
       GS=computePartieScores(GS);
       if(GS.partie>=3){
         GS.game_over=true;
@@ -1095,16 +1112,10 @@ function showPartieResult(){
     </div>`;
   });
 
-  // Score totals
+  // Scores earned THIS partie only — total remains hidden (bluff!)
+  const earned=res.allMatch?3:1;
   html+=`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">`;
-  html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;">TOTAL PARTIES :</div>`;
-  [...GS.players].sort((a,b)=>b.total_score-a.total_score).forEach(p=>{
-    html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-      ${carSVG(p.car_color,24,15)}
-      <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;flex:1;">${p.name}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);">${p.total_score} pts</span>
-    </div>`;
-  });
+  html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;">POINTS GAGNÉS CE ROUND : <span style="color:var(--accent);">+${earned} chacun</span></div>`;
   html+='</div>';
 
   document.getElementById('rr-body').innerHTML=html;
