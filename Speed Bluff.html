@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speed Bluff</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
+:root {
+  --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--border:#2a2a3a;
+  --accent:#e8ff00;--accent2:#ff3c6b;--text:#f0f0f8;--muted:#6a6a8a;
+  --blue:#2a8fff;--red:#ff3c3c;--green:#3cff8f;--yellow:#ffe03c;--orange:#ff8c3c;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow Condensed',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--surface);border-bottom:2px solid var(--border);position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:4px;color:var(--accent);text-shadow:0 0 20px rgba(232,255,0,.35);}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:2px;font-family:'DM Mono',monospace;}
+.logan-btn{width:48px;height:48px;background:var(--surface2);border:2px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:8px;font-weight:500;letter-spacing:.5px;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;transition:all .2s;text-align:center;line-height:1.3;}
+.logan-btn:hover{background:var(--accent);color:var(--bg);border-color:var(--accent);}
+
+/* LAYOUT */
+.main{max-width:1100px;margin:0 auto;padding:24px;}
+.screen{display:none;}.screen.active{display:block;}
+#game-screen{display:none;flex-direction:column;}
+#game-screen.active{display:flex;}
+
+/* PROFILE */
+.profile-card{max-width:480px;margin:50px auto;background:var(--surface);border:2px solid var(--border);padding:40px;}
+.profile-card h2{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:3px;margin-bottom:6px;color:var(--accent);}
+.profile-card p{color:var(--muted);margin-bottom:28px;font-size:15px;}
+.field-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:block;}
+.txt-input{width:100%;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:12px 16px;font-family:'Barlow Condensed',sans-serif;font-size:18px;outline:none;transition:border-color .2s;margin-bottom:24px;}
+.txt-input:focus{border-color:var(--accent);}
+.car-select{display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap;}
+.car-opt{width:54px;height:54px;border:3px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;position:relative;border-radius:4px;}
+.car-opt:hover{border-color:#fff;transform:scale(1.08);}
+.car-opt.sel{border-color:#fff;box-shadow:0 0 16px rgba(255,255,255,.25);}
+.car-opt.sel::after{content:'✓';position:absolute;top:-8px;right:-8px;width:16px;height:16px;background:#fff;color:var(--bg);font-size:9px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+
+/* BUTTONS */
+.btn{background:var(--accent);color:var(--bg);border:none;padding:13px 32px;font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:3px;cursor:pointer;transition:all .2s;width:100%;}
+.btn:hover{background:#fff;transform:translateY(-2px);}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn-sm{width:auto;padding:10px 22px;font-size:18px;}
+.btn-ghost{background:transparent;color:var(--text);border:2px solid var(--border);padding:11px 24px;font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;cursor:pointer;transition:all .2s;}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:var(--accent2);color:#fff;}
+.btn-danger:hover{background:#ff1a50;}
+
+/* LOBBY */
+.lobby-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px;}
+@media(max-width:700px){.lobby-grid{grid-template-columns:1fr;}}
+.panel{background:var(--surface);border:2px solid var(--border);padding:24px;}
+.panel-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--accent);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.pdot{width:7px;height:7px;background:var(--accent);border-radius:50%;}
+.room-item{background:var(--bg);border:1px solid var(--border);padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:border-color .2s;}
+.room-item:hover{border-color:var(--accent);}
+.room-name{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;}
+.room-info{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;}
+.badge{font-family:'DM Mono',monospace;font-size:10px;padding:4px 9px;border:1px solid;letter-spacing:1px;}
+.badge-g{border-color:var(--green);color:var(--green);}
+.badge-y{border-color:var(--yellow);color:var(--yellow);}
+.badge-r{border-color:var(--red);color:var(--red);}
+
+/* WAITING ROOM */
+.player-row{background:var(--bg);border:1px solid var(--border);padding:11px 15px;display:flex;align-items:center;gap:13px;}
+.player-name{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;flex:1;}
+.slot-dots{display:flex;gap:6px;justify-content:center;margin:12px 0;}
+.slot-dot{width:10px;height:10px;border-radius:50%;background:var(--border);}
+.slot-dot.on{background:var(--accent);}
+.sep{height:1px;background:var(--border);margin:18px 0;}
+
+/* GAME */
+.game-hdr{background:var(--surface);border-bottom:2px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;}
+.ginfo{display:flex;gap:20px;align-items:center;}
+.ginfo-item .val{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--accent);line-height:1;}
+.ginfo-item .lbl{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.turn-ind{background:var(--surface2);border:2px solid var(--border);padding:9px 18px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;text-align:center;min-width:200px;}
+.turn-ind.myturn{border-color:var(--accent);color:var(--accent);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,255,0,.4);}50%{box-shadow:0 0 0 8px rgba(232,255,0,0);}}
+.track-wrap{flex:1;position:relative;background:#0d1020;overflow:hidden;min-height:280px;}
+#rc{display:block;width:100%;height:100%;}
+.card-zone{background:var(--surface);border-top:2px solid var(--border);padding:16px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;flex-shrink:0;}
+.cz-label{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:var(--muted);min-width:90px;}
+.cards-row{display:flex;gap:10px;flex:1;flex-wrap:wrap;}
+.gcard{width:58px;height:80px;background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:34px;cursor:pointer;transition:all .2s;user-select:none;}
+.gcard.hot{border-color:var(--accent);color:var(--accent);box-shadow:0 0 18px rgba(232,255,0,.3);}
+.gcard.hot:hover{transform:translateY(-4px) scale(1.06);}
+.gcard.used{opacity:.3;cursor:not-allowed;}
+.gcard.fdown{cursor:default;}
+.gcard.fdown::after{content:'🃏';font-size:26px;}
+.scores-bar{background:var(--surface);border-top:2px solid var(--border);padding:10px 22px;display:flex;gap:28px;align-items:center;overflow-x:auto;flex-shrink:0;}
+.sbar-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;white-space:nowrap;}
+
+/* MODALS */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(4px);}
+.ov.open{display:flex;}
+.modal{background:var(--surface);border:2px solid var(--border);padding:38px;max-width:500px;width:90%;animation:sup .3s ease;}
+@keyframes sup{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal h2{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:var(--accent);margin-bottom:10px;}
+.modal p{color:var(--muted);margin-bottom:22px;line-height:1.6;font-size:15px;}
+.modal-btns{display:flex;gap:12px;}
+input[type=number].txt-input{margin-bottom:24px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surface2);border:2px solid var(--border);padding:13px 22px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;z-index:9999;transition:transform .3s;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:var(--accent);color:var(--accent);}
+.toast.err{border-color:var(--accent2);color:var(--accent2);}
+
+/* RESULTS */
+.res-card{max-width:600px;margin:40px auto;background:var(--surface);border:2px solid var(--border);padding:38px;}
+.res-card h2{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:4px;text-align:center;margin-bottom:6px;}
+.res-sub{font-size:12px;color:var(--muted);letter-spacing:2px;text-align:center;margin-bottom:28px;font-family:'DM Mono',monospace;}
+.podium-row{display:flex;align-items:center;gap:14px;padding:11px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.rank{font-family:'Bebas Neue',sans-serif;font-size:28px;width:36px;text-align:center;}
+.rank.r1{color:#ffd700;}.rank.r2{color:#c0c0c0;}.rank.r3{color:#cd7f32;}
+
+/* MISC */
+.empty{text-align:center;padding:38px;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;}
+.flex-row{display:flex;gap:12px;align-items:center;}
+.flex1{flex:1;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="logo">SPEED BLUFF</div>
+    <div class="logo-sub">RACING CARD GAME</div>
+  </div>
+  <a href="https://iamtsuba.github.io/L.O.G.A.N" class="logan-btn">L.O.G.A.N</a>
+</div>
+
+<div class="main">
+  <!-- PROFILE -->
+  <div id="screen-profile" class="screen active">
+    <div class="profile-card">
+      <h2>MON PROFIL</h2>
+      <p>Configure ton pilote avant de prendre le volant.</p>
+      <label class="field-label">NOM DU PILOTE</label>
+      <input type="text" class="txt-input" id="inp-name" placeholder="Ex: SPEED_RACER" maxlength="16">
+      <label class="field-label">COULEUR DE VOITURE</label>
+      <div class="car-select" id="car-select">
+        <div class="car-opt sel" data-c="blue"   style="background:rgba(42,143,255,.12);border-color:var(--blue);">  <svg width="32" height="21" viewBox="0 0 30 20"><rect x="2" y="7" width="26" height="10" rx="3" fill="#2a8fff"/><rect x="6" y="3" width="15" height="9" rx="2" fill="#2a8fff"/><circle cx="7" cy="18" r="3" fill="#111"/><circle cx="23" cy="18" r="3" fill="#111"/></svg></div>
+        <div class="car-opt"     data-c="red"    style="background:rgba(255,60,60,.12);">  <svg width="32" height="21" viewBox="0 0 30 20"><rect x="2" y="7" width="26" height="10" rx="3" fill="#ff3c3c"/><rect x="6" y="3" width="15" height="9" rx="2" fill="#ff3c3c"/><circle cx="7" cy="18" r="3" fill="#111"/><circle cx="23" cy="18" r="3" fill="#111"/></svg></div>
+        <div class="car-opt"     data-c="green"  style="background:rgba(60,255,143,.12);"> <svg width="32" height="21" viewBox="0 0 30 20"><rect x="2" y="7" width="26" height="10" rx="3" fill="#3cff8f"/><rect x="6" y="3" width="15" height="9" rx="2" fill="#3cff8f"/><circle cx="7" cy="18" r="3" fill="#111"/><circle cx="23" cy="18" r="3" fill="#111"/></svg></div>
+        <div class="car-opt"     data-c="yellow" style="background:rgba(255,224,60,.12);"> <svg width="32" height="21" viewBox="0 0 30 20"><rect x="2" y="7" width="26" height="10" rx="3" fill="#ffe03c"/><rect x="6" y="3" width="15" height="9" rx="2" fill="#ffe03c"/><circle cx="7" cy="18" r="3" fill="#111"/><circle cx="23" cy="18" r="3" fill="#111"/></svg></div>
+        <div class="car-opt"     data-c="orange" style="background:rgba(255,140,60,.12);"> <svg width="32" height="21" viewBox="0 0 30 20"><rect x="2" y="7" width="26" height="10" rx="3" fill="#ff8c3c"/><rect x="6" y="3" width="15" height="9" rx="2" fill="#ff8c3c"/><circle cx="7" cy="18" r="3" fill="#111"/><circle cx="23" cy="18" r="3" fill="#111"/></svg></div>
+      </div>
+      <button class="btn" id="btn-save-profile">ENREGISTRER ET JOUER</button>
+    </div>
+  </div>
+
+  <!-- LOBBY -->
+  <div id="screen-lobby" class="screen">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;">LOBBY</div>
+        <div id="lobby-info" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:1px;"></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-ghost" id="btn-edit-profile">✏ PROFIL</button>
+        <button class="btn btn-sm" id="btn-open-create">+ CRÉER</button>
+      </div>
+    </div>
+    <div class="lobby-grid">
+      <div class="panel">
+        <div class="panel-title"><div class="pdot"></div> PARTIES DISPONIBLES</div>
+        <div id="rooms-list"><div class="empty">Aucune partie.<br>Crée la première !</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><div class="pdot"></div> CLASSEMENT</div>
+        <div id="lb-list"><div class="empty">Pas encore de données.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WAITING ROOM -->
+  <div id="screen-waiting" class="screen">
+    <div class="panel" style="max-width:580px;margin:38px auto;">
+      <div class="panel-title"><div class="pdot"></div> SALLE D'ATTENTE</div>
+      <div id="wr-name" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;margin-bottom:4px;"></div>
+      <div id="wr-info" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;"></div>
+      <div class="slot-dots" id="wr-slots"></div>
+      <div id="wr-players" style="display:flex;flex-direction:column;gap:9px;margin-top:8px;"></div>
+      <div class="sep"></div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-ghost flex1" id="btn-leave">QUITTER</button>
+        <button class="btn flex1" id="btn-start" style="display:none;">🏁 LANCER</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="screen-results" class="screen">
+    <div class="res-card" id="results-content"></div>
+  </div>
+</div>
+
+<!-- GAME (full-width flex) -->
+<div id="game-screen" class="screen">
+  <div class="game-hdr">
+    <div class="ginfo">
+      <div class="ginfo-item"><div class="val" id="g-partie">1/3</div><div class="lbl">PARTIE</div></div>
+      <div class="ginfo-item"><div class="val" id="g-tour">1/4</div><div class="lbl">TOUR</div></div>
+    </div>
+    <div class="turn-ind" id="turn-ind">EN ATTENTE...</div>
+    <div class="ginfo">
+      <div class="ginfo-item"><div class="val" id="g-pts">0</div><div class="lbl">MES PTS</div></div>
+    </div>
+  </div>
+
+  <div class="track-wrap" id="track-wrap">
+    <canvas id="rc"></canvas>
+  </div>
+
+  <div class="card-zone">
+    <div class="cz-label" id="cz-label">CARTE</div>
+    <div class="cards-row" id="cards-row"></div>
+    <div id="card-action"></div>
+  </div>
+
+  <div class="scores-bar">
+    <div class="sbar-lbl">SCORES :</div>
+    <div id="scores-row" style="display:flex;gap:22px;"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="ov" id="ov-welcome">
+  <div class="modal">
+    <h2>BIENVENUE !</h2>
+    <p>Premier lancement de Speed Bluff. Configure ton pilote, puis crée ou rejoins une partie !</p>
+    <div class="modal-btns"><button class="btn" id="btn-welcome-ok">C'EST PARTI !</button></div>
+  </div>
+</div>
+
+<div class="ov" id="ov-create">
+  <div class="modal">
+    <h2>CRÉER UNE PARTIE</h2>
+    <p>Choisis un nom et le nombre max de joueurs (2–5).</p>
+    <label class="field-label">NOM DE LA PARTIE</label>
+    <input type="text" class="txt-input" id="inp-room-name" placeholder="GRAND PRIX DU LAC" maxlength="24">
+    <label class="field-label">JOUEURS MAX</label>
+    <input type="number" class="txt-input" id="inp-max-players" min="2" max="5" value="4">
+    <div class="modal-btns">
+      <button class="btn-ghost flex1" id="btn-cancel-create">ANNULER</button>
+      <button class="btn flex1 btn-sm" id="btn-confirm-create">CRÉER</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ov-round">
+  <div class="modal">
+    <h2 id="rr-title">RÉSULTAT</h2>
+    <div id="rr-body" style="margin-bottom:20px;"></div>
+    <div class="modal-btns"><button class="btn" id="btn-rr-next">SUIVANT →</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   SUPABASE
+══════════════════════════════════════════ */
+const SB_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
+const APP_FILE = 'Speed Bluff.html';
+
+const sb = {
+  h: {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+  async q(path,method='GET',body=null){
+    const o={method,headers:{...sb.h}};
+    if(method==='POST') o.headers['Prefer']='return=representation';
+    if(body) o.body=JSON.stringify(body);
+    const r=await fetch(SB_URL+path,o);
+    const t=await r.text();
+    if(!r.ok) throw new Error(t);
+    return t?JSON.parse(t):null;
+  },
+  get:(p)=>sb.q(p),
+  post:(p,b)=>sb.q(p,'POST',b),
+  patch:(p,b)=>sb.q(p,'PATCH',b),
+  del:(p)=>sb.q(p,'DELETE'),
+};
+
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let uid = window.LOGAN_USER_ID||null;
+let myProfile = null;   // {user_id,name,car_color,total_score,games_played}
+let room = null;        // current room object (players already parsed)
+let GS = null;          // game state object
+let poll = null;        // setInterval handle
+let myCard = null;      // drawn card value this turn
+let pendingPos = null;  // dragged position (0–100)
+let isDragging = false;
+let canvas, ctx;
+
+const CAR = {blue:'#2a8fff',red:'#ff3c3c',green:'#3cff8f',yellow:'#ffe03c',orange:'#ff8c3c'};
+
+/* ══════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════ */
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+function openOv(id){document.getElementById(id).classList.add('open');}
+function closeOv(id){document.getElementById(id).classList.remove('open');}
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function stopPoll(){if(poll){clearInterval(poll);poll=null;}}
+
+function parsePlayers(r){
+  if(!r) return [];
+  if(typeof r==='string') return JSON.parse(r);
+  if(Array.isArray(r)) return r;
+  return [];
+}
+function parseGS(r){
+  if(!r) return null;
+  if(typeof r==='string') return JSON.parse(r);
+  return r;
+}
+
+function carSVG(color,w=36,h=24){
+  const c=CAR[color]||'#fff';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="7" width="26" height="10" rx="3" fill="${c}"/>
+    <rect x="6" y="3" width="15" height="9" rx="2" fill="${c}" opacity=".85"/>
+    <rect x="8" y="4" width="11" height="6" rx="1" fill="rgba(255,255,255,.15)"/>
+    <circle cx="7" cy="18" r="3" fill="#141414"/>
+    <circle cx="23" cy="18" r="3" fill="#141414"/>
+    <rect x="27" y="9" width="3" height="3" rx="1" fill="${c}" opacity=".6"/>
+  </svg>`;
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+async function init(){
+  // Resolve user id
+  if(!uid){
+    try{
+      const rows=await sb.get(`/rest/v1/user_apps?app_ids=cs.{${encodeURIComponent(APP_FILE)}}&select=user_id&limit=1`);
+      if(rows&&rows.length) uid=rows[0].user_id;
+    }catch(e){}
+  }
+  if(!uid) uid='sb_anon_'+Math.random().toString(36).slice(2,10);
+
+  // Load profile
+  try{
+    const rows=await sb.get(`/rest/v1/speedbluff_profiles?user_id=eq.${uid}&select=*&limit=1`);
+    if(rows&&rows.length){
+      myProfile=rows[0];
+      show('screen-lobby');
+      updateLobbyInfo();
+      startLobbyPoll();
+    } else {
+      openOv('ov-welcome');
+      show('screen-profile');
+    }
+  }catch(e){show('screen-profile');}
+}
+
+/* ══════════════════════════════════════════
+   PROFILE
+══════════════════════════════════════════ */
+let selColor='blue';
+document.querySelectorAll('.car-opt').forEach(o=>{
+  o.addEventListener('click',()=>{
+    document.querySelectorAll('.car-opt').forEach(x=>x.classList.remove('sel'));
+    o.classList.add('sel'); selColor=o.dataset.c;
+  });
+});
+document.getElementById('btn-welcome-ok').onclick=()=>closeOv('ov-welcome');
+document.getElementById('btn-save-profile').onclick=async()=>{
+  const name=document.getElementById('inp-name').value.trim().toUpperCase();
+  if(!name){toast('Entre un nom de pilote !','err');return;}
+  try{
+    const ex=await sb.get(`/rest/v1/speedbluff_profiles?user_id=eq.${uid}&select=id&limit=1`);
+    const data={user_id:uid,name,car_color:selColor,total_score:0,games_played:0};
+    if(ex&&ex.length) await sb.patch(`/rest/v1/speedbluff_profiles?user_id=eq.${uid}`,{name,car_color:selColor});
+    else await sb.post('/rest/v1/speedbluff_profiles',data);
+    myProfile={...data,name,car_color:selColor};
+    toast('Profil enregistré !','ok');
+    closeOv('ov-welcome');
+    show('screen-lobby');
+    updateLobbyInfo();
+    startLobbyPoll();
+  }catch(e){toast('Erreur : '+e.message,'err');}
+};
+document.getElementById('btn-edit-profile').onclick=()=>{
+  stopPoll();
+  if(myProfile){
+    document.getElementById('inp-name').value=myProfile.name;
+    const o=document.querySelector(`.car-opt[data-c="${myProfile.car_color}"]`);
+    if(o){document.querySelectorAll('.car-opt').forEach(x=>x.classList.remove('sel'));o.classList.add('sel');}
+    selColor=myProfile.car_color;
+  }
+  show('screen-profile');
+};
+
+/* ══════════════════════════════════════════
+   LOBBY
+══════════════════════════════════════════ */
+function updateLobbyInfo(){
+  if(!myProfile)return;
+  document.getElementById('lobby-info').textContent=
+    `🏎 ${myProfile.name}  ·  ${myProfile.car_color.toUpperCase()}  ·  ${myProfile.total_score||0} PTS`;
+}
+
+async function loadRooms(){
+  try{
+    const rooms=await sb.get('/rest/v1/speedbluff_rooms?status=in.(waiting,playing)&select=*&order=created_at.desc&limit=20');
+    const el=document.getElementById('rooms-list');
+    if(!rooms||!rooms.length){el.innerHTML='<div class="empty">Aucune partie.<br>Crée la première !</div>';return;}
+    el.innerHTML=rooms.map(r=>{
+      const pl=parsePlayers(r.players);
+      const cnt=pl.length;
+      const playing=r.status==='playing';
+      const full=cnt>=r.max_players;
+      const canJoin=!playing&&!full;
+      const badge=playing?`<span class="badge badge-r">EN JEU</span>`:full?`<span class="badge badge-y">PLEINE</span>`:`<span class="badge badge-g">${cnt}/${r.max_players}</span>`;
+      return `<div class="room-item" onclick="joinRoom('${r.id}')" style="${canJoin?'':'cursor:default;opacity:.5'}">
+        <div><div class="room-name">${r.name}</div><div class="room-info">${r.creator_name} · ${cnt}/${r.max_players}</div></div>
+        ${badge}
+      </div>`;
+    }).join('');
+  }catch(e){}
+}
+
+async function loadLeaderboard(){
+  try{
+    const rows=await sb.get('/rest/v1/speedbluff_profiles?select=name,car_color,total_score,games_played&order=total_score.desc&limit=10');
+    const el=document.getElementById('lb-list');
+    if(!rows||!rows.length){el.innerHTML='<div class="empty">Pas encore de données.</div>';return;}
+    el.innerHTML=rows.map((r,i)=>`
+      <div class="player-row">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;width:24px;color:${i===0?'#ffd700':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--muted)'}">${i+1}</div>
+        ${carSVG(r.car_color,28,18)}
+        <div class="player-name">${r.name}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${r.total_score||0}</div>
+      </div>`).join('');
+  }catch(e){}
+}
+
+function startLobbyPoll(){
+  stopPoll();loadRooms();loadLeaderboard();
+  poll=setInterval(()=>{loadRooms();loadLeaderboard();},4000);
+}
+
+/* ══════════════════════════════════════════
+   CREATE ROOM
+══════════════════════════════════════════ */
+document.getElementById('btn-open-create').onclick=()=>openOv('ov-create');
+document.getElementById('btn-cancel-create').onclick=()=>closeOv('ov-create');
+document.getElementById('btn-confirm-create').onclick=async()=>{
+  const name=document.getElementById('inp-room-name').value.trim().toUpperCase();
+  const maxP=parseInt(document.getElementById('inp-max-players').value)||4;
+  if(!name){toast('Donne un nom à la partie !','err');return;}
+  const me={user_id:uid,name:myProfile.name,car_color:myProfile.car_color};
+  try{
+    const res=await sb.post('/rest/v1/speedbluff_rooms',{
+      name,max_players:Math.max(2,Math.min(5,maxP)),
+      status:'waiting',creator_id:uid,creator_name:myProfile.name,
+      players:JSON.stringify([me]),game_state:null
+    });
+    room=Array.isArray(res)?res[0]:res;
+    room.players=[me];
+    closeOv('ov-create');
+    stopPoll();
+    enterWaiting();
+  }catch(e){toast('Erreur : '+e.message,'err');}
+};
+
+/* ══════════════════════════════════════════
+   JOIN ROOM
+══════════════════════════════════════════ */
+window.joinRoom=async function(roomId){
+  try{
+    const rows=await sb.get(`/rest/v1/speedbluff_rooms?id=eq.${roomId}&select=*&limit=1`);
+    if(!rows||!rows.length){toast('Partie introuvable','err');return;}
+    const r=rows[0];
+    let pl=parsePlayers(r.players);
+
+    // Already in room → just enter waiting
+    if(pl.find(p=>p.user_id===uid)){
+      room={...r,players:pl};
+      stopPoll();
+      // If game already started, jump straight into game
+      if(r.status==='playing'&&r.game_state){
+        GS=parseGS(r.game_state);
+        enterGame();
+      } else {
+        enterWaiting();
+      }
+      return;
+    }
+    if(r.status!=='waiting'||pl.length>=r.max_players){toast('Partie indisponible','err');return;}
+    pl.push({user_id:uid,name:myProfile.name,car_color:myProfile.car_color});
+    await sb.patch(`/rest/v1/speedbluff_rooms?id=eq.${roomId}`,{players:JSON.stringify(pl)});
+    room={...r,players:pl};
+    stopPoll();
+    enterWaiting();
+  }catch(e){toast('Erreur : '+e.message,'err');}
+};
+
+/* ══════════════════════════════════════════
+   WAITING ROOM
+══════════════════════════════════════════ */
+function enterWaiting(){
+  show('screen-waiting');
+  renderWaiting();
+  poll=setInterval(pollWaiting,3000);
+}
+
+function renderWaiting(){
+  if(!room)return;
+  const pl=room.players;
+  document.getElementById('wr-name').textContent=room.name;
+  document.getElementById('wr-info').textContent=
+    `${pl.length}/${room.max_players} joueurs  ·  Créateur : ${room.creator_name}`;
+
+  // Slots dots
+  const slots=document.getElementById('wr-slots');
+  slots.innerHTML='';
+  for(let i=0;i<room.max_players;i++){
+    const d=document.createElement('div');
+    d.className='slot-dot'+(i<pl.length?' on':'');
+    slots.appendChild(d);
+  }
+
+  // Players list
+  document.getElementById('wr-players').innerHTML=pl.map(p=>`
+    <div class="player-row">
+      ${carSVG(p.car_color,34,22)}
+      <div class="player-name">${p.name}</div>
+      ${p.user_id===room.creator_id?'<span style="font-size:16px;">👑</span>':''}
+      ${p.user_id===uid?'<span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--muted);">(MOI)</span>':''}
+    </div>`).join('');
+
+  // Start button
+  const btn=document.getElementById('btn-start');
+  if(room.creator_id===uid){
+    btn.style.display='block';
+    btn.disabled=pl.length<2;
+    btn.textContent=pl.length<2?`⏳ EN ATTENTE (${pl.length}/${room.max_players})`:'🏁 LANCER LA COURSE';
+  } else {
+    btn.style.display='none';
+  }
+}
+
+async function pollWaiting(){
+  try{
+    const rows=await sb.get(`/rest/v1/speedbluff_rooms?id=eq.${room.id}&select=*&limit=1`);
+    if(!rows||!rows.length)return;
+    room={...rows[0],players:parsePlayers(rows[0].players)};
+    renderWaiting();
+    if(room.status==='playing'&&room.game_state){
+      GS=parseGS(room.game_state);
+      stopPoll();
+      enterGame();
+    }
+  }catch(e){}
+}
+
+document.getElementById('btn-leave').onclick=async()=>{
+  stopPoll();
+  try{
+    const rows=await sb.get(`/rest/v1/speedbluff_rooms?id=eq.${room.id}&select=*&limit=1`);
+    if(rows&&rows.length){
+      let pl=parsePlayers(rows[0].players).filter(p=>p.user_id!==uid);
+      if(pl.length===0||rows[0].creator_id===uid){
+        await sb.del(`/rest/v1/speedbluff_rooms?id=eq.${room.id}`);
+      } else {
+        await sb.patch(`/rest/v1/speedbluff_rooms?id=eq.${room.id}`,{players:JSON.stringify(pl)});
+      }
+    }
+  }catch(e){}
+  room=null;show('screen-lobby');startLobbyPoll();
+};
+
+document.getElementById('btn-start').onclick=async()=>{
+  const pl=room.players;
+  const gs=buildInitGS(pl);
+  try{
+    await sb.patch(`/rest/v1/speedbluff_rooms?id=eq.${room.id}`,{
+      status:'playing',game_state:JSON.stringify(gs)
+    });
+    GS=gs;
+    stopPoll();
+    enterGame();
+  }catch(e){toast('Erreur lancement : '+e.message,'err');}
+};
+
+/* ══════════════════════════════════════════
+   GAME STATE BUILDER
+══════════════════════════════════════════ */
+function buildInitGS(players){
+  // Shuffle for play order
+  const order=[...players].sort(()=>Math.random()-.5);
+  return {
+    partie:1,           // 1..3
+    tour:1,             // 1..4 within a partie
+    turn_idx:0,         // index in players array
+    // Each player
+    players:order.map((p,i)=>({
+      user_id:p.user_id,
+      name:p.name,
+      car_color:p.car_color,
+      position:0,           // 0..100 on track
+      card_this_turn:null,  // null | number (drawn card, not yet placed)
+      cards_this_partie:[],  // [n,n,n,n] — one per tour
+      total_score:0,        // cumulative across parties
+      order_idx:i,
+    })),
+    // Flow flags
+    waiting_for_placement:false, // a player drew a card and must place
+    partie_result:null,          // filled after partie ends
+    game_over:false,
+    partie_over:false,
+  };
+}
+
+/* ══════════════════════════════════════════
+   ENTER GAME
+══════════════════════════════════════════ */
+function enterGame(){
+  myCard=null; pendingPos=null;
+  show('game-screen');
+  canvas=document.getElementById('rc');
+  ctx=canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize',resizeCanvas);
+  renderAll();
+  poll=setInterval(pollGame,2500);
+}
+
+function resizeCanvas(){
+  const wrap=document.getElementById('track-wrap');
+  canvas.width=wrap.clientWidth;
+  canvas.height=wrap.clientHeight;
+  if(GS) drawTrack();
+}
+
+/* ══════════════════════════════════════════
+   POLL GAME
+══════════════════════════════════════════ */
+async function pollGame(){
+  try{
+    const rows=await sb.get(`/rest/v1/speedbluff_rooms?id=eq.${room.id}&select=game_state,status&limit=1`);
+    if(!rows||!rows.length)return;
+    const fresh=parseGS(rows[0].game_state);
+    if(!fresh)return;
+    // Don't overwrite if it's currently our turn and we're mid-action
+    const currentP=fresh.players[fresh.turn_idx];
+    const isMyTurnFresh=currentP&&currentP.user_id===uid;
+    if(isMyTurnFresh&&myCard!==null) return; // don't clobber our local drawn card
+    GS=fresh;
+    renderAll();
+    if(GS.game_over){stopPoll();setTimeout(showFinalResults,1200);}
+    else if(GS.partie_over){stopPoll();setTimeout(()=>showPartieResult(),900);}
+  }catch(e){}
+}
+
+/* ══════════════════════════════════════════
+   RENDER ALL
+══════════════════════════════════════════ */
+function renderAll(){
+  if(!GS)return;
+  drawTrack();
+  updateGameHUD();
+  updateCardZone();
+  updateScoresBar();
+}
+
+/* ══════════════════════════════════════════
+   DRAW TRACK
+══════════════════════════════════════════ */
+function drawTrack(){
+  if(!canvas||!ctx||!GS)return;
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const N=GS.players.length;
+  const PADX=64, PADY=10;
+  const trackW=W-PADX*2;
+  const trackH=H-PADY*2;
+  const laneH=Math.floor(trackH/N);
+  const finX=W-PADX, startX=PADX;
+
+  // Track base
+  ctx.fillStyle='#10141e';
+  ctx.fillRect(startX,PADY,trackW,laneH*N);
+
+  GS.players.forEach((p,i)=>{
+    const y=PADY+i*laneH;
+    // Lane bg alternate
+    ctx.fillStyle=i%2===0?'#141820':'#111620';
+    ctx.fillRect(startX,y,trackW,laneH);
+    // Lane border
+    ctx.strokeStyle='#222a38'; ctx.lineWidth=1;
+    ctx.strokeRect(startX,y,trackW,laneH);
+    // Distance markers every 25%
+    [25,50,75].forEach(pct=>{
+      const mx=startX+trackW*pct/100;
+      ctx.fillStyle='rgba(255,255,255,.04)';
+      ctx.fillRect(mx,y,1,laneH);
+    });
+    // Name label
+    ctx.fillStyle='#4a4a6a';
+    ctx.font='10px "DM Mono",monospace';
+    ctx.fillText(p.name,startX+6,y+14);
+
+    // Cards total label
+    const cardSum=p.cards_this_partie.reduce((a,b)=>a+b,0);
+    if(cardSum>0){
+      ctx.fillStyle=CAR[p.car_color];
+      ctx.font='bold 11px "Barlow Condensed"';
+      ctx.fillText(`${cardSum}`,startX+6,y+laneH-6);
+    }
+
+    // Show pending position preview for me
+    const drawPos=(p.user_id===uid&&pendingPos!==null)?pendingPos:p.position;
+    const carX=startX+trackW*drawPos/100;
+    const carY=y+laneH/2;
+    drawCar(ctx,carX,carY,p.car_color,46,29,p.user_id===uid);
+  });
+
+  // START checker
+  drawChecker(ctx,startX-18,PADY-2,18,laneH*N+4,'#2e3e2e','#141e14');
+  ctx.fillStyle='#3cff8f';
+  ctx.font='bold 9px "DM Mono"';
+  rotText(ctx,'START',startX-9,PADY+laneH*N/2);
+
+  // FINISH checker
+  drawChecker(ctx,finX,PADY-2,18,laneH*N+4,'#fff','#000');
+  ctx.fillStyle='#e8ff00';
+  ctx.font='bold 9px "DM Mono"';
+  rotText(ctx,'FINISH',finX+9,PADY+laneH*N/2);
+}
+
+function drawChecker(ctx,x,y,w,h,c1,c2){
+  const s=9;
+  for(let r=0;r*s<h;r++) for(let c=0;c*s<w;c++){
+    ctx.fillStyle=(r+c)%2===0?c1:c2;
+    ctx.fillRect(x+c*s,y+r*s,s,s);
+  }
+}
+
+function rotText(ctx,txt,cx,cy){
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(-Math.PI/2);
+  ctx.fillText(txt,-ctx.measureText(txt).width/2,4);ctx.restore();
+}
+
+function drawCar(ctx,x,y,color,w,h,isMe){
+  const c=CAR[color]||'#fff';
+  ctx.save();ctx.translate(x,y);
+  if(isMe){ctx.shadowColor=c;ctx.shadowBlur=14;}
+  // Body
+  ctx.fillStyle=c;
+  rrect(ctx,-w/2,-h/2+5,w,h-5,4);ctx.fill();
+  // Roof
+  ctx.globalAlpha=.88;
+  rrect(ctx,-w/2+9,-h/2,w*.54,h/2+2,3);ctx.fill();
+  ctx.globalAlpha=1;
+  // Windshield
+  ctx.fillStyle='rgba(255,255,255,.17)';
+  rrect(ctx,-w/2+11,-h/2+1,w*.38,h/2,2);ctx.fill();
+  // Wheels
+  ctx.shadowBlur=0;ctx.fillStyle='#151515';
+  [[-w/2+11,h/2+1],[w/2-11,h/2+1],[-w/2+11,-h/2-1],[w/2-11,-h/2-1]].forEach(([wx,wy])=>{
+    ctx.beginPath();ctx.arc(wx,wy,4.5,0,Math.PI*2);ctx.fill();
+  });
+  // Me marker
+  if(isMe){ctx.fillStyle='#e8ff00';ctx.font='bold 9px sans-serif';ctx.fillText('▲',-4,-h/2-5);}
+  ctx.restore();
+}
+
+function rrect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+/* ══════════════════════════════════════════
+   HUD
+══════════════════════════════════════════ */
+function updateGameHUD(){
+  document.getElementById('g-partie').textContent=`${GS.partie}/3`;
+  document.getElementById('g-tour').textContent=`${GS.tour}/4`;
+  const me=GS.players.find(p=>p.user_id===uid);
+  if(me) document.getElementById('g-pts').textContent=me.total_score;
+
+  const curP=GS.players[GS.turn_idx];
+  const isMyTurn=curP&&curP.user_id===uid;
+  const ti=document.getElementById('turn-ind');
+  if(GS.game_over||GS.partie_over){
+    ti.textContent='FIN...';ti.className='turn-ind';
+  } else if(isMyTurn){
+    ti.textContent='🏎 TON TOUR !';ti.className='turn-ind myturn';
+  } else {
+    ti.textContent=curP?`TOUR DE ${curP.name}`:'EN ATTENTE...';ti.className='turn-ind';
+  }
+}
+
+function updateScoresBar(){
+  document.getElementById('scores-row').innerHTML=GS.players.map(p=>`
+    <div style="display:flex;align-items:center;gap:7px;">
+      <div style="width:11px;height:11px;border-radius:2px;background:${CAR[p.car_color]}"></div>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;">${p.name}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">${p.total_score}pts</span>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════
+   CARD ZONE
+══════════════════════════════════════════ */
+function updateCardZone(){
+  const curP=GS.players[GS.turn_idx];
+  const isMyTurn=curP&&curP.user_id===uid;
+  const over=GS.game_over||GS.partie_over;
+  const czLabel=document.getElementById('cz-label');
+  const cardsRow=document.getElementById('cards-row');
+  const action=document.getElementById('card-action');
+
+  if(over){czLabel.textContent='';cardsRow.innerHTML='';action.innerHTML='';return;}
+
+  if(isMyTurn&&myCard===null){
+    // Phase 1: draw card
+    czLabel.textContent='MON TOUR';
+    cardsRow.innerHTML='';
+    action.innerHTML=`<button class="btn btn-sm" onclick="doDrawCard()">🎲 PIOCHER</button>`;
+  } else if(isMyTurn&&myCard!==null&&pendingPos===null){
+    // Phase 2: drag car to place
+    czLabel.textContent='PLACER';
+    cardsRow.innerHTML=`<div class="gcard hot" style="pointer-events:none;">${myCard}</div>`;
+    action.innerHTML=`<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);line-height:1.5;">
+      Glisse ta voiture sur la piste<br>ou clique pour avancer.</div>`;
+    enableTrackDrag();
+  } else if(isMyTurn&&myCard!==null&&pendingPos!==null){
+    // Phase 3: confirm
+    czLabel.textContent='CONFIRMER';
+    cardsRow.innerHTML=`<div class="gcard hot">${myCard}</div>`;
+    action.innerHTML=`<button class="btn btn-sm" onclick="doConfirmMove()">✓ VALIDER</button>`;
+  } else {
+    // Not my turn — show other players' status
+    czLabel.textContent='EN ATTENTE';
+    const others=GS.players.filter(p=>p.user_id!==uid);
+    cardsRow.innerHTML=others.map(p=>`
+      <div style="text-align:center;">
+        <div class="gcard fdown"></div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono';margin-top:4px;">${p.name}</div>
+      </div>`).join('');
+    action.innerHTML='';
+    disableTrackDrag();
+  }
+}
+
+/* ══════════════════════════════════════════
+   CARD DRAW
+══════════════════════════════════════════ */
+window.doDrawCard=function(){
+  myCard=Math.floor(Math.random()*6)+1;
+  pendingPos=null;
+  updateCardZone();
+  toast(`Carte ${myCard} piochée ! Place ta voiture.`,'ok');
+};
+
+/* ══════════════════════════════════════════
+   DRAG & DROP ON CANVAS
+══════════════════════════════════════════ */
+function enableTrackDrag(){
+  canvas.style.cursor='grab';
+  canvas.onmousedown=startDrag;
+  canvas.ontouchstart=startDragTouch;
+  canvas.onclick=clickTrack;
+}
+function disableTrackDrag(){
+  canvas.style.cursor='default';
+  canvas.onmousedown=null;canvas.onmousemove=null;canvas.onmouseup=null;
+  canvas.ontouchstart=null;canvas.ontouchmove=null;canvas.ontouchend=null;
+  canvas.onclick=null;
+}
+
+function getTrackBounds(){
+  const N=GS.players.length;
+  const W=canvas.width,H=canvas.height;
+  const PADX=64;
+  return {startX:PADX,finX:W-PADX,trackW:W-PADX*2};
+}
+
+function posFromX(clientX){
+  const me=GS.players.find(p=>p.user_id===uid);
+  if(!me)return null;
+  const rect=canvas.getBoundingClientRect();
+  const scaleX=canvas.width/rect.width;
+  const canvasX=(clientX-rect.left)*scaleX;
+  const {startX,finX,trackW}=getTrackBounds();
+  let pct=((canvasX-startX)/trackW)*100;
+  pct=Math.max(me.position,Math.min(me.position+myCard*(100/24),pct));
+  return pct;
+}
+
+function clickTrack(e){
+  const me=GS.players.find(p=>p.user_id===uid);
+  if(!me||myCard===null)return;
+  // Advance by card value directly
+  pendingPos=Math.min(100,me.position+myCard*(100/24));
+  drawTrack();
+  updateCardZone();
+}
+
+function startDrag(e){
+  isDragging=true;
+  canvas.style.cursor='grabbing';
+  canvas.onmousemove=onDrag;
+  canvas.onmouseup=endDrag;
+  onDrag(e);
+}
+function onDrag(e){
+  if(!isDragging)return;
+  const p=posFromX(e.clientX);
+  if(p===null)return;
+  pendingPos=p;
+  drawTrack();
+}
+function endDrag(e){
+  isDragging=false;
+  canvas.style.cursor='grab';
+  canvas.onmousemove=null;canvas.onmouseup=null;
+  if(pendingPos!==null) updateCardZone();
+}
+function startDragTouch(e){
+  const t=e.touches[0];
+  isDragging=true;
+  canvas.ontouchmove=onDragTouch;canvas.ontouchend=endDragTouch;
+  const p=posFromX(t.clientX);
+  if(p!==null){pendingPos=p;drawTrack();}
+}
+function onDragTouch(e){
+  const t=e.touches[0];
+  const p=posFromX(t.clientX);
+  if(p===null)return;
+  pendingPos=p;drawTrack();
+}
+function endDragTouch(){
+  isDragging=false;
+  canvas.ontouchmove=null;canvas.ontouchend=null;
+  if(pendingPos!==null) updateCardZone();
+}
+
+/* ══════════════════════════════════════════
+   CONFIRM MOVE
+══════════════════════════════════════════ */
+window.doConfirmMove=async function(){
+  if(myCard===null)return;
+  disableTrackDrag();
+
+  const meIdx=GS.players.findIndex(p=>p.user_id===uid);
+  const me=GS.players[meIdx];
+
+  // finalPos = advance by card value (drag is only visual sugar — real advance is card-based)
+  const advance=myCard*(100/24);
+  const finalPos=Math.min(100,me.position+advance);
+
+  GS.players[meIdx].position=finalPos;
+  GS.players[meIdx].cards_this_partie=[...(me.cards_this_partie||[]),myCard];
+  GS.players[meIdx].card_this_turn=null;
+
+  // Advance turn
+  const nextTurnIdx=(GS.turn_idx+1)%GS.players.length;
+  const wrappedAround=nextTurnIdx===0;
+
+  if(wrappedAround){
+    // Everyone played this tour
+    if(GS.tour>=4){
+      // Partie is done — compute scores
+      GS=computePartieScores(GS);
+      if(GS.partie>=3){
+        GS.game_over=true;
+      } else {
+        GS.partie_over=true;
+      }
+      GS.turn_idx=0;
+    } else {
+      GS.tour++;
+      GS.turn_idx=0;
+    }
+  } else {
+    GS.turn_idx=nextTurnIdx;
+  }
+
+  myCard=null; pendingPos=null;
+
+  try{
+    await sb.patch(`/rest/v1/speedbluff_rooms?id=eq.${room.id}`,{game_state:JSON.stringify(GS)});
+  }catch(e){toast('Erreur sauvegarde','err');}
+
+  renderAll();
+
+  if(GS.game_over){stopPoll();setTimeout(showFinalResults,1200);}
+  else if(GS.partie_over){stopPoll();setTimeout(()=>showPartieResult(),900);}
+  else{
+    stopPoll();
+    poll=setInterval(pollGame,2500);
+  }
+};
+
+/* ══════════════════════════════════════════
+   PARTIE SCORE COMPUTATION
+  Rules:
+  - Sort by position (desc) → position ranking
+  - Sort by sum of cards (desc) → card ranking
+  - If rankings match: every player +3
+  - Else: every player +1
+══════════════════════════════════════════ */
+function computePartieScores(gs){
+  const byPos=[...gs.players].sort((a,b)=>b.position-a.position);
+  const byCards=[...gs.players].sort((a,b)=>{
+    const sa=a.cards_this_partie.reduce((s,v)=>s+v,0);
+    const sb=b.cards_this_partie.reduce((s,v)=>s+v,0);
+    return sb-sa;
+  });
+
+  let allMatch=byPos.every((p,i)=>p.user_id===byCards[i].user_id);
+
+  gs.players.forEach(p=>{p.total_score+=(allMatch?3:1);});
+
+  gs.partie_result={
+    allMatch,
+    byPos:byPos.map(p=>({user_id:p.user_id,name:p.name,color:p.car_color,pos:Math.round(p.position),cards:p.cards_this_partie})),
+    byCards:byCards.map(p=>({user_id:p.user_id,name:p.name,color:p.car_color,total:p.cards_this_partie.reduce((s,v)=>s+v,0)})),
+  };
+  return gs;
+}
+
+/* ══════════════════════════════════════════
+   PARTIE RESULT MODAL
+══════════════════════════════════════════ */
+function showPartieResult(){
+  if(!GS.partie_result){resumeNextPartie();return;}
+  const res=GS.partie_result;
+  const partieNum=GS.partie_over?GS.partie:(GS.partie-1);
+
+  document.getElementById('rr-title').textContent=`FIN DE LA PARTIE ${partieNum}`;
+
+  let html='';
+  if(res.allMatch){
+    html+=`<div style="color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:10px;">✨ ORDRE PARFAIT — +3 POINTS CHACUN</div>`;
+  } else {
+    html+=`<div style="color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;margin-bottom:10px;">ORDRE NON RESPECTÉ — +1 POINT CHACUN</div>`;
+  }
+
+  // Explanation
+  html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">CLASSEMENT PISTE :</div>`;
+  res.byPos.forEach((p,i)=>{
+    const sum=p.cards.reduce((s,v)=>s+v,0);
+    html+=`<div class="player-row" style="margin-bottom:5px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;width:24px;">${i+1}</div>
+      ${carSVG(p.color,28,18)}
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;flex:1;">${p.name}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">${sum}pts cartes</div>
+    </div>`;
+  });
+
+  html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin:10px 0 6px;letter-spacing:1px;">CLASSEMENT CARTES :</div>`;
+  res.byCards.forEach((p,i)=>{
+    html+=`<div class="player-row" style="margin-bottom:5px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;width:24px;">${i+1}</div>
+      ${carSVG(p.color,28,18)}
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;flex:1;">${p.name}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">${p.total} pts</div>
+    </div>`;
+  });
+
+  // Score totals
+  html+=`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">`;
+  html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;">TOTAL PARTIES :</div>`;
+  [...GS.players].sort((a,b)=>b.total_score-a.total_score).forEach(p=>{
+    html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+      ${carSVG(p.car_color,24,15)}
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;flex:1;">${p.name}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);">${p.total_score} pts</span>
+    </div>`;
+  });
+  html+='</div>';
+
+  document.getElementById('rr-body').innerHTML=html;
+  openOv('ov-round');
+
+  document.getElementById('btn-rr-next').onclick=()=>{
+    closeOv('ov-round');
+    if(GS.game_over) showFinalResults();
+    else if(room.creator_id===uid) resumeNextPartie();
+    else{
+      toast('En attente du créateur pour lancer la suite...','');
+      poll=setInterval(pollGame,2500);
+    }
+  };
+}
+
+async function resumeNextPartie(){
+  if(room.creator_id!==uid) return;
+  // Reset for next partie
+  GS.partie++;
+  GS.tour=1;GS.turn_idx=0;
+  GS.partie_over=false;GS.partie_result=null;GS.game_over=false;
+  GS.players.forEach(p=>{p.position=0;p.card_this_turn=null;p.cards_this_partie=[];});
+  try{
+    await sb.patch(`/rest/v1/speedbluff_rooms?id=eq.${room.id}`,{game_state:JSON.stringify(GS)});
+  }catch(e){}
+  renderAll();
+  stopPoll();
+  poll=setInterval(pollGame,2500);
+}
+
+/* ══════════════════════════════════════════
+   FINAL RESULTS
+══════════════════════════════════════════ */
+async function showFinalResults(){
+  stopPoll();
+  const sorted=[...GS.players].sort((a,b)=>b.total_score-a.total_score);
+
+  // Update DB profiles
+  for(const p of sorted){
+    try{
+      const rows=await sb.get(`/rest/v1/speedbluff_profiles?user_id=eq.${p.user_id}&select=total_score,games_played`);
+      if(rows&&rows.length){
+        await sb.patch(`/rest/v1/speedbluff_profiles?user_id=eq.${p.user_id}`,{
+          total_score:(rows[0].total_score||0)+p.total_score,
+          games_played:(rows[0].games_played||0)+1
+        });
+      }
+    }catch(e){}
+  }
+  try{await sb.patch(`/rest/v1/speedbluff_rooms?id=eq.${room.id}`,{status:'finished'});}catch(e){}
+
+  const rankCls=['r1','r2','r3'];
+  const rankEmoji=['🥇','🥈','🥉'];
+  show('screen-results');
+  document.getElementById('results-content').innerHTML=`
+    <h2>🏁 FIN DE COURSE</h2>
+    <div class="res-sub">CLASSEMENT FINAL · 3 PARTIES</div>
+    ${sorted.map((p,i)=>`
+      <div class="podium-row">
+        <div class="rank ${rankCls[i]||''}">${rankEmoji[i]||i+1}</div>
+        ${carSVG(p.car_color,26,17)}
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;flex:1;">${p.name}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--accent);">${p.total_score} pts</div>
+      </div>`).join('')}
+    <div style="margin-top:28px;display:flex;gap:12px;">
+      <button class="btn-ghost flex1" onclick="backToLobby()">← LOBBY</button>
+    </div>`;
+}
+
+window.backToLobby=function(){
+  window.removeEventListener('resize',resizeCanvas);
+  stopPoll();room=null;GS=null;myCard=null;pendingPos=null;
+  show('screen-lobby');updateLobbyInfo();startLobbyPoll();
+};
+
+/* ══════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════ */
+init();
+</script>
+</body>
+</html>
