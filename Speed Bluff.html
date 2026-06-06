@@ -347,17 +347,25 @@ function carSVG(color,w=36,h=24){
 /* ══════════════════════════════════════════
    INIT
 ══════════════════════════════════════════ */
-async function init(){
-  // Resolve user id
-  if(!uid){
-    try{
-      const rows=await sb.get(`/rest/v1/user_apps?app_ids=cs.{${encodeURIComponent(APP_FILE)}}&select=user_id&limit=1`);
-      if(rows&&rows.length) uid=rows[0].user_id;
-    }catch(e){}
-  }
-  if(!uid) uid='sb_anon_'+Math.random().toString(36).slice(2,10);
+function showBlocked(){
+  document.body.innerHTML=`<div style="height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-family:'Barlow Condensed',sans-serif;text-align:center;padding:20px;background:#0a0a0f;color:#f0f0f8;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:#e8ff00;">ACCÈS REFUSÉ</div>
+    <div style="color:#6a6a8a;font-size:15px;">Cette app est accessible uniquement via le catalogue L.O.G.A.N.</div>
+    <a href="https://iamtsuba.github.io/L.O.G.A.N" style="color:#e8ff00;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;text-decoration:none;">← RETOUR À L.O.G.A.N</a>
+  </div>`;
+}
 
-  // Load profile
+async function init(){
+  // Poll for LOGAN_USER_ID injected by the catalogue (up to 2s)
+  let attempts = 0;
+  while(!window.LOGAN_USER_ID && attempts < 20){
+    await new Promise(r => setTimeout(r, 100));
+    attempts++;
+  }
+  if(!window.LOGAN_USER_ID){ showBlocked(); return; }
+  uid = window.LOGAN_USER_ID;
+
+  // Load profile scoped to this user only
   try{
     const rows=await sb.get(`/rest/v1/speedbluff_profiles?user_id=eq.${uid}&select=*&limit=1`);
     if(rows&&rows.length){
