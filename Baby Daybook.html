@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baby Daybook</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sky: #4FC3F7;
+  --sky-dark: #0288D1;
+  --sky-light: #E1F5FE;
+  --mint: #4DB6AC;
+  --mint-light: #E0F2F1;
+  --coral: #FF6B6B;
+  --coral-light: #FFEBEB;
+  --amber: #FFB74D;
+  --amber-light: #FFF3E0;
+  --lavender: #CE93D8;
+  --lavender-light: #F3E5F5;
+  --green: #81C784;
+  --green-light: #E8F5E9;
+  --bg: #F8FBFF;
+  --surface: #FFFFFF;
+  --surface2: #F0F7FF;
+  --border: #E3EEF8;
+  --text: #1A2B3C;
+  --text2: #5A7A94;
+  --text3: #96B4C8;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 2px 12px rgba(79,195,247,0.10);
+  --shadow-card: 0 4px 24px rgba(2,136,209,0.08);
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== LOADER ===== */
+#loader {
+  position: fixed; inset: 0;
+  background: linear-gradient(135deg, #E1F5FE 0%, #F3E5F5 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999;
+  gap: 16px;
+}
+#loader .logo-big { font-size: 48px; animation: bounce 1s infinite; }
+#loader p { color: var(--sky-dark); font-weight: 600; font-size: 15px; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+/* ===== LAYOUT ===== */
+#app { display: none; flex-direction: column; min-height: 100vh; }
+#app.ready { display: flex; }
+
+/* ===== TOPBAR ===== */
+.topbar {
+  background: linear-gradient(135deg, var(--sky-dark) 0%, var(--mint) 100%);
+  padding: 16px 20px 12px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 16px rgba(2,136,209,0.20);
+}
+.topbar-inner {
+  max-width: 800px; margin: 0 auto;
+  display: flex; align-items: center; gap: 12px;
+}
+.app-logo {
+  font-size: 11px; font-weight: 800;
+  background: rgba(255,255,255,0.2);
+  color: white; border: none; cursor: pointer;
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; letter-spacing: -0.3px;
+  line-height: 1.1; text-align: center;
+  transition: background 0.2s;
+}
+.app-logo:hover { background: rgba(255,255,255,0.3); }
+.topbar-profiles { display: flex; gap: 8px; flex: 1; overflow-x: auto; scroll-snap-type: x mandatory; }
+.topbar-profiles::-webkit-scrollbar { display: none; }
+.profile-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.15);
+  border: 2px solid transparent;
+  border-radius: 24px; padding: 4px 12px 4px 4px;
+  cursor: pointer; transition: all 0.2s;
+  white-space: nowrap; scroll-snap-align: start;
+  color: white;
+}
+.profile-chip.active { background: rgba(255,255,255,0.9); color: var(--sky-dark); border-color: white; }
+.profile-chip:hover:not(.active) { background: rgba(255,255,255,0.25); }
+.profile-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--coral) 0%, var(--amber) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: white;
+  overflow: hidden; flex-shrink: 0;
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-chip-name { font-size: 13px; font-weight: 600; }
+.btn-add-child {
+  background: rgba(255,255,255,0.15);
+  border: 2px dashed rgba(255,255,255,0.5);
+  border-radius: 24px; padding: 4px 14px;
+  color: white; cursor: pointer; font-size: 13px; font-weight: 600;
+  white-space: nowrap; transition: all 0.2s;
+}
+.btn-add-child:hover { background: rgba(255,255,255,0.25); }
+.topbar-version {
+  font-size: 9px; color: rgba(255,255,255,0.5);
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ===== NAV ===== */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: white;
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+  box-shadow: 0 -4px 20px rgba(2,136,209,0.08);
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 8px 4px 12px; gap: 3px;
+  cursor: pointer; border: none; background: none;
+  color: var(--text3); transition: color 0.2s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.nav-item.active { color: var(--sky-dark); }
+.nav-item .nav-icon { font-size: 22px; line-height: 1; }
+.nav-item .nav-label { font-size: 10px; font-weight: 600; }
+
+/* ===== MAIN ===== */
+.main-content {
+  flex: 1;
+  padding: 16px 16px 80px;
+  max-width: 800px; margin: 0 auto; width: 100%;
+}
+
+/* ===== PAGES ===== */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ===== DASHBOARD ===== */
+.child-header {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 20px;
+}
+.child-avatar-big {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--coral) 0%, var(--amber) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: white; font-weight: 800;
+  overflow: hidden; flex-shrink: 0;
+  border: 3px solid white;
+  box-shadow: 0 4px 16px rgba(255,107,107,0.25);
+}
+.child-avatar-big img { width: 100%; height: 100%; object-fit: cover; }
+.child-info h2 { font-size: 20px; font-weight: 800; }
+.child-info p { font-size: 13px; color: var(--text2); margin-top: 2px; }
+.child-age-badge {
+  margin-top: 4px;
+  display: inline-block;
+  background: var(--sky-light);
+  color: var(--sky-dark);
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 12px;
+}
+
+.section-title {
+  font-size: 13px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin: 20px 0 10px;
+}
+
+/* Quick action buttons */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.qa-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: var(--surface);
+  border: none; border-radius: var(--radius);
+  padding: 12px 6px;
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: var(--shadow-card);
+}
+.qa-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(2,136,209,0.15); }
+.qa-btn:active { transform: scale(0.96); }
+.qa-icon {
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.qa-label { font-size: 10px; font-weight: 600; color: var(--text2); text-align: center; line-height: 1.2; }
+
+.qa-allaitement .qa-icon { background: #FFEBF0; }
+.qa-biberon .qa-icon { background: #E3F2FF; }
+.qa-couche .qa-icon { background: #E8F5E9; }
+.qa-sommeil .qa-icon { background: #EDE7F6; }
+.qa-repas .qa-icon { background: #FFF3E0; }
+.qa-medicament .qa-icon { background: #FCE4EC; }
+.qa-poids .qa-icon { background: #E0F7FA; }
+.qa-rdv .qa-icon { background: #F3E5F5; }
+.qa-activite .qa-icon { background: #E8EAF6; }
+.qa-note .qa-icon { background: #FFFDE7; }
+
+/* Summary cards */
+.summary-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 12px; margin-bottom: 20px;
+}
+.summary-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow-card);
+  display: flex; gap: 12px; align-items: center;
+}
+.summary-card .sc-icon {
+  font-size: 28px;
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.summary-card .sc-body { flex: 1; min-width: 0; }
+.summary-card .sc-label { font-size: 11px; font-weight: 600; color: var(--text3); }
+.summary-card .sc-value { font-size: 16px; font-weight: 700; color: var(--text); margin-top: 2px; }
+.summary-card .sc-sub { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+/* Timeline */
+.timeline { display: flex; flex-direction: column; gap: 8px; }
+.timeline-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+}
+.timeline-item:hover { box-shadow: var(--shadow-card); transform: translateX(2px); }
+.ti-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.ti-body { flex: 1; min-width: 0; }
+.ti-title { font-size: 14px; font-weight: 600; }
+.ti-detail { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.ti-time { font-size: 11px; color: var(--text3); white-space: nowrap; }
+.ti-actions { display: flex; gap: 4px; }
+.ti-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 4px; border-radius: 6px; font-size: 14px;
+  color: var(--text3); transition: all 0.15s;
+}
+.ti-btn:hover { background: var(--surface2); color: var(--text); }
+
+/* ===== STATS ===== */
+.stats-tabs {
+  display: flex; gap: 4px;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 16px;
+}
+.stats-tab {
+  flex: 1; padding: 7px; border: none; background: none;
+  border-radius: 8px; font-size: 13px; font-weight: 600;
+  color: var(--text2); cursor: pointer; transition: all 0.2s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.stats-tab.active {
+  background: white;
+  color: var(--sky-dark);
+  box-shadow: 0 1px 6px rgba(2,136,209,0.12);
+}
+
+.stat-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-card);
+}
+.stat-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.chart-container { position: relative; height: 180px; }
+
+.stat-numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.stat-num { text-align: center; }
+.stat-num .sn-val { font-size: 22px; font-weight: 800; color: var(--sky-dark); }
+.stat-num .sn-label { font-size: 11px; color: var(--text2); font-weight: 500; }
+
+/* ===== GROWTH ===== */
+.growth-tabs {
+  display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto;
+}
+.growth-tab {
+  padding: 6px 14px; border-radius: 20px;
+  border: 2px solid var(--border);
+  background: white; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.2s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--text2);
+}
+.growth-tab.active { background: var(--sky-dark); color: white; border-color: var(--sky-dark); }
+
+/* ===== JOURNAL ===== */
+.filter-bar {
+  display: flex; gap: 8px; margin-bottom: 16px;
+  overflow-x: auto; padding-bottom: 4px;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-chip {
+  padding: 6px 14px; border-radius: 20px;
+  background: white; border: 2px solid var(--border);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; transition: all 0.2s;
+  color: var(--text2); display: flex; align-items: center; gap: 5px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.filter-chip.active { background: var(--sky-dark); color: white; border-color: var(--sky-dark); }
+
+/* ===== PROFILE PAGE ===== */
+.profile-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 16px;
+}
+.profile-card-header {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 16px;
+}
+.profile-avatar-xl {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--coral) 0%, var(--amber) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; color: white; font-weight: 800;
+  overflow: hidden; cursor: pointer; position: relative;
+  border: 3px solid white; box-shadow: 0 4px 16px rgba(255,107,107,0.25);
+}
+.profile-avatar-xl img { width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar-xl .avatar-edit {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+  display: none; align-items: center; justify-content: center;
+  color: white; font-size: 20px; border-radius: 50%;
+}
+.profile-avatar-xl:hover .avatar-edit { display: flex; }
+
+.info-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.info-row:last-child { border-bottom: none; }
+.info-row .ir-label { font-size: 13px; color: var(--text2); font-weight: 500; }
+.info-row .ir-value { font-size: 14px; font-weight: 600; }
+
+/* ===== FAB ===== */
+.fab {
+  position: fixed; bottom: 72px; right: 20px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--sky-dark) 0%, var(--mint) 100%);
+  color: white; font-size: 26px; font-weight: 300;
+  border: none; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(2,136,209,0.35);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; z-index: 99;
+}
+.fab:hover { transform: scale(1.08); box-shadow: 0 8px 28px rgba(2,136,209,0.45); }
+.fab:active { transform: scale(0.95); }
+
+/* ===== MODALS ===== */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: none; align-items: flex-end;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: white;
+  border-radius: 24px 24px 0 0;
+  width: 100%; max-width: 800px; margin: 0 auto;
+  padding: 24px;
+  max-height: 90vh; overflow-y: auto;
+  animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-handle {
+  width: 40px; height: 4px;
+  background: var(--border); border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.modal h2 { font-size: 18px; font-weight: 800; margin-bottom: 20px; text-align: center; }
+.modal-centered { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+.modal-emoji { font-size: 60px; margin-bottom: 4px; }
+.modal-centered p { color: var(--text2); font-size: 14px; max-width: 280px; line-height: 1.5; }
+
+/* Form elements */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 11px 14px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px; font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--text); background: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--sky);
+  box-shadow: 0 0 0 3px rgba(79,195,247,0.15);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.radio-opt {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 20px;
+  border: 2px solid var(--border); cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: all 0.2s;
+}
+.radio-opt input { display: none; }
+.radio-opt.selected { border-color: var(--sky-dark); background: var(--sky-light); color: var(--sky-dark); }
+
+/* Buttons */
+.btn { 
+  width: 100%; padding: 13px; border-radius: var(--radius-sm);
+  border: none; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--sky-dark) 0%, var(--mint) 100%);
+  color: white;
+  box-shadow: 0 4px 14px rgba(2,136,209,0.30);
+}
+.btn-primary:hover { box-shadow: 0 6px 20px rgba(2,136,209,0.40); transform: translateY(-1px); }
+.btn-danger { background: var(--coral-light); color: var(--coral); margin-top: 8px; }
+.btn-secondary { background: var(--surface2); color: var(--text); }
+.btn-sm { width: auto; padding: 7px 16px; font-size: 13px; border-radius: 8px; }
+
+/* Event type selector */
+.event-type-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 8px; margin-bottom: 16px;
+}
+.evt-type-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 10px 6px; border-radius: var(--radius-sm);
+  border: 2px solid var(--border); cursor: pointer;
+  background: white; transition: all 0.2s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.evt-type-btn .et-icon { font-size: 22px; }
+.evt-type-btn .et-label { font-size: 10px; font-weight: 600; color: var(--text2); }
+.evt-type-btn.selected { border-color: var(--sky-dark); background: var(--sky-light); }
+.evt-type-btn.selected .et-label { color: var(--sky-dark); }
+
+/* Sleep timer display */
+.sleep-timer-display {
+  background: linear-gradient(135deg, #1A237E 0%, #283593 100%);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  color: white; margin-bottom: 16px;
+}
+.sleep-timer-time { font-size: 42px; font-weight: 800; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+.sleep-timer-label { font-size: 12px; opacity: 0.7; margin-top: 4px; }
+.sleep-controls { display: flex; gap: 8px; margin-top: 12px; }
+.sleep-btn-l, .sleep-btn-r {
+  flex: 1; padding: 11px; border-radius: 24px;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; border: 2px solid rgba(255,255,255,0.3);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: all 0.2s;
+}
+.sleep-btn-l { background: var(--coral); border-color: transparent; color: white; }
+.sleep-btn-r { background: transparent; color: white; }
+.sleep-btn-l:hover { background: #e55; }
+.sleep-btn-r:hover { background: rgba(255,255,255,0.1); }
+
+/* Vaccine card */
+.vaccine-item {
+  display: flex; align-items: center; gap: 12px;
+  background: white; border-radius: var(--radius-sm);
+  padding: 12px; margin-bottom: 8px;
+  box-shadow: var(--shadow);
+}
+.vax-status {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.vax-done { background: var(--green); }
+.vax-pending { background: var(--amber); }
+
+/* Measurement entry */
+.measure-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin-bottom: 16px;
+}
+.measure-card {
+  background: white; border-radius: var(--radius-sm);
+  padding: 14px; text-align: center;
+  box-shadow: var(--shadow); cursor: pointer;
+  transition: all 0.2s; border: 2px solid transparent;
+}
+.measure-card:hover { border-color: var(--sky); }
+.measure-card .mc-icon { font-size: 28px; margin-bottom: 4px; }
+.measure-card .mc-label { font-size: 11px; color: var(--text2); font-weight: 600; }
+.measure-card .mc-val { font-size: 16px; font-weight: 800; color: var(--sky-dark); }
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #f0f7ff 25%, #e3eef8 50%, #f0f7ff 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* Empty state */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 40px 20px; text-align: center; gap: 10px;
+}
+.empty-state .es-emoji { font-size: 56px; }
+.empty-state h3 { font-size: 17px; font-weight: 700; }
+.empty-state p { font-size: 13px; color: var(--text2); max-width: 240px; line-height: 1.5; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--text); color: white;
+  padding: 10px 20px; border-radius: 24px;
+  font-size: 13px; font-weight: 600;
+  opacity: 0; transition: all 0.3s; z-index: 500;
+  pointer-events: none; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Responsive */
+@media (min-width: 600px) {
+  .quick-actions { grid-template-columns: repeat(5, 1fr); }
+  .event-type-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* Sleep active indicator in topbar */
+.sleep-indicator {
+  background: rgba(255,255,255,0.2);
+  color: white; border: none;
+  border-radius: 16px; padding: 4px 10px;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; gap: 4px;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* No child state */
+.no-child-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 20px; text-align: center; gap: 16px;
+}
+.no-child-state .ncs-emoji { font-size: 72px; }
+.no-child-state h2 { font-size: 22px; font-weight: 800; }
+.no-child-state p { font-size: 14px; color: var(--text2); max-width: 260px; line-height: 1.6; }
+
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="logo-big">👶</div>
+  <p>Chargement de Baby Daybook…</p>
+</div>
+
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a class="app-logo" href="https://iamtsuba.github.io/L.O.G.A.N" title="L.O.G.A.N">L.O.G.A.N</a>
+      <div class="topbar-profiles" id="topbarProfiles"></div>
+      <button class="btn-add-child" onclick="openAddChildModal()">+ Enfant</button>
+      <span class="topbar-version" title="26.6.11.0220">v26.6.11.0220</span>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <!-- PAGE: DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div id="dashboard-content"></div>
+    </div>
+
+    <!-- PAGE: JOURNAL -->
+    <div class="page" id="page-journal">
+      <div class="filter-bar" id="journalFilters"></div>
+      <div id="journal-content"></div>
+    </div>
+
+    <!-- PAGE: STATS -->
+    <div class="page" id="page-stats">
+      <div class="stats-tabs">
+        <button class="stats-tab active" onclick="setStatsPeriod('day',this)">Jour</button>
+        <button class="stats-tab" onclick="setStatsPeriod('week',this)">Semaine</button>
+        <button class="stats-tab" onclick="setStatsPeriod('month',this)">Mois</button>
+      </div>
+      <div id="stats-content"></div>
+    </div>
+
+    <!-- PAGE: GROWTH -->
+    <div class="page" id="page-growth">
+      <div class="growth-tabs">
+        <button class="growth-tab active" onclick="setGrowthMetric('weight',this)">⚖️ Poids</button>
+        <button class="growth-tab" onclick="setGrowthMetric('height',this)">📏 Taille</button>
+        <button class="growth-tab" onclick="setGrowthMetric('head',this)">🎯 Périm. crânien</button>
+      </div>
+      <div id="growth-chart-container">
+        <div class="stat-card">
+          <h3>📈 Courbe de croissance</h3>
+          <div class="chart-container"><canvas id="growthChart"></canvas></div>
+        </div>
+      </div>
+      <div id="growth-history"></div>
+    </div>
+
+    <!-- PAGE: PROFILE -->
+    <div class="page" id="page-profile">
+      <div id="profile-content"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="showPage('dashboard',this)">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Accueil</span>
+    </button>
+    <button class="nav-item" onclick="showPage('journal',this)">
+      <span class="nav-icon">📔</span>
+      <span class="nav-label">Journal</span>
+    </button>
+    <button class="nav-item" onclick="showPage('stats',this)">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Stats</span>
+    </button>
+    <button class="nav-item" onclick="showPage('growth',this)">
+      <span class="nav-icon">📈</span>
+      <span class="nav-label">Croissance</span>
+    </button>
+    <button class="nav-item" onclick="showPage('profile',this)">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Profil</span>
+    </button>
+  </nav>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddEventModal()" id="fab" style="display:none">+</button>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL: ADD/EDIT EVENT -->
+<div class="modal-overlay" id="modalEvent">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modalEventTitle">Ajouter une activité</h2>
+    <div id="event-type-selector" class="event-type-grid"></div>
+    <div id="event-form-container"></div>
+  </div>
+</div>
+
+<!-- MODAL: ADD CHILD -->
+<div class="modal-overlay" id="modalChild">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modalChildTitle">Ajouter un enfant</h2>
+    <div class="form-group">
+      <label class="form-label">Prénom</label>
+      <input class="form-input" id="childName" placeholder="Ex: Emma">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date de naissance</label>
+      <input class="form-input" type="date" id="childBirthdate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sexe</label>
+      <div class="radio-group">
+        <label class="radio-opt selected" onclick="selectRadio(this,'childGender','F')">
+          <input type="radio" name="childGender" value="F" checked> 👧 Fille
+        </label>
+        <label class="radio-opt" onclick="selectRadio(this,'childGender','M')">
+          <input type="radio" name="childGender" value="M"> 👦 Garçon
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Photo (URL ou laisser vide)</label>
+      <input class="form-input" id="childPhoto" placeholder="https://...">
+    </div>
+    <input type="hidden" id="editChildId">
+    <button class="btn btn-primary" onclick="saveChild()">Enregistrer</button>
+    <button class="btn btn-danger" id="btnDeleteChild" style="display:none" onclick="deleteChild()">Supprimer cet enfant</button>
+  </div>
+</div>
+
+<!-- MODAL: MEASURE -->
+<div class="modal-overlay" id="modalMeasure">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modalMeasureTitle">Ajouter une mesure</h2>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input class="form-input" type="date" id="measureDate">
+    </div>
+    <div class="form-group" id="measureValueGroup">
+      <label class="form-label" id="measureValueLabel">Valeur</label>
+      <input class="form-input" type="number" step="0.01" id="measureValue" placeholder="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea class="form-textarea" id="measureNotes" placeholder="Optionnel…"></textarea>
+    </div>
+    <input type="hidden" id="editMeasureId">
+    <input type="hidden" id="currentMeasureMetric">
+    <button class="btn btn-primary" onclick="saveMeasure()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- MODAL: VACCINE -->
+<div class="modal-overlay" id="modalVaccine">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Vaccin</h2>
+    <div class="form-group">
+      <label class="form-label">Nom du vaccin</label>
+      <input class="form-input" id="vaxName" placeholder="Ex: DTPolio">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date d'administration</label>
+      <input class="form-input" type="date" id="vaxDate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Prochain rappel</label>
+      <input class="form-input" type="date" id="vaxNextDate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes / Réactions</label>
+      <textarea class="form-textarea" id="vaxNotes" placeholder="Optionnel…"></textarea>
+    </div>
+    <input type="hidden" id="editVaxId">
+    <button class="btn btn-primary" onclick="saveVaccine()">Enregistrer</button>
+    <button class="btn btn-danger" id="btnDeleteVax" style="display:none" onclick="deleteVaccine()">Supprimer</button>
+  </div>
+</div>
+
+<!-- MODAL: WELCOME -->
+<div class="modal-overlay" id="modalWelcome">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-centered">
+      <div class="modal-emoji">👶</div>
+      <h2>Bienvenue dans Baby Daybook !</h2>
+      <p>Suivez facilement les repas, le sommeil, les couches et la croissance de votre bébé.</p>
+      <p style="color:var(--sky-dark);font-weight:600">Commençons par ajouter votre premier enfant.</p>
+    </div>
+    <button class="btn btn-primary" onclick="closeModal('modalWelcome');openAddChildModal()">Ajouter mon premier enfant</button>
+  </div>
+</div>
+
+<script>
+
+// ===== CONFIG =====
+const SUPABASE_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
+const APP_FILE = 'Baby Daybook.html';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ===== STATE =====
+let currentUserId = null;
+let currentChildId = null;
+let children = [];
+let currentPage = 'dashboard';
+let statsPeriod = 'day';
+let growthMetric = 'weight';
+let growthChart = null;
+let statsChart = null;
+let sleepTimer = null;
+let sleepStartTime = null;
+let editingEventId = null;
+let editingEventType = null;
+let journalFilter = 'all';
+
+// ===== INIT =====
+async function init() {
+  // Resolve user ID
+  let uid = null;
+  if (window.LOGAN_USER_ID) {
+    uid = window.LOGAN_USER_ID;
+  } else {
+    // Poll up to 2s
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      if (window.LOGAN_USER_ID) { uid = window.LOGAN_USER_ID; break; }
+    }
+  }
+  if (!uid) {
+    // Fallback: query user_apps
+    const { data } = await sb.from('user_apps').select('user_id').contains('app_ids', [APP_FILE]).limit(1);
+    if (data && data.length > 0) uid = data[0].user_id;
+  }
+  currentUserId = uid;
+
+  if (!currentUserId) {
+    document.getElementById('loader').innerHTML = `
+      <div style="text-align:center;padding:40px;color:#5A7A94">
+        <div style="font-size:48px;margin-bottom:16px">🔒</div>
+        <h2 style="font-size:20px;font-weight:800;margin-bottom:8px">Accès impossible</h2>
+        <p style="font-size:14px;margin-bottom:20px">Authentification requise sur L.O.G.A.N.</p>
+        <a href="https://iamtsuba.github.io/L.O.G.A.N" style="background:#0288D1;color:white;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700">Retour à L.O.G.A.N</a>
+      </div>`;
+    return;
+  }
+
+  await loadChildren();
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('app').classList.add('ready');
+  document.getElementById('fab').style.display = 'flex';
+
+  if (children.length === 0) {
+    openModal('modalWelcome');
+  }
+}
+
+// ===== CHILDREN =====
+async function loadChildren() {
+  const { data } = await sb.from('babydaybook_children')
+    .select('*').eq('user_id', currentUserId).order('created_at');
+  children = data || [];
+  if (children.length > 0 && !currentChildId) currentChildId = children[0].id;
+  renderTopbarProfiles();
+  renderDashboard();
+}
+
+function renderTopbarProfiles() {
+  const container = document.getElementById('topbarProfiles');
+  container.innerHTML = children.map(c => {
+    const initials = c.name.charAt(0).toUpperCase();
+    const active = c.id === currentChildId ? 'active' : '';
+    const avatar = c.photo_url
+      ? `<div class="profile-avatar"><img src="${c.photo_url}"></div>`
+      : `<div class="profile-avatar">${initials}</div>`;
+    return `<button class="profile-chip ${active}" onclick="selectChild('${c.id}')">
+      ${avatar}<span class="profile-chip-name">${c.name}</span>
+    </button>`;
+  }).join('');
+}
+
+function selectChild(id) {
+  currentChildId = id;
+  renderTopbarProfiles();
+  refreshCurrentPage();
+}
+
+function refreshCurrentPage() {
+  if (currentPage === 'dashboard') renderDashboard();
+  else if (currentPage === 'journal') renderJournal();
+  else if (currentPage === 'stats') renderStats();
+  else if (currentPage === 'growth') renderGrowth();
+  else if (currentPage === 'profile') renderProfile();
+}
+
+// ===== NAVIGATION =====
+function showPage(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  currentPage = page;
+  refreshCurrentPage();
+}
+
+// ===== DASHBOARD =====
+async function renderDashboard() {
+  const container = document.getElementById('dashboard-content');
+  if (!currentChildId) {
+    container.innerHTML = `<div class="no-child-state">
+      <div class="ncs-emoji">🍼</div>
+      <h2>Aucun enfant</h2>
+      <p>Cliquez sur "+ Enfant" pour commencer le suivi.</p>
+    </div>`;
+    return;
+  }
+  const child = children.find(c => c.id === currentChildId);
+  const today = new Date().toISOString().split('T')[0];
+  const todayStart = today + 'T00:00:00';
+  const todayEnd = today + 'T23:59:59';
+
+  const [evtRes, lastFeedRes, lastDiaperRes, sleepRes] = await Promise.all([
+    sb.from('babydaybook_events').select('*').eq('child_id', currentChildId)
+      .gte('started_at', todayStart).lte('started_at', todayEnd).order('started_at', { ascending: false }),
+    sb.from('babydaybook_events').select('*').eq('child_id', currentChildId)
+      .in('type', ['allaitement','biberon','repas']).order('started_at', { ascending: false }).limit(1),
+    sb.from('babydaybook_events').select('*').eq('child_id', currentChildId)
+      .eq('type', 'couche').order('started_at', { ascending: false }).limit(1),
+    sb.from('babydaybook_events').select('*').eq('child_id', currentChildId)
+      .eq('type', 'sommeil').gte('started_at', todayStart).lte('started_at', todayEnd)
+  ]);
+
+  const todayEvents = evtRes.data || [];
+  const lastFeed = lastFeedRes.data?.[0];
+  const lastDiaper = lastDiaperRes.data?.[0];
+  const sleepEvents = sleepRes.data || [];
+  const totalSleepMs = sleepEvents.reduce((acc, e) => {
+    if (e.ended_at) return acc + (new Date(e.ended_at) - new Date(e.started_at));
+    return acc;
+  }, 0);
+  const totalSleepH = Math.floor(totalSleepMs / 3600000);
+  const totalSleepM = Math.floor((totalSleepMs % 3600000) / 60000);
+
+  const feedCount = todayEvents.filter(e => ['allaitement','biberon','repas'].includes(e.type)).length;
+  const diaperCount = todayEvents.filter(e => e.type === 'couche').length;
+
+  const age = computeAge(child.birthdate);
+
+  container.innerHTML = `
+    <div class="child-header">
+      <div class="child-avatar-big">${child.photo_url ? `<img src="${child.photo_url}">` : child.name.charAt(0).toUpperCase()}</div>
+      <div class="child-info">
+        <h2>${child.name}</h2>
+        <p>${child.gender === 'F' ? 'Fille' : 'Garçon'} · né${child.gender === 'F' ? 'e' : ''} le ${formatDate(child.birthdate)}</p>
+        <span class="child-age-badge">${age}</span>
+      </div>
+    </div>
+
+    <div class="section-title">Accès rapide</div>
+    <div class="quick-actions">
+      <button class="qa-btn qa-allaitement" onclick="openAddEventModal('allaitement')"><div class="qa-icon">🤱</div><span class="qa-label">Allaite-ment</span></button>
+      <button class="qa-btn qa-biberon" onclick="openAddEventModal('biberon')"><div class="qa-icon">🍼</div><span class="qa-label">Biberon</span></button>
+      <button class="qa-btn qa-couche" onclick="openAddEventModal('couche')"><div class="qa-icon">🚼</div><span class="qa-label">Couche</span></button>
+      <button class="qa-btn qa-sommeil" onclick="openAddEventModal('sommeil')"><div class="qa-icon">😴</div><span class="qa-label">Sommeil</span></button>
+      <button class="qa-btn qa-repas" onclick="openAddEventModal('repas')"><div class="qa-icon">🥣</div><span class="qa-label">Repas</span></button>
+      <button class="qa-btn qa-medicament" onclick="openAddEventModal('medicament')"><div class="qa-icon">💊</div><span class="qa-label">Médica-ment</span></button>
+      <button class="qa-btn qa-poids" onclick="openMeasureModal('weight')"><div class="qa-icon">⚖️</div><span class="qa-label">Poids</span></button>
+      <button class="qa-btn qa-rdv" onclick="openAddEventModal('rdv')"><div class="qa-icon">🏥</div><span class="qa-label">Rendez-vous</span></button>
+      <button class="qa-btn qa-activite" onclick="openAddEventModal('activite')"><div class="qa-icon">🎮</div><span class="qa-label">Activité</span></button>
+      <button class="qa-btn qa-note" onclick="openAddEventModal('note')"><div class="qa-icon">📝</div><span class="qa-label">Note</span></button>
+    </div>
+
+    <div class="section-title">Aujourd'hui</div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="sc-icon" style="background:#E3F2FF">🍼</div>
+        <div class="sc-body">
+          <div class="sc-label">Dernier repas</div>
+          <div class="sc-value">${lastFeed ? timeSince(lastFeed.started_at) : '—'}</div>
+          <div class="sc-sub">${feedCount} fois aujourd'hui</div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="sc-icon" style="background:#E8F5E9">🚼</div>
+        <div class="sc-body">
+          <div class="sc-label">Dernière couche</div>
+          <div class="sc-value">${lastDiaper ? timeSince(lastDiaper.started_at) : '—'}</div>
+          <div class="sc-sub">${diaperCount} fois aujourd'hui</div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="sc-icon" style="background:#EDE7F6">😴</div>
+        <div class="sc-body">
+          <div class="sc-label">Sommeil du jour</div>
+          <div class="sc-value">${totalSleepMs > 0 ? `${totalSleepH}h${totalSleepM.toString().padStart(2,'0')}` : '—'}</div>
+          <div class="sc-sub">${sleepEvents.length} sieste${sleepEvents.length > 1 ? 's' : ''}</div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="sc-icon" style="background:#FFEBF0">✅</div>
+        <div class="sc-body">
+          <div class="sc-label">Activités</div>
+          <div class="sc-value">${todayEvents.length}</div>
+          <div class="sc-sub">entrées aujourd'hui</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Dernières activités</div>
+    <div class="timeline" id="dashTimeline">
+      ${todayEvents.slice(0, 10).map(e => renderTimelineItem(e)).join('') || `
+        <div class="empty-state">
+          <div class="es-emoji">🌟</div>
+          <h3>Aucune activité aujourd'hui</h3>
+          <p>Commencez à enregistrer les activités de ${child.name}.</p>
+        </div>`}
+    </div>
+  `;
+}
+
+function renderTimelineItem(e) {
+  const { icon, color, label } = eventMeta(e.type);
+  const detail = buildEventDetail(e);
+  return `<div class="timeline-item">
+    <div class="ti-icon" style="background:${color}">${icon}</div>
+    <div class="ti-body">
+      <div class="ti-title">${label}</div>
+      ${detail ? `<div class="ti-detail">${detail}</div>` : ''}
+    </div>
+    <div class="ti-time">${formatTime(e.started_at)}</div>
+    <div class="ti-actions">
+      <button class="ti-btn" onclick="editEvent('${e.id}','${e.type}')">✏️</button>
+      <button class="ti-btn" onclick="deleteEvent('${e.id}')">🗑️</button>
+    </div>
+  </div>`;
+}
+
+function buildEventDetail(e) {
+  const parts = [];
+  if (e.duration_min) parts.push(`${e.duration_min} min`);
+  if (e.quantity_ml) parts.push(`${e.quantity_ml} ml`);
+  if (e.quantity_g) parts.push(`${e.quantity_g} g`);
+  if (e.diaper_type) parts.push(diaperLabel(e.diaper_type));
+  if (e.breast_side) parts.push(e.breast_side === 'L' ? 'Gauche' : e.breast_side === 'R' ? 'Droite' : 'Les deux');
+  if (e.notes) parts.push(e.notes.substring(0, 40) + (e.notes.length > 40 ? '…' : ''));
+  return parts.join(' · ');
+}
+
+// ===== JOURNAL =====
+async function renderJournal() {
+  const container = document.getElementById('journal-content');
+  if (!currentChildId) { container.innerHTML = '<div class="empty-state"><div class="es-emoji">📔</div><h3>Aucun enfant</h3></div>'; return; }
+
+  const filterBar = document.getElementById('journalFilters');
+  const filters = [
+    { id: 'all', label: 'Tout', icon: '✨' },
+    { id: 'allaitement', label: 'Allaitement', icon: '🤱' },
+    { id: 'biberon', label: 'Biberon', icon: '🍼' },
+    { id: 'repas', label: 'Repas', icon: '🥣' },
+    { id: 'couche', label: 'Couche', icon: '🚼' },
+    { id: 'sommeil', label: 'Sommeil', icon: '😴' },
+    { id: 'medicament', label: 'Médicament', icon: '💊' },
+    { id: 'rdv', label: 'Rendez-vous', icon: '🏥' },
+    { id: 'note', label: 'Note', icon: '📝' },
+  ];
+  filterBar.innerHTML = filters.map(f =>
+    `<button class="filter-chip ${journalFilter === f.id ? 'active' : ''}" onclick="setJournalFilter('${f.id}')">${f.icon} ${f.label}</button>`
+  ).join('');
+
+  let query = sb.from('babydaybook_events').select('*').eq('child_id', currentChildId).order('started_at', { ascending: false }).limit(50);
+  if (journalFilter !== 'all') query = query.eq('type', journalFilter);
+  const { data } = await query;
+  const events = data || [];
+
+  if (events.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="es-emoji">📔</div><h3>Aucune entrée</h3><p>Aucune activité enregistrée${journalFilter !== 'all' ? ' pour ce filtre' : ''}.</p></div>`;
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  events.forEach(e => {
+    const d = e.started_at.split('T')[0];
+    if (!groups[d]) groups[d] = [];
+    groups[d].push(e);
+  });
+
+  container.innerHTML = Object.entries(groups).map(([date, evts]) => `
+    <div class="section-title">${formatDateFull(date)}</div>
+    <div class="timeline">${evts.map(e => renderTimelineItem(e)).join('')}</div>
+  `).join('');
+}
+
+function setJournalFilter(f) { journalFilter = f; renderJournal(); }
+
+// ===== STATS =====
+async function renderStats() {
+  const container = document.getElementById('stats-content');
+  if (!currentChildId) return;
+
+  const now = new Date();
+  let startDate;
+  if (statsPeriod === 'day') startDate = new Date(now.setHours(0,0,0,0));
+  else if (statsPeriod === 'week') { startDate = new Date(now); startDate.setDate(startDate.getDate() - 6); startDate.setHours(0,0,0,0); }
+  else { startDate = new Date(now); startDate.setDate(1); startDate.setHours(0,0,0,0); }
+
+  const { data: events } = await sb.from('babydaybook_events')
+    .select('*').eq('child_id', currentChildId)
+    .gte('started_at', startDate.toISOString()).order('started_at');
+
+  const evts = events || [];
+  const feedEvts = evts.filter(e => ['allaitement','biberon','repas'].includes(e.type));
+  const diaperEvts = evts.filter(e => e.type === 'couche');
+  const sleepEvts = evts.filter(e => e.type === 'sommeil' && e.ended_at);
+  const totalSleepMs = sleepEvts.reduce((a,e) => a + (new Date(e.ended_at) - new Date(e.started_at)), 0);
+  const avgSleepH = sleepEvts.length ? (totalSleepMs / sleepEvts.length / 3600000).toFixed(1) : 0;
+  const totalSleepH = (totalSleepMs / 3600000).toFixed(1);
+
+  const days = statsPeriod === 'day' ? 1 : statsPeriod === 'week' ? 7 : new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const avgFeeds = days > 1 ? (feedEvts.length / days).toFixed(1) : feedEvts.length;
+  const avgDiapers = days > 1 ? (diaperEvts.length / days).toFixed(1) : diaperEvts.length;
+
+  // Build chart data
+  let chartLabels = [], feedData = [], diaperData = [], sleepData = [];
+  if (statsPeriod === 'day') {
+    for (let h = 0; h < 24; h += 2) {
+      chartLabels.push(`${h}h`);
+      const hEvts = evts.filter(e => new Date(e.started_at).getHours() >= h && new Date(e.started_at).getHours() < h+2);
+      feedData.push(hEvts.filter(e => ['allaitement','biberon','repas'].includes(e.type)).length);
+      diaperData.push(hEvts.filter(e => e.type === 'couche').length);
+      sleepData.push(hEvts.filter(e => e.type === 'sommeil').length);
+    }
+  } else {
+    const days_count = statsPeriod === 'week' ? 7 : 30;
+    for (let i = days_count-1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const ds = d.toISOString().split('T')[0];
+      chartLabels.push(d.getDate() + '/' + (d.getMonth()+1));
+      const dEvts = evts.filter(e => e.started_at.startsWith(ds));
+      feedData.push(dEvts.filter(e => ['allaitement','biberon','repas'].includes(e.type)).length);
+      diaperData.push(dEvts.filter(e => e.type === 'couche').length);
+      sleepData.push(dEvts.filter(e => e.type === 'sommeil').length);
+    }
+  }
+
+  container.innerHTML = `
+    <div class="stat-numbers">
+      <div class="stat-num"><div class="sn-val">${feedEvts.length}</div><div class="sn-label">Repas${statsPeriod!=='day'?`<br>(moy ${avgFeeds}/j)`:''}</div></div>
+      <div class="stat-num"><div class="sn-val">${diaperEvts.length}</div><div class="sn-label">Couches${statsPeriod!=='day'?`<br>(moy ${avgDiapers}/j)`:''}</div></div>
+      <div class="stat-num"><div class="sn-val">${totalSleepH}h</div><div class="sn-label">Sommeil${statsPeriod!=='day'?`<br>(moy ${avgSleepH}h)`:''}</div></div>
+    </div>
+    <div class="stat-card">
+      <h3>📊 Activités par ${statsPeriod === 'day' ? 'heure' : 'jour'}</h3>
+      <div class="chart-container"><canvas id="statsChart"></canvas></div>
+    </div>
+  `;
+
+  if (statsChart) { statsChart.destroy(); statsChart = null; }
+  const ctx = document.getElementById('statsChart').getContext('2d');
+  statsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [
+        { label: 'Repas', data: feedData, backgroundColor: '#4FC3F7CC', borderRadius: 4 },
+        { label: 'Couches', data: diaperData, backgroundColor: '#81C784CC', borderRadius: 4 },
+        { label: 'Sommeil', data: sleepData, backgroundColor: '#CE93D8CC', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+  });
+}
+
+function setStatsPeriod(p, btn) {
+  statsPeriod = p;
+  document.querySelectorAll('.stats-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStats();
+}
+
+// ===== GROWTH =====
+async function renderGrowth() {
+  if (!currentChildId) return;
+  const { data } = await sb.from('babydaybook_measurements')
+    .select('*').eq('child_id', currentChildId).eq('metric', growthMetric)
+    .order('measured_at');
+  const measures = data || [];
+
+  const unit = growthMetric === 'weight' ? 'kg' : growthMetric === 'height' ? 'cm' : 'cm';
+  const lastVal = measures.length ? measures[measures.length-1].value : null;
+
+  if (growthChart) { growthChart.destroy(); growthChart = null; }
+
+  const ctx = document.getElementById('growthChart').getContext('2d');
+  if (measures.length > 0) {
+    growthChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: measures.map(m => formatDate(m.measured_at.split('T')[0])),
+        datasets: [{
+          label: growthMetric === 'weight' ? 'Poids (kg)' : growthMetric === 'height' ? 'Taille (cm)' : 'P. crânien (cm)',
+          data: measures.map(m => m.value),
+          borderColor: '#0288D1', backgroundColor: 'rgba(79,195,247,0.10)',
+          borderWidth: 2, tension: 0.4, fill: true,
+          pointBackgroundColor: '#0288D1', pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false } }, y: { beginAtZero: false } }
+      }
+    });
+  }
+
+  document.getElementById('growth-history').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="section-title" style="margin:0">Historique</div>
+      <button class="btn btn-primary btn-sm" onclick="openMeasureModal('${growthMetric}')">+ Ajouter</button>
+    </div>
+    <div style="margin-top:10px">
+      ${measures.length === 0 ? `<div class="empty-state"><div class="es-emoji">📏</div><h3>Aucune mesure</h3><p>Ajoutez la première mesure.</p></div>` :
+        [...measures].reverse().map(m => `
+          <div class="timeline-item">
+            <div class="ti-icon" style="background:${growthMetric==='weight'?'#E0F7FA':'#E8EAF6'}">${growthMetric==='weight'?'⚖️':growthMetric==='height'?'📏':'🎯'}</div>
+            <div class="ti-body">
+              <div class="ti-title">${m.value} ${unit}</div>
+              ${m.notes ? `<div class="ti-detail">${m.notes}</div>` : ''}
+            </div>
+            <div class="ti-time">${formatDate(m.measured_at.split('T')[0])}</div>
+            <div class="ti-actions">
+              <button class="ti-btn" onclick="editMeasure('${m.id}','${m.metric}','${m.value}','${m.measured_at.split('T')[0]}','${(m.notes||'').replace(/'/g,'')}')">✏️</button>
+              <button class="ti-btn" onclick="deleteMeasure('${m.id}')">🗑️</button>
+            </div>
+          </div>`).join('')}
+    </div>
+  `;
+}
+
+function setGrowthMetric(m, btn) {
+  growthMetric = m;
+  document.querySelectorAll('.growth-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrowth();
+}
+
+// ===== PROFILE PAGE =====
+async function renderProfile() {
+  const container = document.getElementById('profile-content');
+  if (!currentChildId) {
+    container.innerHTML = `<div class="no-child-state"><div class="ncs-emoji">👤</div><h2>Aucun enfant</h2><p>Ajoutez un enfant pour voir son profil.</p></div>`;
+    return;
+  }
+  const child = children.find(c => c.id === currentChildId);
+  const [vaxRes, lastWeightRes, lastHeightRes] = await Promise.all([
+    sb.from('babydaybook_vaccines').select('*').eq('child_id', currentChildId).order('administered_at'),
+    sb.from('babydaybook_measurements').select('*').eq('child_id', currentChildId).eq('metric','weight').order('measured_at', {ascending:false}).limit(1),
+    sb.from('babydaybook_measurements').select('*').eq('child_id', currentChildId).eq('metric','height').order('measured_at', {ascending:false}).limit(1),
+  ]);
+  const vaccines = vaxRes.data || [];
+  const lastWeight = lastWeightRes.data?.[0];
+  const lastHeight = lastHeightRes.data?.[0];
+
+  container.innerHTML = `
+    <div class="profile-card">
+      <div class="profile-card-header">
+        <div class="profile-avatar-xl">
+          ${child.photo_url ? `<img src="${child.photo_url}">` : child.name.charAt(0).toUpperCase()}
+          <div class="avatar-edit">✏️</div>
+        </div>
+        <div>
+          <h2 style="font-size:22px;font-weight:800">${child.name}</h2>
+          <p style="color:var(--text2);font-size:13px">${child.gender === 'F' ? '👧 Fille' : '👦 Garçon'}</p>
+          <span class="child-age-badge">${computeAge(child.birthdate)}</span>
+        </div>
+      </div>
+      <div class="info-row"><span class="ir-label">Date de naissance</span><span class="ir-value">${formatDate(child.birthdate)}</span></div>
+      <div class="info-row"><span class="ir-label">Dernier poids</span><span class="ir-value">${lastWeight ? lastWeight.value + ' kg' : '—'}</span></div>
+      <div class="info-row"><span class="ir-label">Dernière taille</span><span class="ir-value">${lastHeight ? lastHeight.value + ' cm' : '—'}</span></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:auto" onclick="editChild('${child.id}')">✏️ Modifier le profil</button>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="section-title" style="margin:0">Mesures rapides</div>
+    </div>
+    <div class="measure-cards">
+      <div class="measure-card" onclick="openMeasureModal('weight')">
+        <div class="mc-icon">⚖️</div>
+        <div class="mc-label">Poids</div>
+        <div class="mc-val">${lastWeight ? lastWeight.value + 'kg' : '—'}</div>
+      </div>
+      <div class="measure-card" onclick="openMeasureModal('height')">
+        <div class="mc-icon">📏</div>
+        <div class="mc-label">Taille</div>
+        <div class="mc-val">${lastHeight ? lastHeight.value + 'cm' : '—'}</div>
+      </div>
+      <div class="measure-card" onclick="openMeasureModal('head')">
+        <div class="mc-icon">🎯</div>
+        <div class="mc-label">P. crânien</div>
+        <div class="mc-val">—</div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="section-title" style="margin:0">💉 Vaccins</div>
+      <button class="btn btn-primary btn-sm" onclick="openVaccineModal()">+ Vaccin</button>
+    </div>
+    ${vaccines.length === 0 ? `<div class="empty-state"><div class="es-emoji">💉</div><h3>Aucun vaccin</h3><p>Enregistrez les vaccinations.</p></div>` :
+      vaccines.map(v => `
+        <div class="vaccine-item">
+          <div class="vax-status vax-done"></div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px">${v.name}</div>
+            <div style="font-size:12px;color:var(--text2)">${formatDate(v.administered_at.split('T')[0])}${v.next_due_at ? ` · Rappel: ${formatDate(v.next_due_at.split('T')[0])}` : ''}</div>
+          </div>
+          <button class="ti-btn" onclick="editVaccineModal('${v.id}','${v.name}','${v.administered_at.split('T')[0]}','${(v.next_due_at||'').split('T')[0]}','${(v.notes||'').replace(/'/g,'')}')">✏️</button>
+          <button class="ti-btn" onclick="deleteVaccine('${v.id}')">🗑️</button>
+        </div>`).join('')}
+  `;
+}
+
+// ===== EVENT MODAL =====
+const EVENT_TYPES = [
+  { id: 'allaitement', label: 'Allaitement', icon: '🤱' },
+  { id: 'biberon', label: 'Biberon', icon: '🍼' },
+  { id: 'repas', label: 'Repas', icon: '🥣' },
+  { id: 'couche', label: 'Couche', icon: '🚼' },
+  { id: 'sommeil', label: 'Sommeil', icon: '😴' },
+  { id: 'medicament', label: 'Médicament', icon: '💊' },
+  { id: 'rdv', label: 'Rendez-vous', icon: '🏥' },
+  { id: 'activite', label: 'Activité', icon: '🎮' },
+  { id: 'note', label: 'Note', icon: '📝' },
+];
+
+function openAddEventModal(type) {
+  editingEventId = null;
+  document.getElementById('modalEventTitle').textContent = 'Ajouter une activité';
+  renderEventTypeSelector(type || null);
+  if (type) renderEventForm(type);
+  openModal('modalEvent');
+}
+
+function editEvent(id, type) {
+  editingEventId = id;
+  editingEventType = type;
+  document.getElementById('modalEventTitle').textContent = 'Modifier l\'activité';
+  renderEventTypeSelector(type);
+  renderEventForm(type, id);
+  openModal('modalEvent');
+}
+
+function renderEventTypeSelector(selectedType) {
+  document.getElementById('event-type-selector').innerHTML = EVENT_TYPES.map(t =>
+    `<button class="evt-type-btn ${selectedType === t.id ? 'selected' : ''}" onclick="selectEventType('${t.id}')">
+      <span class="et-icon">${t.icon}</span>
+      <span class="et-label">${t.label}</span>
+    </button>`
+  ).join('');
+}
+
+function selectEventType(type) {
+  renderEventTypeSelector(type);
+  renderEventForm(type);
+}
+
+async function renderEventForm(type, editId) {
+  const now = new Date();
+  const localDatetime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  let existing = {};
+  if (editId) {
+    const { data } = await sb.from('babydaybook_events').select('*').eq('id', editId).single();
+    if (data) existing = data;
+  }
+
+  const started = existing.started_at ? new Date(existing.started_at).toISOString().slice(0,16) : localDatetime;
+  const ended = existing.ended_at ? new Date(existing.ended_at).toISOString().slice(0,16) : '';
+
+  let formHTML = `<div class="form-group"><label class="form-label">Heure de début</label>
+    <input class="form-input" type="datetime-local" id="evtStarted" value="${started}"></div>`;
+
+  if (type === 'allaitement') {
+    formHTML += `
+      <div class="form-group"><label class="form-label">Côté</label>
+        <div class="radio-group">
+          ${['L','R','B'].map(s => `<label class="radio-opt ${(existing.breast_side||'L')===s?'selected':''}" onclick="selectRadio(this,'breastSide','${s}')">
+            <input type="radio" name="breastSide" value="${s}" ${(existing.breast_side||'L')===s?'checked':''}> ${s==='L'?'Gauche':s==='R'?'Droite':'Les deux'}
+          </label>`).join('')}
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Durée (min)</label>
+        <input class="form-input" type="number" id="evtDuration" value="${existing.duration_min||''}" placeholder="15"></div>`;
+  }
+
+  if (type === 'biberon') {
+    formHTML += `<div class="form-group"><label class="form-label">Quantité (ml)</label>
+      <input class="form-input" type="number" id="evtQtyMl" value="${existing.quantity_ml||''}" placeholder="120"></div>`;
+  }
+
+  if (type === 'repas') {
+    formHTML += `<div class="form-group"><label class="form-label">Quantité (g)</label>
+      <input class="form-input" type="number" id="evtQtyG" value="${existing.quantity_g||''}" placeholder="80"></div>`;
+  }
+
+  if (type === 'couche') {
+    formHTML += `<div class="form-group"><label class="form-label">Type</label>
+      <div class="radio-group">
+        ${['wet','dirty','both'].map(dt => `<label class="radio-opt ${(existing.diaper_type||'wet')===dt?'selected':''}" onclick="selectRadio(this,'diaperType','${dt}')">
+          <input type="radio" name="diaperType" value="${dt}" ${(existing.diaper_type||'wet')===dt?'checked':''}> ${dt==='wet'?'💧 Urine':dt==='dirty'?'💩 Selles':'🔄 Mixte'}
+        </label>`).join('')}
+      </div></div>`;
+  }
+
+  if (type === 'sommeil') {
+    formHTML += `<div class="form-group"><label class="form-label">Heure de fin</label>
+      <input class="form-input" type="datetime-local" id="evtEnded" value="${ended}"></div>`;
+    if (!editId) {
+      formHTML += `<div class="sleep-timer-display">
+        <div class="sleep-timer-time" id="sleepTimerDisplay">00:00:00</div>
+        <div class="sleep-timer-label">Durée en cours</div>
+        <div class="sleep-controls">
+          <button class="sleep-btn-l" onclick="stopSleepTimer()">⏹ Arrêter</button>
+          <button class="sleep-btn-r" onclick="startSleepTimer()">▶ Démarrer</button>
+        </div>
+      </div>`;
+    }
+  }
+
+  if (type === 'medicament') {
+    formHTML += `<div class="form-group"><label class="form-label">Médicament</label>
+      <input class="form-input" id="evtMedName" value="${existing.notes||''}" placeholder="Ex: Doliprane 2.4%"></div>
+      <div class="form-group"><label class="form-label">Dose</label>
+      <input class="form-input" id="evtQtyMl" type="number" value="${existing.quantity_ml||''}" placeholder="ml / mg"></div>`;
+  }
+
+  if (type === 'rdv') {
+    formHTML += `<div class="form-group"><label class="form-label">Praticien</label>
+      <input class="form-input" id="evtMedName" value="${existing.notes||''}" placeholder="Ex: Pédiatre Dr. Martin"></div>`;
+  }
+
+  formHTML += `<div class="form-group"><label class="form-label">Notes</label>
+    <textarea class="form-textarea" id="evtNotes" placeholder="Remarques…">${existing.notes||''}</textarea></div>`;
+
+  formHTML += `<button class="btn btn-primary" onclick="saveEvent('${type}')">${editId ? 'Mettre à jour' : 'Enregistrer'}</button>`;
+  if (editId) {
+    formHTML += `<button class="btn btn-danger" onclick="deleteEvent('${editId}')">Supprimer</button>`;
+  }
+
+  document.getElementById('event-form-container').innerHTML = formHTML;
+}
+
+function startSleepTimer() {
+  sleepStartTime = new Date();
+  const el = document.getElementById('evtStarted');
+  if (el) el.value = new Date(sleepStartTime.getTime() - sleepStartTime.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  if (sleepTimer) clearInterval(sleepTimer);
+  sleepTimer = setInterval(() => {
+    const disp = document.getElementById('sleepTimerDisplay');
+    if (!disp) { clearInterval(sleepTimer); return; }
+    const elapsed = Date.now() - sleepStartTime.getTime();
+    const h = Math.floor(elapsed/3600000).toString().padStart(2,'0');
+    const m = Math.floor((elapsed%3600000)/60000).toString().padStart(2,'0');
+    const s = Math.floor((elapsed%60000)/1000).toString().padStart(2,'0');
+    disp.textContent = `${h}:${m}:${s}`;
+  }, 1000);
+}
+
+function stopSleepTimer() {
+  if (sleepTimer) clearInterval(sleepTimer);
+  const endedEl = document.getElementById('evtEnded');
+  const now = new Date();
+  if (endedEl) endedEl.value = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+
+async function saveEvent(type) {
+  const startedEl = document.getElementById('evtStarted');
+  if (!startedEl || !startedEl.value) { showToast('Indiquez une heure de début'); return; }
+
+  const payload = {
+    child_id: currentChildId,
+    user_id: currentUserId,
+    type,
+    started_at: new Date(startedEl.value).toISOString(),
+  };
+
+  const endedEl = document.getElementById('evtEnded');
+  if (endedEl && endedEl.value) payload.ended_at = new Date(endedEl.value).toISOString();
+
+  const durEl = document.getElementById('evtDuration');
+  if (durEl) payload.duration_min = parseInt(durEl.value) || null;
+
+  const qtyMlEl = document.getElementById('evtQtyMl');
+  if (qtyMlEl) payload.quantity_ml = parseFloat(qtyMlEl.value) || null;
+
+  const qtyGEl = document.getElementById('evtQtyG');
+  if (qtyGEl) payload.quantity_g = parseFloat(qtyGEl.value) || null;
+
+  const breastEl = document.querySelector('input[name="breastSide"]:checked');
+  if (breastEl) payload.breast_side = breastEl.value;
+
+  const diaperEl = document.querySelector('input[name="diaperType"]:checked');
+  if (diaperEl) payload.diaper_type = diaperEl.value;
+
+  const medEl = document.getElementById('evtMedName');
+  const notesEl = document.getElementById('evtNotes');
+  if (medEl && medEl.value) payload.notes = medEl.value + (notesEl && notesEl.value ? ' — ' + notesEl.value : '');
+  else if (notesEl) payload.notes = notesEl.value || null;
+
+  let err;
+  if (editingEventId) {
+    ({ error: err } = await sb.from('babydaybook_events').update(payload).eq('id', editingEventId));
+  } else {
+    ({ error: err } = await sb.from('babydaybook_events').insert(payload));
+  }
+
+  if (err) { showToast('Erreur: ' + err.message); return; }
+  if (sleepTimer) clearInterval(sleepTimer);
+  closeModal('modalEvent');
+  showToast('✅ Enregistré');
+  refreshCurrentPage();
+}
+
+async function deleteEvent(id) {
+  if (!confirm('Supprimer cette entrée ?')) return;
+  await sb.from('babydaybook_events').delete().eq('id', id);
+  closeModal('modalEvent');
+  showToast('🗑️ Supprimé');
+  refreshCurrentPage();
+}
+
+// ===== CHILD MODAL =====
+function openAddChildModal() {
+  document.getElementById('modalChildTitle').textContent = 'Ajouter un enfant';
+  document.getElementById('childName').value = '';
+  document.getElementById('childBirthdate').value = '';
+  document.getElementById('childPhoto').value = '';
+  document.getElementById('editChildId').value = '';
+  document.getElementById('btnDeleteChild').style.display = 'none';
+  document.querySelectorAll('input[name="childGender"]').forEach(r => r.checked = r.value === 'F');
+  document.querySelectorAll('.radio-opt').forEach(o => {
+    o.classList.toggle('selected', o.querySelector('input')?.value === 'F');
+  });
+  openModal('modalChild');
+}
+
+function editChild(id) {
+  const child = children.find(c => c.id === id);
+  if (!child) return;
+  document.getElementById('modalChildTitle').textContent = 'Modifier le profil';
+  document.getElementById('childName').value = child.name;
+  document.getElementById('childBirthdate').value = child.birthdate;
+  document.getElementById('childPhoto').value = child.photo_url || '';
+  document.getElementById('editChildId').value = id;
+  document.getElementById('btnDeleteChild').style.display = '';
+  document.querySelectorAll('input[name="childGender"]').forEach(r => r.checked = r.value === child.gender);
+  document.querySelectorAll('.radio-opt').forEach(o => {
+    const v = o.querySelector('input[name="childGender"]')?.value;
+    if (v) o.classList.toggle('selected', v === child.gender);
+  });
+  openModal('modalChild');
+}
+
+async function saveChild() {
+  const name = document.getElementById('childName').value.trim();
+  const birthdate = document.getElementById('childBirthdate').value;
+  const photo_url = document.getElementById('childPhoto').value.trim() || null;
+  const genderEl = document.querySelector('input[name="childGender"]:checked');
+  const gender = genderEl ? genderEl.value : 'F';
+  const editId = document.getElementById('editChildId').value;
+
+  if (!name || !birthdate) { showToast('Prénom et date requis'); return; }
+
+  const payload = { name, birthdate, gender, photo_url, user_id: currentUserId };
+  let err, data;
+  if (editId) {
+    ({ error: err } = await sb.from('babydaybook_children').update(payload).eq('id', editId));
+  } else {
+    ({ error: err, data } = await sb.from('babydaybook_children').insert(payload).select().single());
+  }
+  if (err) { showToast('Erreur: ' + err.message); return; }
+  closeModal('modalChild');
+  showToast('✅ Enregistré');
+  await loadChildren();
+  if (!editId && data) { currentChildId = data.id; renderTopbarProfiles(); renderDashboard(); }
+}
+
+async function deleteChild() {
+  const id = document.getElementById('editChildId').value;
+  if (!id || !confirm('Supprimer cet enfant et toutes ses données ?')) return;
+  await sb.from('babydaybook_events').delete().eq('child_id', id);
+  await sb.from('babydaybook_measurements').delete().eq('child_id', id);
+  await sb.from('babydaybook_vaccines').delete().eq('child_id', id);
+  await sb.from('babydaybook_children').delete().eq('id', id);
+  closeModal('modalChild');
+  showToast('🗑️ Enfant supprimé');
+  currentChildId = null;
+  await loadChildren();
+  if (children.length > 0) currentChildId = children[0].id;
+  renderTopbarProfiles();
+  renderDashboard();
+}
+
+// ===== MEASURE MODAL =====
+function openMeasureModal(metric) {
+  const now = new Date().toISOString().split('T')[0];
+  document.getElementById('currentMeasureMetric').value = metric;
+  document.getElementById('editMeasureId').value = '';
+  document.getElementById('measureDate').value = now;
+  document.getElementById('measureValue').value = '';
+  document.getElementById('measureNotes').value = '';
+  const labels = { weight: '⚖️ Poids (kg)', height: '📏 Taille (cm)', head: '🎯 Périmètre crânien (cm)' };
+  document.getElementById('modalMeasureTitle').textContent = 'Ajouter · ' + (labels[metric] || metric);
+  document.getElementById('measureValueLabel').textContent = labels[metric] || metric;
+  openModal('modalMeasure');
+}
+
+function editMeasure(id, metric, value, date, notes) {
+  document.getElementById('currentMeasureMetric').value = metric;
+  document.getElementById('editMeasureId').value = id;
+  document.getElementById('measureDate').value = date;
+  document.getElementById('measureValue').value = value;
+  document.getElementById('measureNotes').value = notes;
+  const labels = { weight: '⚖️ Poids (kg)', height: '📏 Taille (cm)', head: '🎯 Périmètre crânien (cm)' };
+  document.getElementById('modalMeasureTitle').textContent = 'Modifier · ' + (labels[metric] || metric);
+  document.getElementById('measureValueLabel').textContent = labels[metric] || metric;
+  openModal('modalMeasure');
+}
+
+async function saveMeasure() {
+  const metric = document.getElementById('currentMeasureMetric').value;
+  const value = parseFloat(document.getElementById('measureValue').value);
+  const date = document.getElementById('measureDate').value;
+  const notes = document.getElementById('measureNotes').value;
+  const editId = document.getElementById('editMeasureId').value;
+
+  if (!value || !date) { showToast('Valeur et date requises'); return; }
+
+  const payload = { child_id: currentChildId, user_id: currentUserId, metric, value, measured_at: date, notes: notes || null };
+  let err;
+  if (editId) {
+    ({ error: err } = await sb.from('babydaybook_measurements').update(payload).eq('id', editId));
+  } else {
+    ({ error: err } = await sb.from('babydaybook_measurements').insert(payload));
+  }
+  if (err) { showToast('Erreur: ' + err.message); return; }
+  closeModal('modalMeasure');
+  showToast('✅ Mesure enregistrée');
+  refreshCurrentPage();
+}
+
+async function deleteMeasure(id) {
+  if (!confirm('Supprimer cette mesure ?')) return;
+  await sb.from('babydaybook_measurements').delete().eq('id', id);
+  showToast('🗑️ Supprimé');
+  renderGrowth();
+}
+
+// ===== VACCINE MODAL =====
+function openVaccineModal() {
+  document.getElementById('vaxName').value = '';
+  document.getElementById('vaxDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('vaxNextDate').value = '';
+  document.getElementById('vaxNotes').value = '';
+  document.getElementById('editVaxId').value = '';
+  document.getElementById('btnDeleteVax').style.display = 'none';
+  openModal('modalVaccine');
+}
+
+function editVaccineModal(id, name, date, nextDate, notes) {
+  document.getElementById('vaxName').value = name;
+  document.getElementById('vaxDate').value = date;
+  document.getElementById('vaxNextDate').value = nextDate;
+  document.getElementById('vaxNotes').value = notes;
+  document.getElementById('editVaxId').value = id;
+  document.getElementById('btnDeleteVax').style.display = '';
+  openModal('modalVaccine');
+}
+
+async function saveVaccine() {
+  const name = document.getElementById('vaxName').value.trim();
+  const date = document.getElementById('vaxDate').value;
+  const nextDate = document.getElementById('vaxNextDate').value;
+  const notes = document.getElementById('vaxNotes').value;
+  const editId = document.getElementById('editVaxId').value;
+
+  if (!name || !date) { showToast('Nom et date requis'); return; }
+
+  const payload = {
+    child_id: currentChildId, user_id: currentUserId,
+    name, administered_at: date,
+    next_due_at: nextDate || null, notes: notes || null
+  };
+  let err;
+  if (editId) {
+    ({ error: err } = await sb.from('babydaybook_vaccines').update(payload).eq('id', editId));
+  } else {
+    ({ error: err } = await sb.from('babydaybook_vaccines').insert(payload));
+  }
+  if (err) { showToast('Erreur: ' + err.message); return; }
+  closeModal('modalVaccine');
+  showToast('✅ Vaccin enregistré');
+  renderProfile();
+}
+
+async function deleteVaccine(id) {
+  if (!confirm('Supprimer ce vaccin ?')) return;
+  await sb.from('babydaybook_vaccines').delete().eq('id', id);
+  closeModal('modalVaccine');
+  showToast('🗑️ Supprimé');
+  renderProfile();
+}
+
+// ===== MODAL HELPERS =====
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  // close on overlay click
+  document.getElementById(id).onclick = function(e) {
+    if (e.target === this) closeModal(id);
+  };
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function selectRadio(label, name, val) {
+  document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+    r.checked = r.value === val;
+    r.closest('.radio-opt').classList.toggle('selected', r.value === val);
+  });
+}
+
+// ===== HELPERS =====
+function eventMeta(type) {
+  const map = {
+    allaitement: { icon: '🤱', color: '#FFEBF0', label: 'Allaitement' },
+    biberon:     { icon: '🍼', color: '#E3F2FF', label: 'Biberon' },
+    repas:       { icon: '🥣', color: '#FFF3E0', label: 'Repas' },
+    couche:      { icon: '🚼', color: '#E8F5E9', label: 'Couche' },
+    sommeil:     { icon: '😴', color: '#EDE7F6', label: 'Sommeil' },
+    medicament:  { icon: '💊', color: '#FCE4EC', label: 'Médicament' },
+    rdv:         { icon: '🏥', color: '#F3E5F5', label: 'Rendez-vous' },
+    activite:    { icon: '🎮', color: '#E8EAF6', label: 'Activité' },
+    note:        { icon: '📝', color: '#FFFDE7', label: 'Note' },
+  };
+  return map[type] || { icon: '✨', color: '#F0F7FF', label: type };
+}
+
+function diaperLabel(type) {
+  return { wet: '💧 Urine', dirty: '💩 Selles', both: '🔄 Mixte' }[type] || type;
+}
+
+function computeAge(birthdate) {
+  if (!birthdate) return '';
+  const birth = new Date(birthdate);
+  const now = new Date();
+  const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  if (months < 1) {
+    const days = Math.floor((now - birth) / 86400000);
+    return `${days} jour${days > 1 ? 's' : ''}`;
+  }
+  if (months < 24) return `${months} mois`;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  return rem > 0 ? `${years} ans ${rem} mois` : `${years} ans`;
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  const parts = d.split('-');
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+function formatDateFull(d) {
+  const date = new Date(d + 'T12:00:00');
+  return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function timeSince(iso) {
+  if (!iso) return '—';
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 60) return `il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `il y a ${h}h${(m%60).toString().padStart(2,'0')}`;
+  return `il y a ${Math.floor(h/24)} j`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Close modals with Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+// Start app
+init();
+
+</script>
+</body>
+</html>
