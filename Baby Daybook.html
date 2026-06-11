@@ -361,7 +361,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.6.11.1046">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.6.11.1205">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -698,7 +698,7 @@ function renderMiniTimeline(events) {
   // Now line
   const nowDs = dateFR();
   const ds = dateFR(dashboardDate);
-  const nowFrac = (() => { const n=new Date(); const parts=n.toLocaleTimeString('fr-FR',{timeZone:TZ,hour:'2-digit',minute:'2-digit',hour12:false}).split(':'); return (parseInt(parts[0])*60+parseInt(parts[1]))/(24*60); })();
+  const nowFrac = (() => { const sv=new Date().toLocaleString('sv-SE',{timeZone:TZ}); const tp=(sv.split(' ')[1]||'0:0').split(':'); return (parseInt(tp[0])*60+parseInt(tp[1]))/(24*60); })();
   const nowLine = ds === nowDs ? `<div class="tl-now-line" style="left:${nowFrac*100}%"></div>` : '';
 
   return `<div class="mini-timeline-wrap">
@@ -812,8 +812,8 @@ function renderChronoRow(date, allEvents) {
   dayEvts.filter(e => e.type==='sommeil' && e.ended_at).forEach(e => {
     const s = timeToFrac(e.started_at);
     const en = timeToFrac(e.ended_at);
-    const eHour = parseInt(new Date(e.started_at).toLocaleString('fr-FR',{timeZone:TZ,hour:'2-digit',hour12:false}));
-    const isNight = eHour < 6 || eHour >= 21;
+    const eHourSv = parseInt((new Date(e.started_at).toLocaleString('sv-SE',{timeZone:TZ}).split(' ')[1]||'0:').split(':')[0]);
+    const isNight = eHourSv < 6 || eHourSv >= 21;
     barsHTML += `<div class="chrono-sleep-bar ${isNight?'night':''}" style="left:${s*100}%;width:${Math.max((en-s)*100,0.5)}%;"></div>`;
   });
 
@@ -879,7 +879,7 @@ async function renderStats() {
   const totalSleepH = (totalSleepMs/3600000).toFixed(1);
   let chartLabels=[], feedData=[], diaperData=[], sleepData=[];
   if (statsPeriod==='day') {
-    for (let h=0;h<24;h+=2) { chartLabels.push(`${h}h`); const he=evts.filter(e=>{const ePh=parseInt(new Date(e.started_at).toLocaleString('fr-FR',{timeZone:TZ,hour:'2-digit',hour12:false}));return ePh>=h&&ePh<h+2;}); feedData.push(he.filter(e=>['allaitement','biberon','repas'].includes(e.type)).length); diaperData.push(he.filter(e=>e.type==='couche').length); sleepData.push(he.filter(e=>e.type==='sommeil').length); }
+    for (let h=0;h<24;h+=2) { chartLabels.push(`${h}h`); const he=evts.filter(e=>{const sv=new Date(e.started_at).toLocaleString('sv-SE',{timeZone:TZ});const ePh=parseInt((sv.split(' ')[1]||'0:').split(':')[0]);return ePh>=h&&ePh<h+2;}); feedData.push(he.filter(e=>['allaitement','biberon','repas'].includes(e.type)).length); diaperData.push(he.filter(e=>e.type==='couche').length); sleepData.push(he.filter(e=>e.type==='sommeil').length); }
   } else {
     const dc = statsPeriod==='week'?7:30;
     for (let i=dc-1;i>=0;i--) { const d=new Date();d.setDate(d.getDate()-i);const ds2=dateFR(d); chartLabels.push(d.toLocaleDateString('fr-FR',{timeZone:TZ,day:'numeric',month:'numeric'})); const de=evts.filter(e=>isoDateFR(e.started_at)===ds2); feedData.push(de.filter(e=>['allaitement','biberon','repas'].includes(e.type)).length); diaperData.push(de.filter(e=>e.type==='couche').length); sleepData.push(de.filter(e=>e.type==='sommeil').length); }
@@ -1023,7 +1023,16 @@ async function renderEventForm(type, editId) {
   const started = ex.started_at ? localDTFR(new Date(ex.started_at)) : ldt;
   const ended = ex.ended_at ? localDTFR(new Date(ex.ended_at)) : '';
 
-  let html = `<div class="form-group"><label class="form-label">Heure de début</label><input class="form-input" type="datetime-local" id="evtStarted" value="${started}"></div>`;
+  // Split started into date + time parts for French display
+  const startedDate = started.slice(0,10); // YYYY-MM-DD
+  const startedTime = started.slice(11,16); // HH:MM
+  let html = `<div class="form-group"><label class="form-label">Heure de début</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <input class="form-input" type="date" id="evtStartedDate" value="${startedDate}">
+      <input class="form-input" type="time" id="evtStartedTime" value="${startedTime}">
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px" id="evtStartedDisplay">${displayDTFR(new Date(started))}</div>
+  </div>`;
 
   if (type === 'allaitement') {
     // Reset timers on open
@@ -1049,7 +1058,15 @@ async function renderEventForm(type, editId) {
   } else if (type==='couche') {
     html += `<div class="form-group"><label class="form-label">Type</label><div class="radio-group">${['wet','dirty','both'].map(dt=>`<label class="radio-opt ${(ex.diaper_type||'wet')===dt?'selected':''}" onclick="selectRadio(this,'diaperType','${dt}')"><input type="radio" name="diaperType" value="${dt}" ${(ex.diaper_type||'wet')===dt?'checked':''}> ${dt==='wet'?'💧 Urine':dt==='dirty'?'💩 Selles':'🔄 Mixte'}</label>`).join('')}</div></div>`;
   } else if (type==='sommeil') {
-    html += `<div class="form-group"><label class="form-label">Heure de fin</label><input class="form-input" type="datetime-local" id="evtEnded" value="${ended}"></div>`;
+    const endedDate = ended ? ended.slice(0,10) : '';
+    const endedTime = ended ? ended.slice(11,16) : '';
+    html += `<div class="form-group"><label class="form-label">Heure de fin</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <input class="form-input" type="date" id="evtEndedDate" value="${endedDate}">
+        <input class="form-input" type="time" id="evtEndedTime" value="${endedTime}">
+      </div>
+      ${ended ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">${displayDTFR(new Date(ended))}</div>` : ''}
+    </div>`;
     if (!editId) {
       html += `<div class="sleep-timer-display"><div class="sleep-timer-time" id="sleepTimerDisplay">00:00:00</div><div class="sleep-timer-label">Chrono en cours</div><div class="sleep-controls"><button class="sleep-btn-l" onclick="stopSleepTimer()">⏹ Arrêter</button><button class="sleep-btn-r" onclick="startSleepTimer()">▶ Démarrer</button></div></div>`;
     }
@@ -1108,8 +1125,10 @@ function updateBreastDisplay() {
 // ===== SLEEP TIMER =====
 function startSleepTimer() {
   sleepStartTime = new Date();
-  const el = document.getElementById('evtStarted');
-  if (el) el.value = localDTFR(sleepStartTime);
+  const ldt = localDTFR(sleepStartTime);
+  const elD = document.getElementById('evtStartedDate'), elT = document.getElementById('evtStartedTime');
+  if (elD) elD.value = ldt.slice(0,10);
+  if (elT) elT.value = ldt.slice(11,16);
   if (sleepTimer) clearInterval(sleepTimer);
   sleepTimer = setInterval(() => {
     const d = document.getElementById('sleepTimerDisplay'); if (!d) { clearInterval(sleepTimer); return; }
@@ -1120,17 +1139,23 @@ function startSleepTimer() {
 
 function stopSleepTimer() {
   if (sleepTimer) clearInterval(sleepTimer);
-  const el = document.getElementById('evtEnded');
-  if (el) el.value = localDTFR();
+  const ldt2 = localDTFR();
+  const elD2 = document.getElementById('evtEndedDate'), elT2 = document.getElementById('evtEndedTime');
+  if (elD2) elD2.value = ldt2.slice(0,10);
+  if (elT2) elT2.value = ldt2.slice(11,16);
 }
 
 // ===== SAVE EVENT =====
 async function saveEvent(type) {
-  const startedEl = document.getElementById('evtStarted');
-  if (!startedEl||!startedEl.value) { showToast('Indiquez une heure de début'); return; }
-  const payload = { child_id:currentChildId, user_id:currentUserId, type, started_at:new Date(startedEl.value).toISOString() };
-  const endedEl = document.getElementById('evtEnded');
-  if (endedEl&&endedEl.value) payload.ended_at = new Date(endedEl.value).toISOString();
+  const startedDate = document.getElementById('evtStartedDate')?.value;
+  const startedTime = document.getElementById('evtStartedTime')?.value;
+  if (!startedDate || !startedTime) { showToast('Indiquez une heure de début'); return; }
+  // Parse as Paris local time -> UTC ISO
+  const startedISO = parisLocalToISO(startedDate, startedTime);
+  const payload = { child_id:currentChildId, user_id:currentUserId, type, started_at: startedISO };
+  const endedDate = document.getElementById('evtEndedDate')?.value;
+  const endedTime = document.getElementById('evtEndedTime')?.value;
+  if (endedDate && endedTime) payload.ended_at = parisLocalToISO(endedDate, endedTime);
 
   if (type === 'allaitement') {
     // Compute durations from timers
@@ -1325,36 +1350,70 @@ function nowFR() { return new Date(); }
 // Returns YYYY-MM-DD in Paris timezone
 function dateFR(d) {
   const dt = d || new Date();
-  return dt.toLocaleDateString('fr-FR', {timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit'})
-    .split('/').reverse().join('-'); // DD/MM/YYYY -> YYYY-MM-DD
+  // sv-SE gives "YYYY-MM-DD HH:MM:SS" reliably
+  return dt.toLocaleString('sv-SE', {timeZone: TZ}).split(' ')[0];
 }
 
 // Returns YYYY-MM-DDTHH:MM for datetime-local input in Paris tz
 function localDTFR(d) {
   const dt = d || new Date();
-  const [day, month, year] = dt.toLocaleDateString('fr-FR', {timeZone:TZ, year:'numeric', month:'2-digit', day:'2-digit'}).split('/');
-  const [hour, min] = dt.toLocaleTimeString('fr-FR', {timeZone:TZ, hour:'2-digit', minute:'2-digit', hour12:false}).split(':');
-  return `${year}-${month}-${day}T${hour}:${min}`;
+  const svStr = dt.toLocaleString('sv-SE', {timeZone: TZ}); // "YYYY-MM-DD HH:MM:SS"
+  return svStr.slice(0, 16).replace(' ', 'T'); // "YYYY-MM-DDTHH:MM"
 }
 
-// Returns seconds-since-midnight in Paris tz for a given ISO string
+// Returns DD/MM/YYYY HH:MM display string in Paris tz
+function displayDTFR(isoOrDate) {
+  const dt = typeof isoOrDate === 'string' ? new Date(isoOrDate) : (isoOrDate || new Date());
+  const sv = dt.toLocaleString('sv-SE', {timeZone: TZ}); // "YYYY-MM-DD HH:MM:SS"
+  const [date, time] = sv.split(' ');
+  const [y, m, day] = date.split('-');
+  return `${day}/${m}/${y} ${time.slice(0,5)}`;
+}
+
+// Returns fraction of Paris day (0..1) for a given ISO string
 function timeToFrac(iso) {
   const d = new Date(iso);
-  const parts = d.toLocaleTimeString('fr-FR', {timeZone:TZ, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false}).split(':');
-  const h = parseInt(parts[0]), m = parseInt(parts[1]), s = parseInt(parts[2]||0);
-  return (h*3600 + m*60 + s) / 86400;
+  // Get Paris offset in ms using a reliable method
+  const utcMs = d.getTime();
+  // Format as sv-SE (YYYY-MM-DD HH:MM:SS) in Paris TZ to extract hours reliably
+  const svStr = d.toLocaleString('sv-SE', {timeZone: TZ}); // "2024-06-11 14:30:00"
+  const timePart = svStr.split(' ')[1] || '00:00:00';
+  const [h, m, s] = timePart.split(':').map(Number);
+  return (h * 3600 + m * 60 + s) / 86400;
 }
 
 // Returns HH:MM string in Paris tz
 function formatTime(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleTimeString('fr-FR', {timeZone:TZ, hour:'2-digit', minute:'2-digit'});
+  const svStr = new Date(iso).toLocaleString('sv-SE', {timeZone: TZ}); // "2024-06-11 14:30:00"
+  return (svStr.split(' ')[1] || '00:00').slice(0, 5);
 }
 
 // Returns Paris date string YYYY-MM-DD from ISO
 function isoDateFR(iso) {
   if (!iso) return '';
   return dateFR(new Date(iso));
+}
+
+// Converts Paris local date+time (YYYY-MM-DD, HH:MM) to UTC ISO string
+function parisLocalToISO(dateStr, timeStr) {
+  // We create a date assuming Paris timezone by computing the offset
+  const tempStr = dateStr + 'T' + timeStr + ':00';
+  // Use sv-SE of a reference point to get the Paris offset for this date
+  const refDate = new Date(dateStr + 'T12:00:00Z');
+  const svRef = refDate.toLocaleString('sv-SE', {timeZone: TZ});
+  const utcH = 12;
+  const parisH = parseInt(svRef.split(' ')[1].split(':')[0]);
+  const offsetH = ((parisH - utcH + 24) % 24);
+  // Build as UTC: Paris HH:MM - offset = UTC HH:MM
+  const [inputH, inputM] = timeStr.split(':').map(Number);
+  const utcMinutesTotal = inputH * 60 + inputM - offsetH * 60;
+  const utcDayOffset = Math.floor(utcMinutesTotal / (24 * 60));
+  const utcMins = ((utcMinutesTotal % (24 * 60)) + 24 * 60) % (24 * 60);
+  const utcH2 = Math.floor(utcMins / 60), utcM2 = utcMins % 60;
+  const baseDate = new Date(dateStr + 'T00:00:00Z');
+  baseDate.setDate(baseDate.getDate() + utcDayOffset);
+  return new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth(), baseDate.getUTCDate(), utcH2, utcM2, 0)).toISOString();
 }
 
 // Returns [startISO, endISO] UTC strings for a Paris-local date string YYYY-MM-DD
