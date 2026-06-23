@@ -1054,17 +1054,34 @@ function toast(msg, type='success') {
 }
 
 // ══════════════════════════════════════════════════════════════
-// BOOT — Initialisation après chargement de LOGAN Guard
+// BOOT — Attend que le guard LOGAN soit terminé avant de démarrer
 // ══════════════════════════════════════════════════════════════
 function bootApp() {
   initApp().catch(() => showAccessDenied());
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootApp);
-} else {
-  bootApp();
-}
+// Le guard appelle window.__loganReady() quand il a fini (v4.1+)
+// Si le guard est déjà terminé avant ce script, on démarre immédiatement
+window.__loganReady = function() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootApp);
+  } else {
+    bootApp();
+  }
+};
+
+// Fallback : si le guard ne supporte pas __loganReady (vieille version cachée),
+// on attend 4s max puis on démarre quand même
+setTimeout(function() {
+  if (!window.LOGAN_USER_ID && !window.__loganReadyCalled) {
+    // Guard pas encore terminé — bootApp via initApp qui lira sb_session
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootApp);
+    } else {
+      bootApp();
+    }
+  }
+}, 4000);
 </script>
 </body>
 </html>
