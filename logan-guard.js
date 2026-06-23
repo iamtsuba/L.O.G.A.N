@@ -1,5 +1,5 @@
 /**
- * L.O.G.A.N Guard — v3.0
+ * L.O.G.A.N Guard — v3.1
  * À placer en PREMIER dans le <head> de chaque app HTML.
  * Chemin : https://iamtsuba.github.io/L.O.G.A.N/logan-guard.js
  */
@@ -16,39 +16,36 @@
     document.documentElement.style.visibility = '';
   }
 
-  // Écran unique : "Accès impossible sans authentification sur L.O.G.A.N."
   function showBlocked(message) {
     document.documentElement.style.visibility = '';
     document.body.innerHTML = `
       <style>
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
-          background:#f7f6f3;display:flex;align-items:center;justify-content:center;
+          background:#1a1a18;display:flex;align-items:center;justify-content:center;
           min-height:100vh;padding:1.5rem;}
-        .logan-block-card{background:#fff;border-radius:18px;padding:2.5rem 2rem;
+        .logan-block-card{background:#242420;border-radius:18px;padding:2.5rem 2rem;
           max-width:400px;width:100%;text-align:center;
-          box-shadow:0 8px 40px rgba(0,0,0,.10);border:.5px solid rgba(0,0,0,.08);}
-        .logan-block-icon{width:64px;height:64px;border-radius:14px;
-          background:#fdf0ef;display:flex;align-items:center;justify-content:center;
-          margin:0 auto 1.25rem;font-size:32px;}
-        .logan-block-card h2{font-size:21px;color:#1a1a18;margin-bottom:10px;
+          box-shadow:0 8px 40px rgba(0,0,0,.4);border:.5px solid rgba(255,255,255,.08);}
+        .logan-block-icon{font-size:48px;margin-bottom:1.25rem;}
+        .logan-block-card h2{font-size:20px;color:#f0ede6;margin-bottom:10px;
           font-weight:700;line-height:1.3;}
-        .logan-block-card p{font-size:14px;color:#6b6b66;margin-bottom:1.75rem;
+        .logan-block-card p{font-size:13px;color:#9b9b8e;margin-bottom:1.75rem;
           line-height:1.6;}
         .logan-block-card a{display:inline-block;padding:12px 28px;
-          background:#1a1a18;color:#fff;border-radius:9px;text-decoration:none;
+          background:#e8563a;color:#fff;border-radius:9px;text-decoration:none;
           font-size:14px;font-weight:600;transition:opacity .15s;}
         .logan-block-card a:hover{opacity:.85;}
       </style>
       <div class="logan-block-card">
         <div class="logan-block-icon">🔒</div>
-        <h2>Accès impossible sans authentification sur L.O.G.A.N.</h2>
+        <h2>Accès impossible<br>sans authentification sur<br><span style="color:#e8563a">L.O.G.A.N.</span></h2>
         <p>${message}</p>
-        <a href="${LOGAN_URL}">Se connecter à L.O.G.A.N</a>
+        <a href="${LOGAN_URL}">Accéder à L.O.G.A.N →</a>
       </div>`;
   }
 
-  // ── 1. Récupérer la session ────────────────────────────────────────────────
+  // ── 1. Récupérer la session (URL params en priorité, sinon localStorage) ──
   let session = null;
   const params     = new URLSearchParams(window.location.search);
   const urlToken   = params.get('logan_token');
@@ -80,8 +77,9 @@
     return;
   }
 
-  // ── 2. Rafraîchir le token si ancien (> 55 min) ─────────────────────────────
-  const ageMin = (Date.now() - (session.savedAt || 0)) / 60000;
+  // ── 2. Rafraîchir le token si nécessaire ────────────────────────────────
+  // savedAt absent ou invalide → on tente le refresh immédiatement
+  const ageMin = session.savedAt ? (Date.now() - session.savedAt) / 60000 : 999;
   if (ageMin > 55 && session.refreshToken) {
     try {
       const res  = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
@@ -90,17 +88,21 @@
         body: JSON.stringify({ refresh_token: session.refreshToken })
       });
       const data = await res.json();
-      if (!res.ok || !data.access_token) throw new Error('refresh failed');
-      session = { token: data.access_token, refreshToken: data.refresh_token, user: data.user, savedAt: Date.now() };
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      if (res.ok && data.access_token) {
+        session = { token: data.access_token, refreshToken: data.refresh_token || session.refreshToken, user: data.user || session.user, savedAt: Date.now() };
+        try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e) {}
+      } else {
+        // Refresh échoué mais on a quand même un token — on tente de continuer
+        // (le token original est peut-être encore valide < 1h)
+        session.savedAt = Date.now();
+        try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e) {}
+      }
     } catch(e) {
-      try { localStorage.removeItem(SESSION_KEY); } catch(_) {}
-      showBlocked("Votre session a expiré. Veuillez vous reconnecter à L.O.G.A.N.");
-      return;
+      // Erreur réseau → on laisse passer avec le token existant
     }
   }
 
-  // ── 3. Vérification de la licence (active) ─────────────────────────────────
+  // ── 3. Vérification de la licence (active) ────────────────────────────────
   try {
     const res  = await fetch(
       SUPABASE_URL + '/rest/v1/user_apps?user_id=eq.' + session.user.id + '&select=active',
@@ -113,12 +115,11 @@
         return;
       }
     }
-    // Pas de ligne user_apps = accès accordé par défaut
   } catch(e) {
-    // Erreur réseau : on laisse passer plutôt que bloquer abusivement
+    // Erreur réseau : on laisse passer
   }
 
-  // ── 4. Exposer les variables LOGAN et afficher la page ─────────────────────
+  // ── 4. Exposer les variables LOGAN et afficher la page ───────────────────
   window.LOGAN_USER_ID = session.user.id;
   window.LOGAN_TOKEN   = session.token;
   window.LOGAN_USER    = session.user;
