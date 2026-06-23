@@ -5,29 +5,7 @@
   <script src="https://iamtsuba.github.io/L.O.G.A.N/logan-guard.js"></script>
   <meta name="file-version" content="Version 26.06.05.1200">
 
-  <script>
-  (async function ensureLogan() {
-    let attempt = 0;
-    while (!window.LOGAN_USER_ID && attempt < 20) {
-      await new Promise(r => setTimeout(r, 100));
-      attempt++;
-    }
-    if (!window.LOGAN_USER_ID) {
-      function showLoganAccessError() {
-        document.body.innerHTML = `
-          <div style="width:100%;height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0f;color:#e8e8f0;font-family:system-ui,Arial,Helvetica,sans-serif;flex-direction:column;gap:24px;padding:20px;text-align:center;">
-            <div style="font-size:64px;opacity:0.3;">🔐</div>
-            <div style="font-size:24px;font-weight:700;">Accès refusé</div>
-            <div style="color:#6b6b80;max-width:440px;line-height:1.6;">
-              Cette app requiert un accès via le catalogue LOGAN.<br>
-              <a href="https://iamtsuba.github.io/L.O.G.A.N" style="color:#c8f04a;text-decoration:none;font-weight:500;">Retourner à LOGAN →</a>
-            </div>
-          </div>`;
-      }
-      showLoganAccessError();
-    }
-  })();
-  </script>
+
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
