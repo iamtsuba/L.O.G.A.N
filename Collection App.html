@@ -1054,34 +1054,40 @@ function toast(msg, type='success') {
 }
 
 // ══════════════════════════════════════════════════════════════
-// BOOT — Attend que le guard LOGAN soit terminé avant de démarrer
+// BOOT — Polling simple : attend LOGAN_USER_ID puis démarre
 // ══════════════════════════════════════════════════════════════
-function bootApp() {
-  initApp().catch(() => showAccessDenied());
-}
+(function waitForLogan() {
+  var elapsed = 0;
+  var interval = setInterval(function() {
+    elapsed += 100;
 
-// Le guard appelle window.__loganReady() quand il a fini (v4.1+)
-// Si le guard est déjà terminé avant ce script, on démarre immédiatement
-window.__loganReady = function() {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootApp);
-  } else {
-    bootApp();
-  }
-};
-
-// Fallback : si le guard ne supporte pas __loganReady (vieille version cachée),
-// on attend 4s max puis on démarre quand même
-setTimeout(function() {
-  if (!window.LOGAN_USER_ID && !window.__loganReadyCalled) {
-    // Guard pas encore terminé — bootApp via initApp qui lira sb_session
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', bootApp);
-    } else {
-      bootApp();
+    // Cas 1 : guard a injecté LOGAN_USER_ID
+    if (window.LOGAN_USER_ID) {
+      clearInterval(interval);
+      initApp().catch(function() { showAccessDenied(); });
+      return;
     }
-  }
-}, 4000);
+
+    // Cas 2 : timeout 5s — tenter depuis sb_session
+    if (elapsed >= 5000) {
+      clearInterval(interval);
+      try {
+        var raw = localStorage.getItem('sb_session');
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          if (parsed && parsed.user && parsed.user.id) {
+            window.LOGAN_USER_ID = parsed.user.id;
+            window.LOGAN_TOKEN   = parsed.token;
+            window.LOGAN_USER    = parsed.user;
+            initApp().catch(function() { showAccessDenied(); });
+            return;
+          }
+        }
+      } catch(e) {}
+      showAccessDenied();
+    }
+  }, 100);
+})();
 </script>
 </body>
 </html>
