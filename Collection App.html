@@ -335,14 +335,29 @@ function getTypeLabel(typeId) {
 // INIT — Attend LOGAN Guard et lance l'app
 // ══════════════════════════════════════════════════════════════
 async function initApp() {
-  // Attendre que le guard LOGAN ait injecté window.LOGAN_USER_ID (max 2s)
+  // 1. Attendre que le guard LOGAN ait injecté window.LOGAN_USER_ID (max 3s)
   let attempt = 0;
-  while (!window.LOGAN_USER_ID && attempt < 20) {
+  while (!window.LOGAN_USER_ID && attempt < 30) {
     await new Promise(r => setTimeout(r, 100));
     attempt++;
   }
 
-  // Vérifier que le token LOGAN est présent
+  // 2. Si pas injecté, lire depuis localStorage (clé sb_session du guard v4)
+  if (!window.LOGAN_USER_ID) {
+    try {
+      const raw = localStorage.getItem('sb_session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.user && parsed.user.id) {
+          window.LOGAN_USER_ID = parsed.user.id;
+          window.LOGAN_TOKEN   = parsed.token;
+          window.LOGAN_USER    = parsed.user;
+        }
+      }
+    } catch(_) {}
+  }
+
+  // 3. Si toujours rien → bloquer
   if (!window.LOGAN_USER_ID) {
     showAccessDenied();
     return;
