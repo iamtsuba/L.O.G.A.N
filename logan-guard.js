@@ -1,7 +1,13 @@
 /**
- * L.O.G.A.N Guard — v3.1
- * À placer en PREMIER dans le <head> de chaque app HTML.
- * Chemin : https://iamtsuba.github.io/L.O.G.A.N/logan-guard.js
+ * L.O.G.A.N Guard — v4.0
+ * À placer en PREMIER dans le <head> de chaque sous-app.
+ * Chemin : /L.O.G.A.N/logan-guard.js
+ *
+ * Comportement :
+ *  1. Cherche une session (params URL → localStorage 'sb_session')
+ *  2. Si trouvée et valide → injecte window.LOGAN_USER_ID et laisse passer
+ *  3. Si absente → affiche un formulaire de connexion email/mot de passe
+ *     (identique à celui de L.O.G.A.N). Après connexion réussie → recharge.
  */
 (async function loganGuard() {
 
@@ -10,13 +16,41 @@
   const LOGAN_URL    = 'https://iamtsuba.github.io/L.O.G.A.N';
   const SESSION_KEY  = 'sb_session';
 
+  // Masquer la page le temps de vérifier la session
   document.documentElement.style.visibility = 'hidden';
 
   function allow() {
     document.documentElement.style.visibility = '';
   }
 
-  function showBlocked(message) {
+  // ── Helper fetch Supabase ──
+  async function sbAuth(path, body) {
+    const res = await fetch(SUPABASE_URL + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.msg || data.message || 'Erreur de connexion');
+    return data;
+  }
+
+  function saveSession(user, token, refreshToken) {
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ user, token, refreshToken, savedAt: Date.now() }));
+    } catch(e) {}
+  }
+
+  // ── Expose la session et lance l'app ──
+  function applySession(session) {
+    window.LOGAN_USER_ID = session.user.id;
+    window.LOGAN_TOKEN   = session.token;
+    window.LOGAN_USER    = session.user;
+    allow();
+  }
+
+  // ── Écran de connexion (style L.O.G.A.N) ──
+  function showLogin(prefillMsg) {
     document.documentElement.style.visibility = '';
     document.body.innerHTML = `
       <style>
@@ -24,29 +58,83 @@
         body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
           background:#1a1a18;display:flex;align-items:center;justify-content:center;
           min-height:100vh;padding:1.5rem;}
-        .logan-block-card{background:#242420;border-radius:18px;padding:2.5rem 2rem;
-          max-width:400px;width:100%;text-align:center;
+        .lg-card{background:#242420;border-radius:18px;padding:2.5rem 2rem;
+          max-width:380px;width:100%;text-align:center;
           box-shadow:0 8px 40px rgba(0,0,0,.4);border:.5px solid rgba(255,255,255,.08);}
-        .logan-block-icon{font-size:48px;margin-bottom:1.25rem;}
-        .logan-block-card h2{font-size:20px;color:#f0ede6;margin-bottom:10px;
-          font-weight:700;line-height:1.3;}
-        .logan-block-card p{font-size:13px;color:#9b9b8e;margin-bottom:1.75rem;
-          line-height:1.6;}
-        .logan-block-card a{display:inline-block;padding:12px 28px;
-          background:#e8563a;color:#fff;border-radius:9px;text-decoration:none;
-          font-size:14px;font-weight:600;transition:opacity .15s;}
-        .logan-block-card a:hover{opacity:.85;}
+        .lg-logo{font-size:22px;font-weight:800;color:#f0ede6;letter-spacing:1px;margin-bottom:6px;}
+        .lg-logo span{color:#e8563a;}
+        .lg-sub{font-size:13px;color:#9b9b8e;margin-bottom:1.75rem;}
+        .lg-field{margin-bottom:14px;text-align:left;}
+        .lg-field label{display:block;font-size:12px;color:#9b9b8e;margin-bottom:5px;}
+        .lg-field input{width:100%;padding:12px 14px;border-radius:9px;
+          border:1px solid #3a3a34;background:#1a1a18;color:#f0ede6;font-size:14px;outline:none;}
+        .lg-field input:focus{border-color:#e8563a;}
+        .lg-btn{width:100%;padding:13px;background:#e8563a;color:#fff;border:none;
+          border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:6px;}
+        .lg-btn:hover{opacity:.9;}
+        .lg-btn:disabled{opacity:.5;cursor:not-allowed;}
+        .lg-msg{font-size:13px;margin-top:12px;min-height:18px;}
+        .lg-msg.err{color:#ff6b6b;}
+        .lg-link{display:block;margin-top:18px;font-size:12px;color:#9b9b8e;text-decoration:none;}
+        .lg-link:hover{color:#e8563a;}
+        .lg-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
+          border-top-color:#fff;border-radius:50%;animation:lgspin .6s linear infinite;vertical-align:middle;}
+        @keyframes lgspin{to{transform:rotate(360deg);}}
       </style>
-      <div class="logan-block-card">
-        <div class="logan-block-icon">🔒</div>
-        <h2>Accès impossible<br>sans authentification sur<br><span style="color:#e8563a">L.O.G.A.N.</span></h2>
-        <p>${message}</p>
-        <a href="${LOGAN_URL}">Accéder à L.O.G.A.N →</a>
+      <div class="lg-card">
+        <div class="lg-logo">L.<span>O</span>.G.<span>A</span>.N</div>
+        <div class="lg-sub">Connectez-vous pour accéder à cette application</div>
+        <div class="lg-field">
+          <label>Email</label>
+          <input type="email" id="lg-email" autocomplete="username" placeholder="vous@exemple.com"/>
+        </div>
+        <div class="lg-field">
+          <label>Mot de passe</label>
+          <input type="password" id="lg-pwd" autocomplete="current-password" placeholder="••••••••"/>
+        </div>
+        <button class="lg-btn" id="lg-submit">Se connecter</button>
+        <div class="lg-msg" id="lg-msg">${prefillMsg || ''}</div>
+        <a class="lg-link" href="${LOGAN_URL}">← Retour au catalogue L.O.G.A.N</a>
       </div>`;
+
+    const emailEl = document.getElementById('lg-email');
+    const pwdEl   = document.getElementById('lg-pwd');
+    const btnEl   = document.getElementById('lg-submit');
+    const msgEl   = document.getElementById('lg-msg');
+
+    async function doLogin() {
+      const email = emailEl.value.trim();
+      const pwd   = pwdEl.value;
+      msgEl.className = 'lg-msg';
+      msgEl.textContent = '';
+      if (!email || !pwd) { msgEl.className = 'lg-msg err'; msgEl.textContent = 'Veuillez remplir tous les champs.'; return; }
+      btnEl.disabled = true;
+      btnEl.innerHTML = '<span class="lg-spin"></span>';
+      try {
+        const data = await sbAuth('/auth/v1/token?grant_type=password', { email, password: pwd });
+        const session = { user: data.user, token: data.access_token, refreshToken: data.refresh_token, savedAt: Date.now() };
+        saveSession(session.user, session.token, session.refreshToken);
+        // Recharger la page : le guard retrouvera la session dans localStorage
+        location.reload();
+      } catch(e) {
+        msgEl.className = 'lg-msg err';
+        msgEl.textContent = /invalid/i.test(e.message) ? 'Email ou mot de passe incorrect.' : e.message;
+        btnEl.disabled = false;
+        btnEl.textContent = 'Se connecter';
+      }
+    }
+
+    btnEl.addEventListener('click', doLogin);
+    [emailEl, pwdEl].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); }));
+    emailEl.focus();
   }
 
-  // ── 1. Récupérer la session (URL params en priorité, sinon localStorage) ──
+  // ════════════════════════════════════════════════════
+  //  1. Récupérer la session
+  // ════════════════════════════════════════════════════
   let session = null;
+
+  // 1a. Params URL (passés par L.O.G.A.N via window.open)
   const params     = new URLSearchParams(window.location.search);
   const urlToken   = params.get('logan_token');
   const urlRefresh = params.get('logan_refresh');
@@ -54,7 +142,8 @@
 
   if (urlToken && urlUser) {
     session = { token: urlToken, refreshToken: urlRefresh || '', user: { id: urlUser }, savedAt: Date.now() };
-    try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e) {}
+    saveSession(session.user, session.token, session.refreshToken);
+    // Nettoyer l'URL
     try {
       const clean = new URL(window.location.href);
       clean.searchParams.delete('logan_token');
@@ -64,65 +153,75 @@
     } catch(e) {}
   }
 
+  // 1b. localStorage (session existante, partagée avec L.O.G.A.N)
   if (!session) {
     try {
       const raw = localStorage.getItem(SESSION_KEY);
-      if (raw) session = JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.token && parsed.user && parsed.user.id) {
+          session = parsed;
+        }
+      }
     } catch(e) {}
   }
 
-  // Aucune session → bloqué
-  if (!session || !session.token || !session.user || !session.user.id) {
-    showBlocked("Vous devez d'abord vous connecter à votre tableau de bord L.O.G.A.N pour accéder à cette application.");
+  // ════════════════════════════════════════════════════
+  //  2. Aucune session → formulaire de connexion
+  // ════════════════════════════════════════════════════
+  if (!session) {
+    showLogin();
     return;
   }
 
-  // ── 2. Rafraîchir le token si nécessaire ────────────────────────────────
-  // savedAt absent ou invalide → on tente le refresh immédiatement
+  // ════════════════════════════════════════════════════
+  //  3. Rafraîchir le token si vieux (> 55 min)
+  // ════════════════════════════════════════════════════
   const ageMin = session.savedAt ? (Date.now() - session.savedAt) / 60000 : 999;
   if (ageMin > 55 && session.refreshToken) {
     try {
-      const res  = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
-        body: JSON.stringify({ refresh_token: session.refreshToken })
-      });
-      const data = await res.json();
-      if (res.ok && data.access_token) {
-        session = { token: data.access_token, refreshToken: data.refresh_token || session.refreshToken, user: data.user || session.user, savedAt: Date.now() };
-        try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e) {}
-      } else {
-        // Refresh échoué mais on a quand même un token — on tente de continuer
-        // (le token original est peut-être encore valide < 1h)
-        session.savedAt = Date.now();
-        try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e) {}
+      const data = await sbAuth('/auth/v1/token?grant_type=refresh_token', { refresh_token: session.refreshToken });
+      if (data.access_token) {
+        session = {
+          token: data.access_token,
+          refreshToken: data.refresh_token || session.refreshToken,
+          user: data.user || session.user,
+          savedAt: Date.now()
+        };
+        saveSession(session.user, session.token, session.refreshToken);
       }
     } catch(e) {
-      // Erreur réseau → on laisse passer avec le token existant
+      // Refresh échoué → la session est probablement expirée → reconnexion
+      try { localStorage.removeItem(SESSION_KEY); } catch(_) {}
+      showLogin('Votre session a expiré, veuillez vous reconnecter.');
+      return;
     }
   }
 
-  // ── 3. Vérification de la licence (active) ────────────────────────────────
+  // ════════════════════════════════════════════════════
+  //  4. Vérification licence (active) — non bloquant si erreur réseau
+  // ════════════════════════════════════════════════════
   try {
-    const res  = await fetch(
+    const res = await fetch(
       SUPABASE_URL + '/rest/v1/user_apps?user_id=eq.' + session.user.id + '&select=active',
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + session.token } }
     );
     const rows = await res.json();
-    if (res.ok && rows && rows.length > 0 && rows[0].active !== null && rows[0].active !== undefined) {
+    if (res.ok && Array.isArray(rows) && rows.length > 0 && rows[0].active !== null && rows[0].active !== undefined) {
       if (Number(rows[0].active) === 0) {
-        showBlocked("Votre licence n'est plus valide. Veuillez contacter l'administrateur L.O.G.A.N.");
+        document.documentElement.style.visibility = '';
+        document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1a1a18;color:#f0ede6;font-family:system-ui,sans-serif;text-align:center;padding:2rem;">
+          <div><div style="font-size:48px;margin-bottom:1rem;">🔒</div>
+          <h2 style="margin-bottom:8px;">Licence inactive</h2>
+          <p style="color:#9b9b8e;font-size:14px;">Contactez l'administrateur L.O.G.A.N.</p></div></div>`;
         return;
       }
     }
-  } catch(e) {
-    // Erreur réseau : on laisse passer
-  }
+  } catch(e) { /* erreur réseau → on laisse passer */ }
 
-  // ── 4. Exposer les variables LOGAN et afficher la page ───────────────────
-  window.LOGAN_USER_ID = session.user.id;
-  window.LOGAN_TOKEN   = session.token;
-  window.LOGAN_USER    = session.user;
-  allow();
+  // ════════════════════════════════════════════════════
+  //  5. Tout est OK → exposer la session et afficher l'app
+  // ════════════════════════════════════════════════════
+  applySession(session);
 
 })();
