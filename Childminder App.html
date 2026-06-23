@@ -1330,60 +1330,62 @@ function initSupabase() {
 
 // ── Résolution du currentUserId via LOGAN ──
 async function resolveLoganUserId() {
-  // 1. Priorité : window.LOGAN_USER_ID injecté par LOGAN
+  // 1. Priorité : window.LOGAN_USER_ID injecté par le guard
   if (window.LOGAN_USER_ID) {
     currentUserId = window.LOGAN_USER_ID;
-    // Tenter aussi de récupérer la session Supabase pour les opérations authentifiées
+    currentUser = window.LOGAN_USER || null;
+    // Tenter de restaurer la session Supabase depuis sb_session
     await trySetSupabaseSession();
     await startApp();
     return;
   }
 
-  // 2. Tenter de récupérer via la session Supabase existante
-  const { data: { session } } = await sbClient.auth.getSession();
-  if (session?.user) {
-    currentUser = session.user;
-    currentUserId = session.user.id;
-    await startApp();
-    return;
-  }
-
-  // 3. Tenter via localStorage logan_session
+  // 2. Lire la session depuis localStorage (clé 'sb_session' utilisée par le guard v4)
   try {
-    const raw = localStorage.getItem('logan_session');
+    const raw = localStorage.getItem('sb_session');
     if (raw) {
       const parsed = JSON.parse(raw);
-      const { data, error } = await sbClient.auth.setSession(parsed);
-      if (!error && data?.user) {
-        currentUser = data.user;
-        currentUserId = data.user.id;
+      if (parsed && parsed.user && parsed.user.id) {
+        currentUserId = parsed.user.id;
+        currentUser = parsed.user;
+        // Restaurer la session Supabase avec le token
+        if (parsed.token) {
+          try {
+            const { data } = await sbClient.auth.setSession({
+              access_token: parsed.token,
+              refresh_token: parsed.refreshToken || ''
+            });
+            if (data?.user) currentUser = data.user;
+          } catch(_) {}
+        }
         await startApp();
         return;
       }
     }
   } catch (_) {}
 
-  // 4. Chercher le user_id dans user_apps en fonction du token URL (si logan-guard a injecté)
-  // Tenter via window.LOGAN_TOKEN
-  if (window.LOGAN_TOKEN) {
-    const uid = await getUserIdFromToken(window.LOGAN_TOKEN);
-    if (uid) {
-      currentUserId = uid;
+  // 3. Tenter via la session Supabase native
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session?.user) {
+      currentUser = session.user;
+      currentUserId = session.user.id;
       await startApp();
       return;
     }
-  }
+  } catch(_) {}
 
-  // 5. Aucune session → page de blocage LOGAN
+  // 4. Aucune session → le guard affiche déjà le formulaire de connexion
+  // On attend que LOGAN_USER_ID soit injecté (cas rare)
   showLoganRequired();
 }
 
 async function trySetSupabaseSession() {
   try {
-    const raw = localStorage.getItem('logan_session');
+    const raw = localStorage.getItem('sb_session');
     if (raw) {
       const parsed = JSON.parse(raw);
-      const { data } = await sbClient.auth.setSession(parsed);
+      const { data } = await sbClient.auth.setSession({ access_token: parsed.token || '', refresh_token: parsed.refreshToken || '' });
       if (data?.user) { currentUser = data.user; }
     }
   } catch (_) {}
