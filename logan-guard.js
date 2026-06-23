@@ -223,5 +223,7 @@
   //  5. Tout est OK → exposer la session et afficher l'app
   // ════════════════════════════════════════════════════
   applySession(session);
+  // Notifier l'app que le guard est prêt
+  if (typeof window.__loganReady === 'function') window.__loganReady();
 
 })();
