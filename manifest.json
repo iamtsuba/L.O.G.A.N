@@ -1,0 +1,24 @@
+{
+  "name": "L.O.G.A.N",
+  "short_name": "L.O.G.A.N",
+  "description": "Linked Organization & Gateway for Apps Network",
+  "start_url": "/L.O.G.A.N/",
+  "scope": "/L.O.G.A.N/",
+  "display": "standalone",
+  "background_color": "#f7f6f3",
+  "theme_color": "#1a1a18",
+  "icons": [
+    {
+      "src": "/L.O.G.A.N/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/L.O.G.A.N/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
