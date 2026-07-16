@@ -193,7 +193,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         👗 BabyVinted
         <span class="topbar-sub" id="topbar-count"></span>
       </div>
-      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1742">L.O.G.A.N</a>
+      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1743">L.O.G.A.N</a>
     </div>
   </div>
 
@@ -289,29 +289,24 @@ let formPhotos = []; // Array of {dataUrl, file}
 
 // ── INIT ──
 async function init() {
-  let uid = window.LOGAN_USER_ID || null;
-  if (!uid) {
-    for (let i = 0; i < 20; i++) {
-      await new Promise(r => setTimeout(r, 100));
-      if (window.LOGAN_USER_ID) { uid = window.LOGAN_USER_ID; break; }
-    }
+  // Attendre que logan-guard.js injecte window.LOGAN_USER_ID (max 2s)
+  for (let i = 0; i < 20; i++) {
+    if (window.LOGAN_USER_ID) break;
+    await new Promise(r => setTimeout(r, 100));
   }
-  if (!uid) {
-    // Fallback: chercher via user_apps
-    const { data } = await sb.from('user_apps').select('user_id').contains('app_ids', [APP_FILE]).limit(1);
-    if (data && data.length > 0) uid = data[0].user_id;
-  }
-  currentUserId = uid;
-  if (!currentUserId) {
+
+  if (!window.LOGAN_USER_ID) {
     document.getElementById('loader').innerHTML = `
       <div style="text-align:center;padding:40px;color:var(--t2)">
         <div style="font-size:48px;margin-bottom:16px">🔒</div>
-        <h2 style="font-size:20px;font-weight:800;margin-bottom:8px">Accès impossible</h2>
-        <p style="font-size:14px;margin-bottom:20px">Authentification requise sur L.O.G.A.N.</p>
-        <a href="https://iamtsuba.github.io/L.O.G.A.N" style="background:var(--teal);color:white;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700">Retour à L.O.G.A.N</a>
+        <h2 style="font-size:20px;font-weight:800;margin-bottom:8px">Accès impossible sans authentification sur L.O.G.A.N.</h2>
+        <p style="font-size:14px;margin-bottom:20px">Cette app requiert un accès via le catalogue LOGAN.</p>
+        <a href="https://iamtsuba.github.io/L.O.G.A.N" style="background:var(--teal);color:white;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700">Se connecter à L.O.G.A.N</a>
       </div>`;
     return;
   }
+
+  currentUserId = window.LOGAN_USER_ID;
 
   await loadItems();
   document.getElementById('loader').style.display = 'none';
