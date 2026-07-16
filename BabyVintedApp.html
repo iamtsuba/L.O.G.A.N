@@ -218,7 +218,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <span class="topbar-sub" id="topbar-count"></span>
       </div>
       <span id="topbar-email" style="font-size:11px;color:rgba(255,255,255,.8);font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none"></span>
-      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1802">L.O.G.A.N</a>
+      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1804">L.O.G.A.N</a>
     </div>
   </div>
 
@@ -710,52 +710,43 @@ async function shareToVinted(id) {
   if (!item) return;
 
   const text = [
-    `👗 ${item.name}`,
+    `${item.name}`,
     `Marque : ${item.brand}`,
     `Taille : ${item.size}`,
     item.description ? `\n${item.description}` : ''
   ].filter(Boolean).join('\n');
 
-  const photos = item.photos || [];
-
-  // Tenter Web Share API (mobile) avec photos
-  if (navigator.share) {
-    try {
-      const shareData = { title: item.name, text };
-      // Joindre les photos si possible (fichiers blob)
-      if (photos.length > 0 && navigator.canShare) {
-        const files = [];
-        for (let i = 0; i < Math.min(photos.length, 5); i++) {
-          try {
-            const res = await fetch(photos[i]);
-            const blob = await res.blob();
-            files.push(new File([blob], `photo_${i+1}.jpg`, { type: 'image/jpeg' }));
-          } catch(_) {}
-        }
-        if (files.length > 0 && navigator.canShare({ files })) {
-          shareData.files = files;
-        }
-      }
-      await navigator.share(shareData);
-      toast('Partagé !');
-      return;
-    } catch(e) {
-      if (e.name === 'AbortError') return; // utilisateur a annulé
-    }
-  }
-
-  // Fallback desktop : copier dans le presse-papier
+  // Copier le texte dans le presse-papier
   try {
     await navigator.clipboard.writeText(text);
-    toast('📋 Texte copié ! Collez-le dans la description Vinted.');
   } catch(_) {
-    // Fallback ultime
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    } catch(_) {}
+  }
+
+  // Tenter d'ouvrir l'app Vinted via deep link
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    // Deep link Vinted → ouvre l'app si installée
+    const deepLink = 'vinted://www.vinted.fr/items/new';
+    const fallback = 'https://www.vinted.fr/items/new';
+
+    // Ouvrir le deep link, fallback sur le site après 1.5s si l'app ne répond pas
+    const start = Date.now();
+    const timer = setTimeout(() => {
+      if (Date.now() - start < 2000) window.location.href = fallback;
+    }, 1500);
+    window.location.href = deepLink;
+    // Annuler le fallback si l'app a pris la main (page se cache)
+    window.addEventListener('blur', () => clearTimeout(timer), { once: true });
+
+    toast('📋 Texte copié ! Collez-le dans la description.');
+  } else {
+    // Desktop : juste ouvrir Vinted dans un nouvel onglet
+    window.open('https://www.vinted.fr/items/new', '_blank');
     toast('📋 Texte copié ! Collez-le dans la description Vinted.');
   }
 }
