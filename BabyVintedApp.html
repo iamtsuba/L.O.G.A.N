@@ -193,7 +193,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         👗 BabyVinted
         <span class="topbar-sub" id="topbar-count"></span>
       </div>
-      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1738">L.O.G.A.N</a>
+      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1742">L.O.G.A.N</a>
     </div>
   </div>
 
@@ -228,8 +228,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <input class="form-input" id="f-size" type="text" placeholder="Ex: 3 mois, 74cm, 12M…">
     </div>
     <div class="form-group">
-      <label class="form-label" for="f-desc">Description (optionnel)</label>
-      <textarea class="form-input" id="f-desc" rows="2" placeholder="État, couleur, détails…" style="resize:none"></textarea>
+      <label class="form-label" for="f-description">Description (optionnel)</label>
+      <textarea class="form-input" id="f-description" rows="2" placeholder="État, couleur, détails…" style="resize:none"></textarea>
     </div>
 
     <!-- PHOTOS -->
@@ -339,7 +339,7 @@ async function saveItem() {
   const name  = document.getElementById('f-name').value.trim();
   const brand = document.getElementById('f-brand').value.trim();
   const size  = document.getElementById('f-size').value.trim();
-  const desc  = document.getElementById('f-desc').value.trim();
+  const description = document.getElementById('f-description').value.trim();
   if (!name || !brand || !size) { toast('Nom, marque et taille sont requis.', true); return; }
 
   // Upload photos to Supabase Storage
@@ -360,7 +360,7 @@ async function saveItem() {
 
   const payload = {
     user_id: currentUserId,
-    name, brand, size, desc,
+    name, brand, size, description,
     photos: photoUrls,
     updated_at: new Date().toISOString()
   };
@@ -419,7 +419,7 @@ function renderList() {
         ${thumb}
         <div class="item-info">
           <div class="item-name">${esc(item.name)}</div>
-          <div class="item-meta">${esc(item.brand)}${item.desc ? ' · ' + esc(item.desc.slice(0,40)) + (item.desc.length>40?'…':'') : ''}</div>
+          <div class="item-meta">${esc(item.brand)}${item.description ? ' · ' + esc(item.description.slice(0,40)) + (item.description.length>40?'…':'') : ''}</div>
           <div class="item-size-badge">${esc(item.size)}</div>
         </div>
         <button class="btn-download" onclick="event.stopPropagation();downloadPhotos('${item.id}')" title="Télécharger les photos">
@@ -458,9 +458,9 @@ function openDetail(id) {
         <div class="detail-field-label">Taille</div>
         <div class="detail-field-value">${esc(item.size)}</div>
       </div>
-      ${item.desc ? `<div class="detail-field" style="grid-column:1/-1">
+      ${item.description ? `<div class="detail-field" style="grid-column:1/-1">
         <div class="detail-field-label">Description</div>
-        <div class="detail-field-value">${esc(item.desc)}</div>
+        <div class="detail-field-value">${esc(item.description)}</div>
       </div>` : ''}
     </div>
     <div class="detail-actions">
@@ -484,7 +484,7 @@ function openCreate() {
   document.getElementById('f-name').value = '';
   document.getElementById('f-brand').value = '';
   document.getElementById('f-size').value = '';
-  document.getElementById('f-desc').value = '';
+  document.getElementById('f-description').value = '';
   document.getElementById('formModalTitle').textContent = 'Nouvel article';
   renderPhotoGrid();
   openModal('formModal');
@@ -498,7 +498,7 @@ function openEdit(id) {
   document.getElementById('f-name').value = item.name || '';
   document.getElementById('f-brand').value = item.brand || '';
   document.getElementById('f-size').value = item.size || '';
-  document.getElementById('f-desc').value = item.desc || '';
+  document.getElementById('f-description').value = item.description || '';
   document.getElementById('formModalTitle').textContent = 'Modifier l\'article';
   renderPhotoGrid();
   closeModal('detailModal');
