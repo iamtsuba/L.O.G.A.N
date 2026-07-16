@@ -123,9 +123,18 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 /* DETAIL VIEW */
 .detail-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:20px}
-.detail-photo{aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--teal-light);cursor:pointer}
+.detail-photo{aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--teal-light);cursor:pointer;position:relative}
 .detail-photo img{width:100%;height:100%;object-fit:cover;transition:transform .2s}
 .detail-photo:hover img{transform:scale(1.05)}
+.detail-photo .del-photo{position:absolute;top:4px;right:4px;background:rgba(183,28,28,.85);
+  color:#fff;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;
+  font-size:14px;display:none;align-items:center;justify-content:center;line-height:1;z-index:2}
+.detail-photos.edit-mode .del-photo{display:flex}
+.detail-photos.edit-mode .detail-photo img{opacity:.85}
+.btn-edit-photos{background:var(--teal-light);color:var(--teal-dark);border:1.5px solid var(--teal-mid);
+  padding:7px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;cursor:pointer;
+  font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s;margin-bottom:12px}
+.btn-edit-photos.active{background:#FFEBEE;color:#D32F2F;border-color:#FFCDD2}
 .detail-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
 .detail-field{background:var(--s2);border-radius:var(--radius-sm);padding:10px 12px}
 .detail-field-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
@@ -194,7 +203,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <span class="topbar-sub" id="topbar-count"></span>
       </div>
       <span id="topbar-email" style="font-size:11px;color:rgba(255,255,255,.8);font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none"></span>
-      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1751">L.O.G.A.N</a>
+      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1755">L.O.G.A.N</a>
     </div>
   </div>
 
@@ -436,21 +445,68 @@ function updateCount() {
 }
 
 // ── DETAIL ──
+let detailEditPhotos = false;
+let currentDetailId = null;
+
+function renderDetailPhotos(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  const photos = item.photos || [];
+  const grid = document.getElementById('detail-photo-grid');
+  if (!grid) return;
+  grid.className = 'detail-photos' + (detailEditPhotos ? ' edit-mode' : '');
+  if (photos.length === 0) {
+    grid.innerHTML = '<p style="color:var(--t3);font-size:14px;grid-column:1/-1">Aucune photo</p>';
+    return;
+  }
+  grid.innerHTML = photos.map((u, i) => `
+    <div class="detail-photo">
+      <img src="${esc(u)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"
+        ${detailEditPhotos ? '' : `onclick="openLightbox('${esc(u)}')"`}>
+      <button class="del-photo" onclick="deletePhoto('${id}',${i})" title="Supprimer">✕</button>
+    </div>`).join('');
+  const btn = document.getElementById('btn-edit-photos');
+  if (btn) {
+    btn.textContent = detailEditPhotos ? '✓ Terminer' : '🗑 Supprimer des photos';
+    btn.className = 'btn-edit-photos' + (detailEditPhotos ? ' active' : '');
+  }
+}
+
+async function deletePhoto(id, index) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  const photos = [...(item.photos || [])];
+  photos.splice(index, 1);
+  const { error } = await sb.from('babyvinted_items')
+    .update({ photos, updated_at: new Date().toISOString() })
+    .eq('id', id).eq('user_id', currentUserId);
+  if (error) { toast('Erreur : ' + error.message, true); return; }
+  item.photos = photos;
+  renderList();
+  renderDetailPhotos(id);
+  if (photos.length === 0) {
+    document.getElementById('btn-edit-photos') && document.getElementById('btn-edit-photos').remove();
+    detailEditPhotos = false;
+  }
+  toast('Photo supprimée.');
+}
+
+function toggleDetailEditPhotos(id) {
+  detailEditPhotos = !detailEditPhotos;
+  renderDetailPhotos(id);
+}
+
 function openDetail(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
-
+  currentDetailId = id;
+  detailEditPhotos = false;
   const photos = item.photos || [];
-  const photosHtml = photos.length > 0
-    ? `<div class="detail-photos">${photos.map((u,i) =>
-        `<div class="detail-photo" onclick="openLightbox('${esc(u)}')" >
-          <img src="${esc(u)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'">
-        </div>`).join('')}</div>`
-    : `<p style="color:var(--t3);font-size:14px;margin-bottom:16px">Aucune photo</p>`;
 
   document.getElementById('detailContent').innerHTML = `
     <div class="modal-title">${esc(item.name)}</div>
-    ${photosHtml}
+    ${photos.length > 0 ? `<button class="btn-edit-photos" id="btn-edit-photos" onclick="toggleDetailEditPhotos('${id}')">🗑 Supprimer des photos</button>` : ''}
+    <div class="detail-photos" id="detail-photo-grid"></div>
     <div class="detail-fields">
       <div class="detail-field">
         <div class="detail-field-label">Marque</div>
@@ -471,6 +527,7 @@ function openDetail(id) {
       ${photos.length > 0 ? `<button class="btn-primary" onclick="downloadPhotos('${id}')" style="flex:1">📥 Photos</button>` : ''}
     </div>`;
 
+  renderDetailPhotos(id);
   openModal('detailModal');
 }
 
