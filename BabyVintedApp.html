@@ -193,7 +193,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         👗 BabyVinted
         <span class="topbar-sub" id="topbar-count"></span>
       </div>
-      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1743">L.O.G.A.N</a>
+      <span id="topbar-email" style="font-size:11px;color:rgba(255,255,255,.8);font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none"></span>
+      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1744">L.O.G.A.N</a>
     </div>
   </div>
 
@@ -307,6 +308,16 @@ async function init() {
   }
 
   currentUserId = window.LOGAN_USER_ID;
+
+  // Récupérer l'email depuis la session Supabase
+  try {
+    const raw = localStorage.getItem('sb_session');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const email = parsed?.user?.email;
+      if (email) { const el = document.getElementById('topbar-email'); el.textContent = email; el.style.display = 'block'; }
+    }
+  } catch(_) {}
 
   await loadItems();
   document.getElementById('loader').style.display = 'none';
