@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BabyVinted</title>
+<!-- LOGAN Guard en premier -->
+<script src="/L.O.G.A.N/logan-guard.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#009688;
+  --teal-dark:#00695C;
+  --teal-light:#E0F2F1;
+  --teal-mid:#B2DFDB;
+  --bg:#F5F5F5;
+  --surface:#FFFFFF;
+  --s2:#FAFAFA;
+  --border:#E0E0E0;
+  --text:#212121;
+  --t2:#616161;
+  --t3:#9E9E9E;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow:0 2px 8px rgba(0,150,136,.10);
+  --shadow-card:0 4px 20px rgba(0,150,136,.12);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* LOADER */
+#loader{position:fixed;inset:0;background:linear-gradient(135deg,#E0F2F1 0%,#f5f5f5 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px}
+#loader .l-icon{font-size:56px;animation:bounce .9s infinite}
+#loader p{color:var(--teal-dark);font-weight:600;font-size:15px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh}
+#app.ready{display:flex}
+
+/* TOPBAR */
+.topbar{background:var(--teal);padding:12px 16px;position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.topbar-inner{max-width:800px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.topbar-title{flex:1;font-size:18px;font-weight:800;color:#fff;letter-spacing:-.3px}
+.topbar-sub{font-size:11px;font-weight:500;color:rgba(255,255,255,.75);display:block;margin-top:1px}
+.btn-logan{background:rgba(0,0,0,.18);color:#fff;border:1.5px solid rgba(255,255,255,.3);
+  padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;
+  text-decoration:none;letter-spacing:.3px;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.btn-logan:hover{background:rgba(0,0,0,.30)}
+
+/* MAIN */
+.main{flex:1;max-width:800px;margin:0 auto;width:100%;padding:16px}
+
+/* SEARCH / FILTER BAR */
+.search-bar{display:flex;gap:8px;margin-bottom:16px}
+.search-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;background:var(--surface);
+  transition:border-color .2s}
+.search-input:focus{border-color:var(--teal)}
+.btn-add{background:var(--teal);color:#fff;border:none;padding:10px 18px;border-radius:var(--radius-sm);
+  font-size:14px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;
+  display:flex;align-items:center;gap:6px;transition:background .2s;white-space:nowrap;flex-shrink:0}
+.btn-add:hover{background:var(--teal-dark)}
+
+/* LIST */
+.item-list{display:flex;flex-direction:column;gap:10px}
+.item-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;
+  transition:box-shadow .2s,transform .15s;border:1.5px solid transparent}
+.item-card:hover{box-shadow:var(--shadow-card);border-color:var(--teal-mid);transform:translateY(-1px)}
+.item-thumb{width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--teal-light);
+  display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden}
+.item-thumb img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-meta{font-size:12px;color:var(--t2);margin-top:3px}
+.item-size-badge{display:inline-block;background:var(--teal-light);color:var(--teal-dark);
+  padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;margin-top:5px}
+.btn-download{background:var(--teal-light);color:var(--teal-dark);border:none;padding:8px 12px;
+  border-radius:var(--radius-sm);font-size:12px;font-weight:700;cursor:pointer;
+  font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.btn-download:hover{background:var(--teal-mid)}
+
+/* EMPTY STATE */
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center;gap:12px}
+.empty-state .es-icon{font-size:64px}
+.empty-state h3{font-size:20px;font-weight:800}
+.empty-state p{font-size:14px;color:var(--t2);max-width:260px;line-height:1.6}
+
+/* MODAL OVERLAY */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:600px;
+  max-height:92vh;overflow-y:auto;padding:24px 20px 32px;transform:translateY(100%);transition:transform .3s ease}
+.modal-overlay.open .modal-sheet{transform:translateY(0)}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:20px;color:var(--text)}
+
+/* FORM */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.form-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;transition:border-color .2s;background:var(--surface)}
+.form-input:focus{border-color:var(--teal)}
+
+/* PHOTOS SECTION */
+.photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px;margin-top:8px}
+.photo-slot{aspect-ratio:1;border-radius:10px;overflow:hidden;position:relative;background:var(--teal-light)}
+.photo-slot img{width:100%;height:100%;object-fit:cover}
+.photo-slot .remove-photo{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);
+  color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;
+  font-size:14px;display:flex;align-items:center;justify-content:center;line-height:1}
+.photo-add-btn{aspect-ratio:1;border-radius:10px;border:2px dashed var(--teal-mid);
+  background:var(--teal-light);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;cursor:pointer;font-size:24px;color:var(--teal);transition:all .2s;font-family:'Plus Jakarta Sans',sans-serif}
+.photo-add-btn:hover{background:var(--teal-mid)}
+.photo-add-btn span{font-size:10px;font-weight:700;color:var(--teal-dark)}
+
+/* DETAIL VIEW */
+.detail-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:20px}
+.detail-photo{aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--teal-light);cursor:pointer}
+.detail-photo img{width:100%;height:100%;object-fit:cover;transition:transform .2s}
+.detail-photo:hover img{transform:scale(1.05)}
+.detail-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.detail-field{background:var(--s2);border-radius:var(--radius-sm);padding:10px 12px}
+.detail-field-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.detail-field-value{font-size:14px;font-weight:600;color:var(--text)}
+.detail-actions{display:flex;gap:10px}
+
+/* BUTTONS */
+.btn-primary{background:var(--teal);color:#fff;border:none;padding:13px;border-radius:var(--radius);
+  font-size:15px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;
+  width:100%;transition:background .2s}
+.btn-primary:hover{background:var(--teal-dark)}
+.btn-secondary{background:var(--s2);color:var(--text);border:1.5px solid var(--border);padding:13px;
+  border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;
+  font-family:'Plus Jakarta Sans',sans-serif;flex:1;transition:all .2s}
+.btn-secondary:hover{background:var(--border)}
+.btn-danger{background:#FFEBEE;color:#D32F2F;border:1.5px solid #FFCDD2;padding:13px;
+  border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;
+  font-family:'Plus Jakarta Sans',sans-serif;flex:1;transition:all .2s}
+.btn-danger:hover{background:#FFCDD2}
+
+/* LIGHTBOX */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;
+  display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.lightbox.open{opacity:1;pointer-events:all}
+.lightbox img{max-width:95vw;max-height:92vh;border-radius:12px;object-fit:contain}
+.lightbox-close{position:absolute;top:16px;right:20px;background:none;border:none;
+  color:#fff;font-size:32px;cursor:pointer;line-height:1}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#323232;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;
+  font-weight:600;opacity:0;transition:all .3s;z-index:600;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* WELCOME MODAL */
+.welcome-modal{text-align:center;padding:20px 10px}
+.welcome-modal .w-icon{font-size:64px;margin-bottom:16px}
+.welcome-modal h2{font-size:22px;font-weight:800;margin-bottom:10px}
+.welcome-modal p{font-size:14px;color:var(--t2);line-height:1.6;margin-bottom:24px}
+
+/* LOADING SKELETON */
+.skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);
+  background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+@media(max-width:480px){
+  .detail-fields{grid-template-columns:1fr}
+  .item-card{padding:12px}
+  .topbar-inner{gap:8px}
+}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="l-icon">👗</div>
+  <p>Chargement de BabyVinted…</p>
+</div>
+
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-title">
+        👗 BabyVinted
+        <span class="topbar-sub" id="topbar-count"></span>
+      </div>
+      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1738">L.O.G.A.N</a>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="search-bar">
+      <input class="search-input" type="search" id="searchInput" placeholder="🔍 Rechercher…" oninput="renderList()">
+      <button class="btn-add" onclick="openCreate()">
+        <span>+</span> Ajouter
+      </button>
+    </div>
+    <div class="item-list" id="itemList"></div>
+  </div>
+</div>
+
+<!-- MODAL FORM (create/edit) -->
+<div class="modal-overlay" id="formModal" onclick="closeFormModal(event)">
+  <div class="modal-sheet" id="formSheet">
+    <div class="modal-handle"></div>
+    <div id="formModalTitle" class="modal-title">Nouvel article</div>
+
+    <div class="form-group">
+      <label class="form-label" for="f-name">Nom de l'article *</label>
+      <input class="form-input" id="f-name" type="text" placeholder="Ex: Body manche longue">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="f-brand">Marque *</label>
+      <input class="form-input" id="f-brand" type="text" placeholder="Ex: Petit Bateau">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="f-size">Taille *</label>
+      <input class="form-input" id="f-size" type="text" placeholder="Ex: 3 mois, 74cm, 12M…">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="f-desc">Description (optionnel)</label>
+      <textarea class="form-input" id="f-desc" rows="2" placeholder="État, couleur, détails…" style="resize:none"></textarea>
+    </div>
+
+    <!-- PHOTOS -->
+    <div class="form-group">
+      <label class="form-label">Photos (max 10)</label>
+      <div class="photos-grid" id="photoGrid"></div>
+    </div>
+
+    <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" multiple onchange="handlePhotoAdd(this)">
+
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn-secondary" onclick="closeFormModal()">Annuler</button>
+      <button class="btn-primary" onclick="saveItem()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL -->
+<div class="modal-overlay" id="detailModal" onclick="closeDetailModal(event)">
+  <div class="modal-sheet" id="detailSheet">
+    <div class="modal-handle"></div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- MODAL WELCOME -->
+<div class="modal-overlay" id="welcomeModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="welcome-modal">
+      <div class="w-icon">👗</div>
+      <h2>Bienvenue sur BabyVinted !</h2>
+      <p>Gérez facilement les vêtements de votre bébé à revendre.<br>Ajoutez vos articles avec photos, marque et taille.</p>
+      <button class="btn-primary" onclick="closeWelcome();openCreate()">Ajouter mon premier article</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
+const APP_FILE = 'BabyVintedApp.html';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUserId = null;
+let items = [];
+let editingId = null;
+let formPhotos = []; // Array of {dataUrl, file}
+
+// ── INIT ──
+async function init() {
+  let uid = window.LOGAN_USER_ID || null;
+  if (!uid) {
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      if (window.LOGAN_USER_ID) { uid = window.LOGAN_USER_ID; break; }
+    }
+  }
+  if (!uid) {
+    // Fallback: chercher via user_apps
+    const { data } = await sb.from('user_apps').select('user_id').contains('app_ids', [APP_FILE]).limit(1);
+    if (data && data.length > 0) uid = data[0].user_id;
+  }
+  currentUserId = uid;
+  if (!currentUserId) {
+    document.getElementById('loader').innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--t2)">
+        <div style="font-size:48px;margin-bottom:16px">🔒</div>
+        <h2 style="font-size:20px;font-weight:800;margin-bottom:8px">Accès impossible</h2>
+        <p style="font-size:14px;margin-bottom:20px">Authentification requise sur L.O.G.A.N.</p>
+        <a href="https://iamtsuba.github.io/L.O.G.A.N" style="background:var(--teal);color:white;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700">Retour à L.O.G.A.N</a>
+      </div>`;
+    return;
+  }
+
+  await loadItems();
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('app').classList.add('ready');
+
+  if (items.length === 0) {
+    openModal('welcomeModal');
+  }
+}
+
+// ── SUPABASE CRUD ──
+async function loadItems() {
+  const { data, error } = await sb
+    .from('babyvinted_items')
+    .select('*')
+    .eq('user_id', currentUserId)
+    .order('created_at', { ascending: false });
+  if (error) { toast('Erreur chargement : ' + error.message, true); return; }
+  items = data || [];
+  renderList();
+  updateCount();
+}
+
+async function saveItem() {
+  const name  = document.getElementById('f-name').value.trim();
+  const brand = document.getElementById('f-brand').value.trim();
+  const size  = document.getElementById('f-size').value.trim();
+  const desc  = document.getElementById('f-desc').value.trim();
+  if (!name || !brand || !size) { toast('Nom, marque et taille sont requis.', true); return; }
+
+  // Upload photos to Supabase Storage
+  const photoUrls = [];
+  for (const p of formPhotos) {
+    if (p.url) { photoUrls.push(p.url); continue; } // already saved
+    if (p.file) {
+      const ext = p.file.name.split('.').pop() || 'jpg';
+      const path = `${currentUserId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { data: upData, error: upErr } = await sb.storage
+        .from('babyvinted-photos')
+        .upload(path, p.file, { upsert: false });
+      if (upErr) { toast('Erreur upload photo : ' + upErr.message, true); continue; }
+      const { data: urlData } = sb.storage.from('babyvinted-photos').getPublicUrl(path);
+      photoUrls.push(urlData.publicUrl);
+    }
+  }
+
+  const payload = {
+    user_id: currentUserId,
+    name, brand, size, desc,
+    photos: photoUrls,
+    updated_at: new Date().toISOString()
+  };
+
+  let error;
+  if (editingId) {
+    ({ error } = await sb.from('babyvinted_items').update(payload).eq('id', editingId).eq('user_id', currentUserId));
+  } else {
+    payload.created_at = new Date().toISOString();
+    ({ error } = await sb.from('babyvinted_items').insert(payload));
+  }
+
+  if (error) { toast('Erreur : ' + error.message, true); return; }
+  toast(editingId ? 'Article modifié !' : 'Article ajouté !');
+  closeFormModal();
+  await loadItems();
+}
+
+async function deleteItem(id) {
+  if (!confirm('Supprimer cet article ?')) return;
+  const { error } = await sb.from('babyvinted_items').delete().eq('id', id).eq('user_id', currentUserId);
+  if (error) { toast('Erreur suppression : ' + error.message, true); return; }
+  toast('Article supprimé.');
+  closeDetailModal();
+  await loadItems();
+}
+
+// ── RENDER LIST ──
+function renderList() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const list = document.getElementById('itemList');
+  let filtered = items;
+  if (q) filtered = items.filter(i =>
+    (i.name||'').toLowerCase().includes(q) ||
+    (i.brand||'').toLowerCase().includes(q) ||
+    (i.size||'').toLowerCase().includes(q)
+  );
+
+  if (filtered.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="es-icon">${q ? '🔍' : '👗'}</div>
+        <h3>${q ? 'Aucun résultat' : 'Aucun article'}</h3>
+        <p>${q ? 'Essayez d\'autres mots-clés.' : 'Ajoutez votre premier article à revendre !'}</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(item => {
+    const firstPhoto = item.photos && item.photos.length > 0 ? item.photos[0] : null;
+    const thumb = firstPhoto
+      ? `<div class="item-thumb"><img src="${esc(firstPhoto)}" alt="" loading="lazy" onerror="this.parentElement.textContent='👗'"></div>`
+      : `<div class="item-thumb">👗</div>`;
+    return `
+      <div class="item-card" onclick="openDetail('${item.id}')">
+        ${thumb}
+        <div class="item-info">
+          <div class="item-name">${esc(item.name)}</div>
+          <div class="item-meta">${esc(item.brand)}${item.desc ? ' · ' + esc(item.desc.slice(0,40)) + (item.desc.length>40?'…':'') : ''}</div>
+          <div class="item-size-badge">${esc(item.size)}</div>
+        </div>
+        <button class="btn-download" onclick="event.stopPropagation();downloadPhotos('${item.id}')" title="Télécharger les photos">
+          📥 Photos
+        </button>
+      </div>`;
+  }).join('');
+}
+
+function updateCount() {
+  document.getElementById('topbar-count').textContent = items.length > 0 ? `${items.length} article${items.length>1?'s':''}` : '';
+}
+
+// ── DETAIL ──
+function openDetail(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  const photos = item.photos || [];
+  const photosHtml = photos.length > 0
+    ? `<div class="detail-photos">${photos.map((u,i) =>
+        `<div class="detail-photo" onclick="openLightbox('${esc(u)}')" >
+          <img src="${esc(u)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'">
+        </div>`).join('')}</div>`
+    : `<p style="color:var(--t3);font-size:14px;margin-bottom:16px">Aucune photo</p>`;
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="modal-title">${esc(item.name)}</div>
+    ${photosHtml}
+    <div class="detail-fields">
+      <div class="detail-field">
+        <div class="detail-field-label">Marque</div>
+        <div class="detail-field-value">${esc(item.brand)}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-field-label">Taille</div>
+        <div class="detail-field-value">${esc(item.size)}</div>
+      </div>
+      ${item.desc ? `<div class="detail-field" style="grid-column:1/-1">
+        <div class="detail-field-label">Description</div>
+        <div class="detail-field-value">${esc(item.desc)}</div>
+      </div>` : ''}
+    </div>
+    <div class="detail-actions">
+      <button class="btn-danger" onclick="deleteItem('${id}')">🗑 Supprimer</button>
+      <button class="btn-secondary" onclick="openEdit('${id}')">✏️ Modifier</button>
+      ${photos.length > 0 ? `<button class="btn-primary" onclick="downloadPhotos('${id}')" style="flex:1">📥 Photos</button>` : ''}
+    </div>`;
+
+  openModal('detailModal');
+}
+
+function closeDetailModal(e) {
+  if (e && e.target !== document.getElementById('detailModal')) return;
+  closeModal('detailModal');
+}
+
+// ── CREATE / EDIT ──
+function openCreate() {
+  editingId = null;
+  formPhotos = [];
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-brand').value = '';
+  document.getElementById('f-size').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('formModalTitle').textContent = 'Nouvel article';
+  renderPhotoGrid();
+  openModal('formModal');
+}
+
+function openEdit(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+  formPhotos = (item.photos || []).map(url => ({ url }));
+  document.getElementById('f-name').value = item.name || '';
+  document.getElementById('f-brand').value = item.brand || '';
+  document.getElementById('f-size').value = item.size || '';
+  document.getElementById('f-desc').value = item.desc || '';
+  document.getElementById('formModalTitle').textContent = 'Modifier l\'article';
+  renderPhotoGrid();
+  closeModal('detailModal');
+  openModal('formModal');
+}
+
+function closeFormModal(e) {
+  if (e && e.target !== document.getElementById('formModal')) return;
+  closeModal('formModal');
+}
+
+// ── PHOTOS ──
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  const MAX = 10;
+  let html = formPhotos.map((p, i) => {
+    const src = p.dataUrl || p.url || '';
+    return `<div class="photo-slot">
+      <img src="${esc(src)}" alt="" loading="lazy">
+      <button class="remove-photo" onclick="removePhoto(${i})">✕</button>
+    </div>`;
+  }).join('');
+  if (formPhotos.length < MAX) {
+    html += `<div class="photo-add-btn" onclick="document.getElementById('photoInput').click()">
+      📷<span>Ajouter</span>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function handlePhotoAdd(input) {
+  const MAX = 10;
+  const files = Array.from(input.files || []);
+  for (const file of files) {
+    if (formPhotos.length >= MAX) break;
+    const reader = new FileReader();
+    reader.onload = e => {
+      formPhotos.push({ file, dataUrl: e.target.result });
+      renderPhotoGrid();
+    };
+    reader.readAsDataURL(file);
+  }
+  input.value = '';
+}
+
+function removePhoto(index) {
+  formPhotos.splice(index, 1);
+  renderPhotoGrid();
+}
+
+// ── DOWNLOAD PHOTOS ──
+async function downloadPhotos(id) {
+  const item = items.find(i => i.id === id);
+  if (!item || !item.photos || item.photos.length === 0) { toast('Aucune photo à télécharger.', true); return; }
+  toast('Téléchargement en cours…');
+  for (let i = 0; i < item.photos.length; i++) {
+    try {
+      const resp = await fetch(item.photos[i]);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${item.name.replace(/[^a-z0-9]/gi,'_')}_photo${i+1}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      await new Promise(r => setTimeout(r, 300));
+    } catch(e) { console.error('Download error', e); }
+  }
+}
+
+// ── MODAL HELPERS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeWelcome() { closeModal('welcomeModal'); }
+
+// ── LIGHTBOX ──
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+// ── TOAST ──
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = (isError ? '⚠️ ' : '✅ ') + msg;
+  el.style.background = isError ? '#B71C1C' : '#323232';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── ESCAPE ──
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── START ──
+init();
+</script>
+</body>
+</html>
