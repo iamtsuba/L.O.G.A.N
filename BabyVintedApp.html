@@ -194,7 +194,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <span class="topbar-sub" id="topbar-count"></span>
       </div>
       <span id="topbar-email" style="font-size:11px;color:rgba(255,255,255,.8);font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none"></span>
-      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1744">L.O.G.A.N</a>
+      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1751">L.O.G.A.N</a>
     </div>
   </div>
 
@@ -348,19 +348,15 @@ async function saveItem() {
   const description = document.getElementById('f-description').value.trim();
   if (!name || !brand || !size) { toast('Nom, marque et taille sont requis.', true); return; }
 
-  // Upload photos to Supabase Storage
+  // Stocker les photos en base64 (dataUrl) directement dans la table
   const photoUrls = [];
   for (const p of formPhotos) {
-    if (p.url) { photoUrls.push(p.url); continue; } // already saved
-    if (p.file) {
-      const ext = p.file.name.split('.').pop() || 'jpg';
-      const path = `${currentUserId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const { data: upData, error: upErr } = await sb.storage
-        .from('babyvinted-photos')
-        .upload(path, p.file, { upsert: false });
-      if (upErr) { toast('Erreur upload photo : ' + upErr.message, true); continue; }
-      const { data: urlData } = sb.storage.from('babyvinted-photos').getPublicUrl(path);
-      photoUrls.push(urlData.publicUrl);
+    if (p.dataUrl) {
+      // Compresser l'image avant stockage
+      const compressed = await compressImage(p.dataUrl, 800, 0.75);
+      photoUrls.push(compressed);
+    } else if (p.url) {
+      photoUrls.push(p.url); // déjà sauvegardé
     }
   }
 
@@ -596,6 +592,25 @@ function toast(msg, isError = false) {
   el.style.background = isError ? '#B71C1C' : '#323232';
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── COMPRESS IMAGE ──
+function compressImage(dataUrl, maxSize, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else       { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataUrl;
+  });
 }
 
 // ── ESCAPE ──
