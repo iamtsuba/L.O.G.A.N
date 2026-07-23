@@ -68,7 +68,7 @@
         <h1>🎯 Prono My Baby</h1>
         <div style="display:flex;align-items:center;gap:10px">
         <button onclick="openAdmin()" style="padding:6px 14px;border:2px solid #c7abd9;background:white;color:#8b6f63;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">🔐 Admin</button>
-        <span class="version-badge">26.07.23.1540</span>
+        <span class="version-badge">26.07.23.1547</span>
     </div>
     </div>
 
@@ -219,16 +219,16 @@
     });
 
 
-    function openAdmin() {
+    window.openAdmin = function() {
         document.getElementById('pwdInput').value = '';
         document.getElementById('pwdError').style.display = 'none';
         document.getElementById('pwdOverlay').classList.add('show');
         setTimeout(function(){ document.getElementById('pwdInput').focus(); }, 100);
     }
-    function closePwd() {
+    window.closePwd = function() {
         document.getElementById('pwdOverlay').classList.remove('show');
     }
-    function checkPwd() {
+    window.checkPwd = function() {
         if (document.getElementById('pwdInput').value === 'thomarie') {
             closePwd();
             showAdminModal();
@@ -237,7 +237,7 @@
             document.getElementById('pwdInput').value = '';
         }
     }
-    async function showAdminModal() {
+    window.showAdminModal = async function() {
         document.getElementById('adminOverlay').classList.add('show');
         document.getElementById('adminContent').innerHTML = 'Chargement...';
         var res = await DB.from('pronobaby_votes').select('*').order('submitted_at', { ascending: true });
@@ -266,7 +266,7 @@
             '<tbody>' + rows + '</tbody></table>' +
             '<p style="margin-top:15px;color:#b5a5a0;font-size:12px;text-align:right">' + votes.length + ' pronostic' + (votes.length>1?'s':'') + ' au total</p>';
     }
-    function closeAdmin() {
+    window.closeAdmin = function() {
         document.getElementById('adminOverlay').classList.remove('show');
     }
 
