@@ -41,6 +41,24 @@
         .notice { background: #d4edda; border: 2px solid #28a745; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
         .notice.show { display: block; }
         .version-badge { font-size: 11px; color: #b5a5a0; background: white; padding: 4px 10px; border-radius: 20px; }
+
+        #adminOverlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
+        #adminOverlay.show { display:flex; }
+        #adminModal { background:white; border-radius:12px; padding:30px; width:90%; max-width:800px; max-height:80vh; overflow-y:auto; }
+        #adminModal h2 { color:#8b6f63; margin-bottom:20px; font-size:18px; }
+        #adminTable { width:100%; border-collapse:collapse; font-size:13px; }
+        #adminTable th { background:#f5e6db; color:#8b6f63; padding:10px; text-align:left; font-weight:600; }
+        #adminTable td { padding:10px; border-bottom:1px solid #f0e0d6; }
+        #adminTable tr:hover td { background:#fef9f6; }
+        .modal-close { float:right; background:#e8d4c8; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:600; color:#8b6f63; }
+        #pwdOverlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center; }
+        #pwdOverlay.show { display:flex; }
+        #pwdBox { background:white; border-radius:12px; padding:30px; width:300px; text-align:center; }
+        #pwdBox h3 { color:#8b6f63; margin-bottom:15px; }
+        #pwdInput { width:100%; padding:10px; border:2px solid #e8d4c8; border-radius:8px; font-size:14px; margin-bottom:10px; text-align:center; }
+        #pwdInput:focus { outline:none; border-color:#c7abd9; }
+        #pwdError { color:#dc3545; font-size:12px; margin-bottom:10px; display:none; }
+
         @media (max-width: 600px) { .form-row, .results-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -48,7 +66,10 @@
 <div class="container">
     <div class="header">
         <h1>🎯 Prono My Baby</h1>
-        <span class="version-badge">26.07.23.1538</span>
+        <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="openAdmin()" style="padding:6px 14px;border:2px solid #c7abd9;background:white;color:#8b6f63;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">🔐 Admin</button>
+        <span class="version-badge">26.07.23.1540</span>
+    </div>
     </div>
 
     <!-- PAGE ACCUEIL -->
@@ -153,7 +174,6 @@
         var avgH = (votes.reduce(function(s,v){ return s + (v.height||0); }, 0) / n).toFixed(1);
         var avgW = (votes.reduce(function(s,v){ return s + (v.weight||0); }, 0) / n).toFixed(2);
         var names = votes.map(function(v){ return v.first_name; }).filter(Boolean);
-        var topName = getMostCommon(names);
         var oui = votes.filter(function(v){ return v.conjoint === 'oui'; }).length;
         var pctOui = Math.round(oui / n * 100);
         var pctNon = 100 - pctOui;
@@ -161,8 +181,7 @@
         var median = sorted[Math.floor(sorted.length / 2)];
         var medStr = median ? median.toLocaleDateString('fr-FR') : '-';
         grid.innerHTML =
-            '<div class="result-card"><h3>Prénom le plus cité</h3><div class="result-value" style="font-size:24px">' + topName + '</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>' +
-            '<div class="result-card"><h3>Taille moyenne</h3><div class="result-value">' + avgH + '</div><div class="result-unit">cm</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>' +
+                        '<div class="result-card"><h3>Taille moyenne</h3><div class="result-value">' + avgH + '</div><div class="result-unit">cm</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>' +
             '<div class="result-card"><h3>Poids moyen</h3><div class="result-value">' + avgW + '</div><div class="result-unit">kg</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>' +
             '<div class="result-card"><h3>Date médiane</h3><div class="result-value" style="font-size:18px">' + medStr + '</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>' +
             '<div class="result-card"><h3>Conjoint présent</h3><div class="result-value">' + pctOui + '%</div><div class="result-unit">OUI — ' + pctNon + '% NON</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>';
@@ -199,8 +218,83 @@
         document.getElementById('alreadyVoted').style.display = 'block';
     });
 
+
+    function openAdmin() {
+        document.getElementById('pwdInput').value = '';
+        document.getElementById('pwdError').style.display = 'none';
+        document.getElementById('pwdOverlay').classList.add('show');
+        setTimeout(function(){ document.getElementById('pwdInput').focus(); }, 100);
+    }
+    function closePwd() {
+        document.getElementById('pwdOverlay').classList.remove('show');
+    }
+    function checkPwd() {
+        if (document.getElementById('pwdInput').value === 'thomarie') {
+            closePwd();
+            showAdminModal();
+        } else {
+            document.getElementById('pwdError').style.display = 'block';
+            document.getElementById('pwdInput').value = '';
+        }
+    }
+    async function showAdminModal() {
+        document.getElementById('adminOverlay').classList.add('show');
+        document.getElementById('adminContent').innerHTML = 'Chargement...';
+        var res = await DB.from('pronobaby_votes').select('*').order('submitted_at', { ascending: true });
+        var votes = res.data || [];
+        if (!votes.length) {
+            document.getElementById('adminContent').innerHTML = '<p style="color:#b5a5a0;text-align:center;padding:20px">Aucun vote pour le moment.</p>';
+            return;
+        }
+        var rows = votes.map(function(v, i) {
+            var date = v.birth_date ? new Date(v.birth_date).toLocaleDateString('fr-FR') : '-';
+            var sub = v.submitted_at ? new Date(v.submitted_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
+            return '<tr>' +
+                '<td style="font-weight:600">' + (i+1) + '</td>' +
+                '<td>' + (v.voter_name || '-') + '</td>' +
+                '<td>' + (v.first_name || '-') + '</td>' +
+                '<td>' + date + '</td>' +
+                '<td>' + (v.height || '-') + ' cm</td>' +
+                '<td>' + (v.weight || '-') + ' kg</td>' +
+                '<td>' + (v.conjoint ? v.conjoint.toUpperCase() : '-') + '</td>' +
+                '<td style="color:#b5a5a0;font-size:11px">' + sub + '</td>' +
+                '</tr>';
+        }).join('');
+        document.getElementById('adminContent').innerHTML =
+            '<table id="adminTable">' +
+            '<thead><tr><th>#</th><th>Votant</th><th>Prénom bébé</th><th>Date naissance</th><th>Taille</th><th>Poids</th><th>Conjoint</th><th>Voté le</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody></table>' +
+            '<p style="margin-top:15px;color:#b5a5a0;font-size:12px;text-align:right">' + votes.length + ' pronostic' + (votes.length>1?'s':'') + ' au total</p>';
+    }
+    function closeAdmin() {
+        document.getElementById('adminOverlay').classList.remove('show');
+    }
+
     loadResults();
 })();
 </script>
+
+<!-- MODALE MOT DE PASSE -->
+<div id="pwdOverlay">
+    <div id="pwdBox">
+        <h3>🔐 Accès Admin</h3>
+        <input type="password" id="pwdInput" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')checkPwd()">
+        <div id="pwdError">Mot de passe incorrect</div>
+        <div style="display:flex;gap:10px">
+            <button onclick="closePwd()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#e8d4c8;color:#8b6f63;font-weight:600;cursor:pointer">Annuler</button>
+            <button onclick="checkPwd()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#c7abd9,#b89cc9);color:white;font-weight:600;cursor:pointer">Entrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE ADMIN -->
+<div id="adminOverlay">
+    <div id="adminModal">
+        <button class="modal-close" onclick="closeAdmin()">✕ Fermer</button>
+        <h2>📋 Liste des pronostics</h2>
+        <div id="adminContent">Chargement...</div>
+    </div>
+</div>
+
 </body>
 </html>
