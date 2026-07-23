@@ -315,7 +315,7 @@
             <h1>🎯 Prono My Baby</h1>
             <div class="logo-tooltip">
                 <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgc3Ryb2tlPSIjQzc4QkQ5IiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMiIgeT0iMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjQzc4QkQ5Ij5QQjwvdGV4dD48L3N2Zz4=" alt="Version" width="32" height="32">
-                <span class="tooltip-text">26.07.23.1522</span>
+                <span class="tooltip-text">26.07.23.1525</span>
             </div>
         </div>
         
@@ -395,20 +395,20 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Variables globales
         const SUPABASE_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
-        
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
         let hasVoted = localStorage.getItem('prono_voted') === 'true';
         
-        // Initialisation
-        async function init() {
-            await loadResults();
-            if (hasVoted) {
-                document.getElementById('successMessage').classList.add('show');
+        // Basculer pages (GLOBAL)
+        window.switchPage = function(pageName) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageName).classList.add('active');
+            if (pageName === 'homePage') {
+                loadResults();
             }
-        }
+        };
         
         // Charger et afficher les résultats
         async function loadResults() {
@@ -418,7 +418,6 @@
                     .select('*');
                 
                 if (error) throw error;
-                
                 displayResults(data || []);
             } catch (error) {
                 console.error('Erreur:', error);
@@ -437,19 +436,12 @@
                 return;
             }
             
-            // Calculer moyennes
             const avgHeight = (votes.reduce((sum, v) => sum + (v.height || 0), 0) / votes.length).toFixed(1);
             const avgWeight = (votes.reduce((sum, v) => sum + (v.weight || 0), 0) / votes.length).toFixed(2);
-            
-            // Mode du prénom (le plus fréquent)
             const names = votes.map(v => v.first_name).filter(Boolean);
             const mostCommonName = names.length > 0 ? getMostCommon(names) : '-';
-            
-            // Pourcentage conjoint
             const conjointYes = votes.filter(v => v.conjoint === 'oui').length;
             const conjointPercent = ((conjointYes / votes.length) * 100).toFixed(0);
-            
-            // Médiane date
             const dates = votes.map(v => new Date(v.birth_date)).sort((a, b) => a - b);
             const medianDate = dates[Math.floor(dates.length / 2)];
             const medianDateStr = medianDate ? medianDate.toLocaleDateString('fr-FR') : '-';
@@ -494,53 +486,42 @@
             return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
         }
         
-        // Basculer pages
-        function switchPage(pageName) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageName).classList.add('active');
-            if (pageName === 'homePage') {
-                loadResults();
+        // Initialisation
+        async function init() {
+            await loadResults();
+            if (hasVoted) {
+                document.getElementById('successMessage').classList.add('show');
             }
+            document.getElementById('voteForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const vote = {
+                    first_name: document.getElementById('firstName').value,
+                    birth_date: document.getElementById('birthDate').value,
+                    height: parseInt(document.getElementById('height').value),
+                    weight: parseFloat(document.getElementById('weight').value),
+                    conjoint: document.querySelector('input[name="conjoint"]:checked')?.value || null,
+                    submitted_at: new Date().toISOString()
+                };
+                try {
+                    const { error } = await supabase
+                        .from('pronobaby_votes')
+                        .insert([vote]);
+                    if (error) throw error;
+                    localStorage.setItem('prono_voted', 'true');
+                    hasVoted = true;
+                    document.getElementById('voteForm').reset();
+                    window.switchPage('homePage');
+                    document.getElementById('successMessage').classList.add('show');
+                    setTimeout(() => {
+                        document.getElementById('successMessage').classList.remove('show');
+                    }, 5000);
+                } catch (error) {
+                    alert('Erreur: ' + error.message);
+                }
+            });
         }
         
-        // Soumettre le formulaire
-        document.getElementById('voteForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const vote = {
-                first_name: document.getElementById('firstName').value,
-                birth_date: document.getElementById('birthDate').value,
-                height: parseInt(document.getElementById('height').value),
-                weight: parseFloat(document.getElementById('weight').value),
-                conjoint: document.querySelector('input[name="conjoint"]:checked')?.value || null,
-                submitted_at: new Date().toISOString()
-            };
-            
-            try {
-                const { error } = await supabase
-                    .from('pronobaby_votes')
-                    .insert([vote]);
-                
-                if (error) throw error;
-                
-                localStorage.setItem('prono_voted', 'true');
-                hasVoted = true;
-                
-                document.getElementById('voteForm').reset();
-                switchPage('homePage');
-                document.getElementById('successMessage').classList.add('show');
-                
-                setTimeout(() => {
-                    document.getElementById('successMessage').classList.remove('show');
-                }, 5000);
-                
-            } catch (error) {
-                alert('Erreur lors de l\'enregistrement: ' + error.message);
-            }
-        });
-        
-        // Charger au démarrage
-        init();
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
