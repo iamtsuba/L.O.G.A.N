@@ -6,203 +6,196 @@
     <title>Prono My Baby</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #f5e6db 0%, #ead5cc 100%); min-height: 100vh; padding: 20px; color: #5a4a42; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #f5e6db 0%, #ead5cc 100%); min-height: 100vh; padding: 20px; color: #5a4a42; }
         .container { max-width: 900px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #d4b5a8; }
         .header h1 { font-size: 28px; color: #8b6f63; font-weight: 700; }
-        .intro-text { background: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); line-height: 1.6; color: #6b5b55; font-size: 15px; }
+        .intro-text { background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); line-height: 1.7; color: #6b5b55; font-size: 15px; }
         .intro-text strong { color: #8b6f63; }
         .indices { background: #fef9f6; padding: 20px; border-left: 4px solid #c7abd9; margin-bottom: 30px; border-radius: 8px; font-size: 14px; color: #7a6a65; }
         .indices p { margin-bottom: 8px; }
         .page { display: none; }
         .page.active { display: block; }
-        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .result-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center; }
-        .result-card h3 { font-size: 13px; color: #9a8a82; text-transform: uppercase; margin-bottom: 15px; font-weight: 600; letter-spacing: 0.5px; }
-        .result-value { font-size: 36px; font-weight: 700; color: #8b6f63; margin-bottom: 10px; }
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .result-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center; }
+        .result-card h3 { font-size: 12px; color: #9a8a82; text-transform: uppercase; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px; }
+        .result-value { font-size: 32px; font-weight: 700; color: #8b6f63; margin-bottom: 5px; }
         .result-unit { font-size: 13px; color: #b5a5a0; }
-        .result-count { font-size: 12px; color: #d4b5a8; margin-top: 10px; }
-        .vote-button { background: linear-gradient(135deg, #c7abd9 0%, #b89cc9 100%); color: white; border: none; padding: 18px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin: 20px auto; display: block; box-shadow: 0 4px 15px rgba(199, 171, 217, 0.3); }
-        .vote-button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(199, 171, 217, 0.4); }
+        .result-count { font-size: 11px; color: #d4b5a8; margin-top: 8px; }
+        .vote-btn { background: linear-gradient(135deg, #c7abd9 0%, #b89cc9 100%); color: white; border: none; padding: 18px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin: 10px auto; display: block; box-shadow: 0 4px 15px rgba(199,171,217,0.3); }
+        .vote-btn:hover { transform: translateY(-2px); }
         .vote-form { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-        .form-group { margin-bottom: 25px; }
-        .form-group label { display: block; font-size: 14px; font-weight: 600; color: #8b6f63; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid #e8d4c8; border-radius: 8px; font-size: 14px; font-family: inherit; transition: border-color 0.3s; }
-        .form-group input:focus, .form-group select:focus { outline: none; border-color: #c7abd9; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #8b6f63; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input[type=text], .form-group input[type=date], .form-group input[type=number] { width: 100%; padding: 12px; border: 2px solid #e8d4c8; border-radius: 8px; font-size: 14px; font-family: inherit; }
+        .form-group input:focus { outline: none; border-color: #c7abd9; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .radio-group { display: flex; gap: 20px; margin-top: 10px; }
         .radio-option { display: flex; align-items: center; gap: 8px; }
-        .radio-option input[type="radio"] { width: 20px; height: 20px; cursor: pointer; accent-color: #c7abd9; }
+        .radio-option input[type=radio] { width: 18px; height: 18px; accent-color: #c7abd9; }
         .radio-option label { margin: 0; text-transform: none; letter-spacing: normal; font-weight: 500; cursor: pointer; }
-        .form-buttons { display: flex; gap: 15px; margin-top: 30px; justify-content: center; }
-        .btn { padding: 14px 30px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 0.5px; }
-        .btn-submit { background: linear-gradient(135deg, #c7abd9 0%, #b89cc9 100%); color: white; flex: 1; box-shadow: 0 4px 15px rgba(199, 171, 217, 0.3); }
-        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(199, 171, 217, 0.4); }
-        .btn-cancel { background: #e8d4c8; color: #8b6f63; flex: 1; }
-        .btn-cancel:hover { background: #dcc4b5; }
-        .logo-tooltip { position: relative; cursor: help; }
-        .tooltip-text { position: absolute; bottom: 100%; right: 0; background: #333; color: white; padding: 8px 12px; border-radius: 6px; font-size: 12px; white-space: nowrap; margin-bottom: 8px; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-        .logo-tooltip:hover .tooltip-text { opacity: 1; }
-        .success-message { background: #d4edda; border: 2px solid #28a745; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
-        .success-message.show { display: block; }
-        @media (max-width: 600px) { .form-row, .results-grid { grid-template-columns: 1fr; } .header h1 { font-size: 22px; } }
+        .form-buttons { display: flex; gap: 15px; margin-top: 25px; }
+        .btn { padding: 14px 0; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; flex: 1; }
+        .btn-submit { background: linear-gradient(135deg, #c7abd9 0%, #b89cc9 100%); color: white; }
+        .btn-cancel { background: #e8d4c8; color: #8b6f63; }
+        .notice { background: #d4edda; border: 2px solid #28a745; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        .notice.show { display: block; }
+        .version-badge { font-size: 11px; color: #b5a5a0; background: white; padding: 4px 10px; border-radius: 20px; }
+        @media (max-width: 600px) { .form-row, .results-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎯 Prono My Baby</h1>
-            <div class="logo-tooltip">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgc3Ryb2tlPSIjQzc4QkQ5IiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMiIgeT0iMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjQzc4QkQ5Ij5QQjwvdGV4dD48L3N2Zz4=" alt="Version" width="32" height="32">
-                <span class="tooltip-text">26.07.23.1530</span>
-            </div>
+<div class="container">
+    <div class="header">
+        <h1>🎯 Prono My Baby</h1>
+        <span class="version-badge">26.07.23.1535</span>
+    </div>
+
+    <!-- PAGE ACCUEIL -->
+    <div id="homePage" class="page active">
+        <div class="intro-text">
+            <p><strong>Les Pronostiques de la Coupe du Monde sont terminés..</strong></p>
+            <p style="margin-top:12px">Vous êtes triste ? Vous ressentez le besoin d'un nouveau pari dans votre vie ?</p>
+            <p style="margin-top:12px">Alors venez Pronostiquer le prénom, la taille, le poids, la date de naissance... de notre futur enfant.</p>
+            <p style="margin-top:12px;font-style:italic">Allez je vais vous aider un peu... 😉</p>
         </div>
-        
-        <div id="homePage" class="page active">
-            <div class="intro-text">
-                <p><strong>Les Pronostiques de la Coupe du Monde sont terminés..</strong></p>
-                <p style="margin-top: 15px;">Vous êtes triste ? Vous ressentez le besoin d'un nouveau pari dans votre vie ?</p>
-                <p style="margin-top: 15px;">Alors venez Pronostiquer le prénom, la taille, le poids, la date de naissance... de notre futur enfant.</p>
-                <p style="margin-top: 15px; font-style: italic;">Allez je vais vous aider un peu... 😉</p>
-            </div>
-            
-            <div class="indices">
-                <p><strong>1 -</strong> Emma va avoir un petit frère.</p>
-                <p><strong>2 -</strong> Emma pesait 3kg790 et mesurait 49cm à la naissance.</p>
-                <p><strong>3 -</strong> Emma était prévue pour le 27 Janvier.</p>
-                <p><strong>4 -</strong> 3 ouvre la voie, 2 unissent leurs destins, 1 hérite de tous les espoirs</p>
-            </div>
-            
-            <div class="results-grid" id="resultsGrid"></div>
-            <button class="vote-button" onclick="switchPage('votePage')">Placer votre pronostic</button>
+        <div class="indices">
+            <p><strong>1 -</strong> Emma va avoir un petit frère.</p>
+            <p><strong>2 -</strong> Emma pesait 3kg790 et mesurait 49cm à la naissance.</p>
+            <p><strong>3 -</strong> Emma était prévue pour le 27 Janvier.</p>
+            <p><strong>4 -</strong> 3 ouvre la voie, 2 unissent leurs destins, 1 hérite de tous les espoirs</p>
         </div>
-        
-        <div id="votePage" class="page">
-            <div class="success-message" id="successMessage">✅ Votre pronostic a été enregistré ! Merci !</div>
-            <form class="vote-form" id="voteForm">
+        <div class="notice show" id="alreadyVoted" style="display:none">✅ Vous avez déjà participé ! Merci 🎉</div>
+        <div class="results-grid" id="resultsGrid">
+            <div style="grid-column:1/-1;text-align:center;padding:30px;color:#b5a5a0">Chargement...</div>
+        </div>
+        <button class="vote-btn" id="voteNavBtn">Placer votre pronostic</button>
+    </div>
+
+    <!-- PAGE VOTE -->
+    <div id="votePage" class="page">
+        <div class="vote-form">
+            <div class="form-group">
+                <label>Prénom de l'enfant *</label>
+                <input type="text" id="firstName" placeholder="Ex : Mathéo" required>
+            </div>
+            <div class="form-row">
                 <div class="form-group">
-                    <label>Prénom de l'enfant *</label>
-                    <input type="text" id="firstName" placeholder="Ex: Mathéo" required>
+                    <label>Date de naissance estimée *</label>
+                    <input type="date" id="birthDate" required>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Date de naissance estimée *</label>
-                        <input type="date" id="birthDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Taille (cm) *</label>
-                        <input type="number" id="height" min="40" max="60" placeholder="Ex: 50" required>
-                    </div>
+                <div class="form-group">
+                    <label>Taille (cm) *</label>
+                    <input type="number" id="height" min="40" max="65" step="1" placeholder="Ex : 50" required>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Poids (kg) *</label>
-                        <input type="number" id="weight" min="2" max="5" step="0.01" placeholder="Ex: 3.5" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Conjoint présent à l'accouchement ?</label>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="conjointYes" name="conjoint" value="oui">
-                                <label for="conjointYes">OUI</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="conjointNo" name="conjoint" value="non">
-                                <label for="conjointNo">NON</label>
-                            </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Poids (kg) *</label>
+                    <input type="number" id="weight" min="2" max="6" step="0.01" placeholder="Ex : 3.50" required>
+                </div>
+                <div class="form-group">
+                    <label>Conjoint présent à l'accouchement ?</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="conjYes" name="conjoint" value="oui">
+                            <label for="conjYes">OUI</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="conjNo" name="conjoint" value="non">
+                            <label for="conjNo">NON</label>
                         </div>
                     </div>
                 </div>
-                <div class="form-buttons">
-                    <button type="button" class="btn btn-cancel" onclick="switchPage('homePage')">Annuler</button>
-                    <button type="submit" class="btn btn-submit">Enregistrer mon pronostic</button>
-                </div>
-            </form>
+            </div>
+            <div class="form-buttons">
+                <button type="button" class="btn btn-cancel" id="cancelBtn">Annuler</button>
+                <button type="button" class="btn btn-submit" id="submitBtn">Enregistrer mon pronostic</button>
+            </div>
         </div>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        const SUPABASE_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        let hasVoted = localStorage.getItem('prono_voted') === 'true';
-        
-        window.switchPage = function(pageName) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageName).classList.add('active');
-            if (pageName === 'homePage') loadResults();
-        };
-        
-        async function loadResults() {
-            try {
-                const { data, error } = await supabase.from('pronobaby_votes').select('*');
-                if (error) throw error;
-                displayResults(data || []);
-            } catch (error) {
-                console.error('Erreur:', error);
-            }
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function() {
+    var DB = window.supabase.createClient(
+        'https://tkimdlsokrqdfpkfapgc.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8'
+    );
+
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.getElementById(id).classList.add('active');
+        if (id === 'homePage') loadResults();
+    }
+
+    window.switchPage = showPage;
+
+    function getMostCommon(arr) {
+        if (!arr.length) return '-';
+        var counts = {};
+        arr.forEach(function(x) { counts[x] = (counts[x] || 0) + 1; });
+        return Object.keys(counts).reduce(function(a, b) { return counts[a] > counts[b] ? a : b; });
+    }
+
+    function renderResults(votes) {
+        var grid = document.getElementById('resultsGrid');
+        if (!votes || !votes.length) {
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:#b5a5a0">Aucun pronostic pour le moment... Soyez le premier ! 🎯</div>';
+            return;
         }
-        
-        function displayResults(votes) {
-            if (votes.length === 0) {
-                document.getElementById('resultsGrid').innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #b5a5a0;"><p>Aucun pronostic pour le moment...</p><p style="font-size: 12px; margin-top: 10px;">Soyez le premier à participer ! 🎯</p></div>';
-                return;
-            }
-            
-            const avgHeight = (votes.reduce((sum, v) => sum + (v.height || 0), 0) / votes.length).toFixed(1);
-            const avgWeight = (votes.reduce((sum, v) => sum + (v.weight || 0), 0) / votes.length).toFixed(2);
-            const names = votes.map(v => v.first_name).filter(Boolean);
-            const mostCommonName = names.length > 0 ? getMostCommon(names) : '-';
-            const conjointYes = votes.filter(v => v.conjoint === 'oui').length;
-            const conjointPercent = ((conjointYes / votes.length) * 100).toFixed(0);
-            const dates = votes.map(v => new Date(v.birth_date)).sort((a, b) => a - b);
-            const medianDate = dates[Math.floor(dates.length / 2)];
-            const medianDateStr = medianDate ? medianDate.toLocaleDateString('fr-FR') : '-';
-            
-            document.getElementById('resultsGrid').innerHTML = `
-                <div class="result-card"><h3>Prénom le plus cité</h3><div class="result-value">${mostCommonName}</div><div class="result-count">${votes.length} pronostic${votes.length > 1 ? 's' : ''}</div></div>
-                <div class="result-card"><h3>Taille moyenne</h3><div class="result-value">${avgHeight}</div><div class="result-unit">cm</div><div class="result-count">${votes.length} pronostic${votes.length > 1 ? 's' : ''}</div></div>
-                <div class="result-card"><h3>Poids moyen</h3><div class="result-value">${avgWeight}</div><div class="result-unit">kg</div><div class="result-count">${votes.length} pronostic${votes.length > 1 ? 's' : ''}</div></div>
-                <div class="result-card"><h3>Date médiane</h3><div class="result-value" style="font-size: 18px;">${medianDateStr}</div><div class="result-count">${votes.length} pronostic${votes.length > 1 ? 's' : ''}</div></div>
-                <div class="result-card"><h3>Conjoint présent</h3><div class="result-value">${conjointPercent}%</div><div class="result-unit">OUI</div><div class="result-count">${votes.length} pronostic${votes.length > 1 ? 's' : ''}</div></div>
-            `;
+        var n = votes.length;
+        var avgH = (votes.reduce(function(s,v){ return s + (v.height||0); }, 0) / n).toFixed(1);
+        var avgW = (votes.reduce(function(s,v){ return s + (v.weight||0); }, 0) / n).toFixed(2);
+        var names = votes.map(function(v){ return v.first_name; }).filter(Boolean);
+        var topName = getMostCommon(names);
+        var oui = votes.filter(function(v){ return v.conjoint === 'oui'; }).length;
+        var pctOui = Math.round(oui / n * 100);
+        var pctNon = 100 - pctOui;
+        var sorted = votes.map(function(v){ return new Date(v.birth_date); }).sort(function(a,b){ return a-b; });
+        var median = sorted[Math.floor(sorted.length / 2)];
+        var medStr = median ? median.toLocaleDateString('fr-FR') : '-';
+        grid.innerHTML =
+            '<div class="result-card"><h3>Prénom le plus cité</h3><div class="result-value" style="font-size:24px">' + topName + '</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>' +
+            '<div class="result-card"><h3>Taille moyenne</h3><div class="result-value">' + avgH + '</div><div class="result-unit">cm</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>' +
+            '<div class="result-card"><h3>Poids moyen</h3><div class="result-value">' + avgW + '</div><div class="result-unit">kg</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>' +
+            '<div class="result-card"><h3>Date médiane</h3><div class="result-value" style="font-size:18px">' + medStr + '</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>' +
+            '<div class="result-card"><h3>Conjoint présent</h3><div class="result-value">' + pctOui + '%</div><div class="result-unit">OUI — ' + pctNon + '% NON</div><div class="result-count">' + n + ' vote' + (n>1?'s':'') + '</div></div>';
+    }
+
+    async function loadResults() {
+        var res = await DB.from('pronobaby_votes').select('*');
+        renderResults(res.data || []);
+    }
+
+    document.getElementById('voteNavBtn').addEventListener('click', function() {
+        if (localStorage.getItem('prono_voted')) {
+            document.getElementById('alreadyVoted').style.display = 'block';
+            return;
         }
-        
-        function getMostCommon(arr) {
-            const counts = {};
-            arr.forEach(item => counts[item] = (counts[item] || 0) + 1);
-            return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
-        }
-        
-        document.addEventListener('DOMContentLoaded', async function() {
-            await loadResults();
-            if (hasVoted) document.getElementById('successMessage').classList.add('show');
-            
-            document.getElementById('voteForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const vote = {
-                    first_name: document.getElementById('firstName').value,
-                    birth_date: document.getElementById('birthDate').value,
-                    height: parseInt(document.getElementById('height').value),
-                    weight: parseFloat(document.getElementById('weight').value),
-                    conjoint: document.querySelector('input[name="conjoint"]:checked')?.value || null,
-                    submitted_at: new Date().toISOString()
-                };
-                try {
-                    const { error } = await supabase.from('pronobaby_votes').insert([vote]);
-                    if (error) throw error;
-                    localStorage.setItem('prono_voted', 'true');
-                    hasVoted = true;
-                    document.getElementById('voteForm').reset();
-                    window.switchPage('homePage');
-                    document.getElementById('successMessage').classList.add('show');
-                    setTimeout(() => document.getElementById('successMessage').classList.remove('show'), 5000);
-                } catch (error) {
-                    alert('Erreur: ' + error.message);
-                }
-            });
-        });
-    </script>
+        showPage('votePage');
+    });
+
+    document.getElementById('cancelBtn').addEventListener('click', function() { showPage('homePage'); });
+
+    document.getElementById('submitBtn').addEventListener('click', async function() {
+        var fn = document.getElementById('firstName').value.trim();
+        var bd = document.getElementById('birthDate').value;
+        var ht = document.getElementById('height').value;
+        var wt = document.getElementById('weight').value;
+        var cj = document.querySelector('input[name="conjoint"]:checked');
+        if (!fn || !bd || !ht || !wt) { alert('Merci de remplir tous les champs obligatoires.'); return; }
+        var row = { first_name: fn, birth_date: bd, height: parseInt(ht), weight: parseFloat(wt), conjoint: cj ? cj.value : null };
+        var res = await DB.from('pronobaby_votes').insert([row]);
+        if (res.error) { alert('Erreur : ' + res.error.message); return; }
+        localStorage.setItem('prono_voted', '1');
+        showPage('homePage');
+        document.getElementById('alreadyVoted').style.display = 'block';
+    });
+
+    loadResults();
+})();
+</script>
 </body>
 </html>
