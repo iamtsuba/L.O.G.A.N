@@ -48,7 +48,7 @@
 <div class="container">
     <div class="header">
         <h1>🎯 Prono My Baby</h1>
-        <span class="version-badge">26.07.23.1535</span>
+        <span class="version-badge">26.07.23.1538</span>
     </div>
 
     <!-- PAGE ACCUEIL -->
@@ -75,6 +75,10 @@
     <!-- PAGE VOTE -->
     <div id="votePage" class="page">
         <div class="vote-form">
+                        <div class="form-group">
+                <label>Votre prénom *</label>
+                <input type="text" id="voterName" placeholder="Ex : Sophie" required>
+            </div>
             <div class="form-group">
                 <label>Prénom de l'enfant *</label>
                 <input type="text" id="firstName" placeholder="Ex : Mathéo" required>
@@ -180,13 +184,14 @@
     document.getElementById('cancelBtn').addEventListener('click', function() { showPage('homePage'); });
 
     document.getElementById('submitBtn').addEventListener('click', async function() {
+        var vn = document.getElementById('voterName').value.trim();
         var fn = document.getElementById('firstName').value.trim();
         var bd = document.getElementById('birthDate').value;
         var ht = document.getElementById('height').value;
         var wt = document.getElementById('weight').value;
         var cj = document.querySelector('input[name="conjoint"]:checked');
-        if (!fn || !bd || !ht || !wt) { alert('Merci de remplir tous les champs obligatoires.'); return; }
-        var row = { first_name: fn, birth_date: bd, height: parseInt(ht), weight: parseFloat(wt), conjoint: cj ? cj.value : null };
+        if (!vn || !fn || !bd || !ht || !wt) { alert('Merci de remplir tous les champs obligatoires.'); return; }
+        var row = { voter_name: vn, first_name: fn, birth_date: bd, height: parseInt(ht), weight: parseFloat(wt), conjoint: cj ? cj.value : null };
         var res = await DB.from('pronobaby_votes').insert([row]);
         if (res.error) { alert('Erreur : ' + res.error.message); return; }
         localStorage.setItem('prono_voted', '1');
