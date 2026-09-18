@@ -943,7 +943,8 @@ async function submitProduct() {
   const buy_price     = parseFloat(document.getElementById('input-buy').value)  || 0;
   const sell_price_ebay = parseFloat(document.getElementById('input-sell').value) || null;
   if (!name) { alert('Entrez un nom de produit.'); return; }
-  const payload = { name, search_name, buy_price, photo: currentPhotoB64, sell_price_ebay };
+  const payload = { name, search_name, buy_price, sell_price_ebay };
+  if (currentPhotoB64 !== null && currentPhotoB64 !== undefined) payload.photo = currentPhotoB64;
   try {
     if (editingProductId) {
       await updateProduct(editingProductId, payload);
