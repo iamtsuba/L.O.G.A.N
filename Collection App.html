@@ -330,37 +330,36 @@
     /* ── ACTION BUTTONS ROW ── */
     .action-row { display: flex; gap: 8px; margin-bottom: 14px; }
     .action-btn {
-      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
       background: var(--card2); border: 1.5px solid var(--border);
       border-radius: 10px; padding: 10px 8px;
       color: var(--text); font-family: inherit; font-weight: 700; font-size: 0.82rem;
       cursor: pointer; transition: background 0.15s, border-color 0.15s;
     }
     .action-btn:hover { background: var(--border); border-color: var(--accent); }
-    .action-btn.accent { border-color: var(--accent); color: var(--accent); }
     .action-btn.green  { border-color: var(--accent3); color: var(--accent3); }
 
-    /* ── BULK LOADING ── */
-    #bulk-loading {
-      position: fixed; inset: 0; z-index: 600;
-      background: rgba(0,0,0,0.88);
+    /* ── EBAY IFRAME POPUP ── */
+    #ebay-frame-overlay {
+      position: fixed; inset: 0; z-index: 650;
+      background: #000; display: flex; flex-direction: column;
+    }
+    .ebay-frame-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 10px 10px 16px; flex-shrink: 0;
+      background: var(--card); border-bottom: 1px solid var(--border);
+    }
+    .ebay-frame-title { font-weight: 800; font-size: 0.88rem; color: var(--text); }
+    .ebay-frame-close {
       display: flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--accent4); border: none; color: white;
+      font-size: 1rem; font-weight: 800; cursor: pointer; flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(239,71,111,0.4);
     }
-    .bulk-card {
-      background: var(--card); border: 1.5px solid var(--border);
-      border-radius: 20px; padding: 36px 40px;
-      text-align: center; max-width: 320px; width: 100%;
-    }
-    @keyframes spin2 { to { transform: rotate(360deg); } }
-    .big-spin {
-      display: block; font-size: 2.8rem; margin: 0 auto 16px;
-      animation: spin2 1s linear infinite;
-    }
-    .bulk-title { font-family: 'Bebas Neue',sans-serif; font-size: 1.4rem; letter-spacing: 1px; margin-bottom: 6px; }
-    .bulk-sub   { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; }
-    .bulk-bar-wrap { background: var(--bg); border-radius: 99px; height: 6px; overflow: hidden; }
-    .bulk-bar { height: 100%; background: linear-gradient(90deg,#6c63ff,#a78bfa); border-radius: 99px; transition: width 0.3s; }
-    .bulk-counter { font-size: 0.75rem; color: var(--muted); margin-top: 8px; }
+    .ebay-frame-close:hover { background: #d63a5f; }
+    .ebay-frame-body { flex: 1; min-height: 0; }
+    .ebay-frame-iframe { width: 100%; height: 100%; border: none; background: white; }
 
     /* ── CROPPER ── */
     #crop-overlay {
@@ -423,7 +422,6 @@ const SUPABASE_URL  = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
 const APP_FILE      = 'Collection App.html';
 const VERSION       = '26.9.19.1000';
-const SCRAPERAPI_KEY = '097601ba4d784e8c17ee2355e40711d9';
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -450,9 +448,6 @@ let cropDisplay        = { w: 0, h: 0 };
 let cropVpSize         = 0;
 let cropDragging       = false;
 let cropDragOrigin     = { px: 0, py: 0, ix: 0, iy: 0 };
-
-// eBay auto-fetch state
-let ebayTimer          = null;
 
 // ════════════════════════════════════════════════════════════
 // COLLECTION TYPES
@@ -758,8 +753,7 @@ function renderProductsView() {
     </div>
 
     <div class="action-row">
-      <button class="action-btn accent" onclick="bulkUpdateEbay()">⟳ Maj prix eBay</button>
-      <button class="action-btn green"  onclick="exportToExcel()">📊 Export Excel</button>
+      <button class="action-btn green" onclick="exportToExcel()" style="flex:none;padding:10px 18px;margin-left:auto;">📊 Export Excel</button>
     </div>
 
     ${products.length === 0 ? `<div class="empty-state"><div class="empty-icon">🎁</div><div class="empty-text">Aucun produit.<br>Ajoutez votre premier item !</div></div>` : ''}
@@ -942,7 +936,7 @@ function openProductModal(pre) {
           <button class="mini-btn" id="ocr-btn" onclick="runOCR()">OCR 🔍</button>
           <span id="ocr-spin" style="display:none" class="spin">⟳</span>
         </label>
-        <input class="form-input" id="input-sname" placeholder="Utilisé pour chercher sur eBay…" value="${esc(defaultSname)}" oninput="searchNameManualEdited=true;scheduleEbayFetch()">
+        <input class="form-input" id="input-sname" placeholder="Utilisé pour chercher sur eBay…" value="${esc(defaultSname)}" oninput="searchNameManualEdited=true">
       </div>
 
       <!-- Prix achat -->
@@ -958,8 +952,8 @@ function openProductModal(pre) {
           <button class="mini-btn" onclick="openEbay()">Voir eBay 🔗</button>
         </label>
         <input class="form-input" type="number" id="input-sell" placeholder="0.00" min="0" step="0.01" value="${pre?.sell_price_ebay ?? ''}">
-        <div id="ebay-hint" style="font-size:0.72rem;color:var(--muted);margin-top:4px;">
-          ${pre?.search_name && !pre?.sell_price_ebay ? '<span class="spin">⟳</span> Recherche du prix sur eBay…' : 'Basé sur les ventes récentes eBay.'}
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:4px;">
+          Cliquez sur "Voir eBay" pour consulter les ventes récentes et entrer le prix manuellement.
         </div>
       </div>
 
@@ -968,25 +962,34 @@ function openProductModal(pre) {
     </div>`;
   document.body.appendChild(ol);
   ol.addEventListener('click', e => { if (e.target === ol) closeModal('modal-prod'); });
-
-  // Auto-fetch eBay price si search_name rempli et pas de prix déjà défini
-  if (pre?.search_name && !pre?.sell_price_ebay) {
-    setTimeout(() => scheduleEbayFetch(), 200);
-  }
 }
 
-// ── eBay link ──
+// ── eBay : ouverture en iframe popup avec croix de fermeture ──
 function openEbay() {
   const q = document.getElementById('input-sname').value.trim()
          || document.getElementById('input-pname').value.trim();
   if (!q) { alert('Entrez un nom de recherche d\'abord.'); return; }
   const url = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sacat=0`;
-  window.open(url, '_blank');
+  showEbayFrame(url);
 }
 
-// ════════════════════════════════════════════════════════════
-// EBAY AUTO-FETCH
-// ════════════════════════════════════════════════════════════
+function showEbayFrame(url) {
+  const ol = document.createElement('div');
+  ol.id = 'ebay-frame-overlay';
+  ol.innerHTML = `
+    <div class="ebay-frame-topbar">
+      <span class="ebay-frame-title">🔎 eBay — ventes terminées</span>
+      <button class="ebay-frame-close" onclick="closeEbayFrame()" aria-label="Fermer">✕</button>
+    </div>
+    <div class="ebay-frame-body">
+      <iframe class="ebay-frame-iframe" src="${url}" loading="eager"></iframe>
+    </div>`;
+  document.body.appendChild(ol);
+}
+
+function closeEbayFrame() {
+  document.getElementById('ebay-frame-overlay')?.remove();
+}
 
 // Sync nom produit → nom de recherche si non modifié manuellement
 function syncSearchName() {
@@ -995,194 +998,8 @@ function syncSearchName() {
     const sname = document.getElementById('input-sname');
     if (pname && sname) sname.value = pname.value;
   }
-  scheduleEbayFetch();
 }
 
-async function fetchWithProxy(ebayUrl) {
-  const attempts = [
-    // Proxy 0 (prioritaire) : ScraperAPI — proxies résidentiels + anti-bot pro + rendu JS complet
-    () => fetch(`https://api.scraperapi.com/?api_key=${SCRAPERAPI_KEY}&url=${encodeURIComponent(ebayUrl)}&render=true&country_code=fr`,
-            { signal: AbortSignal.timeout(30000) })
-            .then(r => r.ok ? r.text() : null),
-    // Proxy 1 : r.jina.ai — rendu via vrai navigateur headless
-    () => fetch(`https://r.jina.ai/${ebayUrl}`, { signal: AbortSignal.timeout(15000) })
-            .then(r => r.ok ? r.text() : null),
-    // Proxy 2 : corsproxy.io
-    () => fetch(`https://corsproxy.io/?url=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
-            .then(r => r.ok ? r.text() : null),
-    // Proxy 3 : codetabs
-    () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
-            .then(r => r.ok ? r.text() : null),
-    // Proxy 4 : allorigins (dernier recours)
-    () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
-            .then(r => r.ok ? r.json() : null).then(d => d?.contents || null),
-  ];
-  for (const attempt of attempts) {
-    try {
-      const html = await attempt();
-      if (html && html.length > 500 && !isBlockedPage(html)) return html;
-    } catch (_) {}
-  }
-  return null;
-}
-
-// Détecte les pages de blocage anti-bot / CAPTCHA eBay
-function isBlockedPage(html) {
-  const low = html.toLowerCase();
-  return low.includes('pardon our interruption')
-      || low.includes('captcha')
-      || low.includes('access denied')
-      || low.includes('are you a human')
-      || low.includes('activer javascript')
-      || low.includes('vérification humaine')
-      || low.includes('unusual traffic')
-      || low.includes('robot check');
-}
-
-function parseEbayPricesN(html, n = 5) {
-  const patterns = [
-    // "19,99 EUR" / "19.99 EUR"
-    /(\d{1,3}(?:[.\s\u00A0]?\d{3})*[,\.]\d{2})\s*EUR/g,
-    // "EUR 19,99"
-    /EUR\s*(\d{1,3}(?:[.\s\u00A0]?\d{3})*[,\.]\d{2})/g,
-    // "19,99 €" ou "19,99\u00A0€"
-    /(\d{1,3}(?:[.\s\u00A0]?\d{3})*[,\.]\d{2})\s*[\u00A0\s]*€/g,
-    // "€19,99"
-    /€\s*(\d{1,3}(?:[.\s\u00A0]?\d{3})*[,\.]\d{2})/g,
-    // JSON structuré : "price":"19.99" ou "value":"19.99" avec "currency":"EUR" à proximité
-    /"(?:price|value)"\s*:\s*"?(\d{1,6}\.\d{2})"?/g,
-    // Prix sans décimales suivi de € : "50 €" / "50€"
-    /(\d{1,6})\s*€(?!\w)/g,
-  ];
-  let found = [];
-  for (const re of patterns) {
-    const matches = [...html.matchAll(re)]
-      .map(m => parseFloat(m[1].replace(/[\s\u00A0]/g, '').replace(',', '.')));
-    if (matches.length) { found = matches; break; }
-  }
-  return found.filter(p => p > 0.5 && p < 100000).slice(0, n);
-}
-
-async function fetchEbayAvg(query, n = 5) {
-  if (!query) return { price: null, reason: 'Nom vide' };
-  const ebayUrl = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_sacat=0&_sop=13`;
-  const html = await fetchWithProxy(ebayUrl);
-  if (!html) return { price: null, reason: 'Tous les proxies ont échoué / bloqués' };
-  const prices = parseEbayPricesN(html, n);
-  if (!prices.length) return { price: null, reason: `Aucun résultat eBay (page reçue : ${html.length} car.)` };
-  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-  return { price: avg, reason: `${prices.length} vente(s) trouvée(s)` };
-}
-
-async function fetchEbayPrice(query) {
-  const r = await fetchEbayAvg(query, 5);
-  return r.price;
-}
-
-function scheduleEbayFetch() {
-  clearTimeout(ebayTimer);
-  const sellInput = document.getElementById('input-sell');
-  if (sellInput?.value) return;
-  const q = document.getElementById('input-sname')?.value.trim()
-          || document.getElementById('input-pname')?.value.trim();
-  if (!q || q.length < 3) return;
-  setEbayHint('loading');
-  ebayTimer = setTimeout(async () => {
-    const { price, reason } = await fetchEbayAvg(q, 5);
-    const si = document.getElementById('input-sell');
-    if (!si || si.value) return;
-    if (price !== null) {
-      si.value = price.toFixed(2);
-      setEbayHint('found', price);
-    } else {
-      setEbayHint('none', null, reason);
-    }
-  }, 900);
-}
-
-function setEbayHint(status, price, reason) {
-  const el = document.getElementById('ebay-hint');
-  if (!el) return;
-  if (status === 'loading') {
-    el.innerHTML = '<span class="spin">⟳</span> Recherche sur eBay (moy. 5 ventes)…';
-    el.style.color = 'var(--muted)';
-  } else if (status === 'found') {
-    el.innerHTML = `✅ Moy. 5 ventes eBay : <strong>€${price.toFixed(2)}</strong> — modifiable manuellement.`;
-    el.style.color = 'var(--accent3)';
-  } else {
-    el.innerHTML = `⚠️ ${reason || 'Aucun prix trouvé'}. Entrez-le manuellement ou cliquez sur "Voir eBay".`;
-    el.style.color = 'var(--accent4)';
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// BULK EBAY UPDATE
-// ════════════════════════════════════════════════════════════
-async function bulkUpdateEbay() {
-  if (!products.length) { alert('Aucun produit dans cette collection.'); return; }
-  const toUpdate = products.filter(p => p.search_name || p.name);
-  if (!toUpdate.length) return;
-
-  const ol = document.createElement('div');
-  ol.id = 'bulk-loading';
-  ol.innerHTML = `
-    <div class="bulk-card" style="max-width:380px;text-align:left;">
-      <div style="text-align:center">
-        <span class="big-spin">⟳</span>
-        <div class="bulk-title">Mise à jour eBay</div>
-        <div class="bulk-sub">Calcul sur les 5 dernières ventes…</div>
-      </div>
-      <div class="bulk-bar-wrap"><div class="bulk-bar" id="bulk-bar" style="width:0%"></div></div>
-      <div class="bulk-counter" id="bulk-counter" style="text-align:center">0 / ${toUpdate.length}</div>
-      <div id="bulk-log" style="margin-top:14px;max-height:180px;overflow-y:auto;font-size:0.72rem;line-height:1.6;"></div>
-    </div>`;
-  document.body.appendChild(ol);
-  const logEl = document.getElementById('bulk-log');
-
-  let done = 0;
-  const results = [];
-
-  for (const p of toUpdate) {
-    const q = p.search_name || p.name;
-    const { price, reason } = await fetchEbayAvg(q, 5);
-    results.push({ id: p.id, price });
-    done++;
-    const pct = Math.round((done / toUpdate.length) * 100);
-    document.getElementById('bulk-bar').style.width = pct + '%';
-    document.getElementById('bulk-counter').textContent = `${done} / ${toUpdate.length}`;
-    if (logEl) {
-      const line = document.createElement('div');
-      line.style.color = price !== null ? 'var(--accent3)' : 'var(--accent4)';
-      line.textContent = price !== null
-        ? `✅ ${p.name} → €${price.toFixed(2)}`
-        : `⚠️ ${p.name} → ${reason}`;
-      logEl.appendChild(line);
-      logEl.scrollTop = logEl.scrollHeight;
-    }
-    await new Promise(r => setTimeout(r, 500));
-  }
-
-  let saveErrors = 0;
-  for (const { id, price } of results) {
-    if (price !== null) {
-      const { error } = await db.from('collectapp_products')
-        .update({ sell_price_ebay: parseFloat(price.toFixed(2)) })
-        .eq('id', id).eq('user_id', currentUserId);
-      if (error) saveErrors++;
-    }
-  }
-
-  document.getElementById('bulk-loading')?.remove();
-  await loadProducts(currentCollection.id);
-  renderProductsView();
-
-  const updated = results.filter(r => r.price !== null).length;
-  const skipped = results.length - updated;
-  let msg = `✅ ${updated} prix mis à jour.`;
-  if (skipped > 0) msg += `\n⚠️ ${skipped} produit(s) sans résultat (voir détail ci-dessus pendant le traitement).`;
-  if (saveErrors > 0) msg += `\n❌ ${saveErrors} erreur(s) d'enregistrement en base.`;
-  alert(msg);
-}
 
 // ════════════════════════════════════════════════════════════
 // EXPORT EXCEL
