@@ -1000,9 +1000,9 @@ function syncSearchName() {
 
 async function fetchWithProxy(ebayUrl) {
   const attempts = [
-    // Proxy 0 (prioritaire) : ScraperAPI — proxies résidentiels + anti-bot pro
-    () => fetch(`https://api.scraperapi.com/?api_key=${SCRAPERAPI_KEY}&url=${encodeURIComponent(ebayUrl)}`,
-            { signal: AbortSignal.timeout(20000) })
+    // Proxy 0 (prioritaire) : ScraperAPI — proxies résidentiels + anti-bot pro + rendu JS complet
+    () => fetch(`https://api.scraperapi.com/?api_key=${SCRAPERAPI_KEY}&url=${encodeURIComponent(ebayUrl)}&render=true&country_code=fr`,
+            { signal: AbortSignal.timeout(30000) })
             .then(r => r.ok ? r.text() : null),
     // Proxy 1 : r.jina.ai — rendu via vrai navigateur headless
     () => fetch(`https://r.jina.ai/${ebayUrl}`, { signal: AbortSignal.timeout(15000) })
@@ -1032,20 +1032,33 @@ function isBlockedPage(html) {
   return low.includes('pardon our interruption')
       || low.includes('captcha')
       || low.includes('access denied')
-      || low.includes('are you a human');
+      || low.includes('are you a human')
+      || low.includes('activer javascript')
+      || low.includes('vérification humaine')
+      || low.includes('unusual traffic')
+      || low.includes('robot check');
 }
 
 function parseEbayPricesN(html, n = 5) {
-  // Formats possibles : "19,99 EUR" / "EUR 19,99" / "19,99 €"
   const patterns = [
-    /(\d{1,6}[,\.]\d{2})\s*EUR/g,
-    /EUR\s*(\d{1,6}[,\.]\d{2})/g,
-    /(\d{1,6}[,\.]\d{2})\s*€/g,
+    // "19,99 EUR" / "19.99 EUR"
+    /(\d{1,3}(?:[.\s\u00A0]?\d{3})*[,\.]\d{2})\s*EUR/g,
+    // "EUR 19,99"
+    /EUR\s*(\d{1,3}(?:[.\s\u00A0]?\d{3})*[,\.]\d{2})/g,
+    // "19,99 €" ou "19,99\u00A0€"
+    /(\d{1,3}(?:[.\s\u00A0]?\d{3})*[,\.]\d{2})\s*[\u00A0\s]*€/g,
+    // "€19,99"
+    /€\s*(\d{1,3}(?:[.\s\u00A0]?\d{3})*[,\.]\d{2})/g,
+    // JSON structuré : "price":"19.99" ou "value":"19.99" avec "currency":"EUR" à proximité
+    /"(?:price|value)"\s*:\s*"?(\d{1,6}\.\d{2})"?/g,
+    // Prix sans décimales suivi de € : "50 €" / "50€"
+    /(\d{1,6})\s*€(?!\w)/g,
   ];
   let found = [];
   for (const re of patterns) {
-    found = [...html.matchAll(re)].map(m => parseFloat(m[1].replace(',', '.')));
-    if (found.length) break;
+    const matches = [...html.matchAll(re)]
+      .map(m => parseFloat(m[1].replace(/[\s\u00A0]/g, '').replace(',', '.')));
+    if (matches.length) { found = matches; break; }
   }
   return found.filter(p => p > 0.5 && p < 100000).slice(0, n);
 }
@@ -1056,7 +1069,7 @@ async function fetchEbayAvg(query, n = 5) {
   const html = await fetchWithProxy(ebayUrl);
   if (!html) return { price: null, reason: 'Tous les proxies ont échoué / bloqués' };
   const prices = parseEbayPricesN(html, n);
-  if (!prices.length) return { price: null, reason: 'Aucun résultat eBay pour cette recherche' };
+  if (!prices.length) return { price: null, reason: `Aucun résultat eBay (page reçue : ${html.length} car.)` };
   const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
   return { price: avg, reason: `${prices.length} vente(s) trouvée(s)` };
 }
