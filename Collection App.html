@@ -998,40 +998,64 @@ function syncSearchName() {
 }
 
 async function fetchWithProxy(ebayUrl) {
-  // Proxy 1 : corsproxy.io
-  try {
-    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(ebayUrl)}`,
-      { signal: AbortSignal.timeout(10000) });
-    if (res.ok) return await res.text();
-  } catch (_) {}
-  // Proxy 2 : allorigins
-  try {
-    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ebayUrl)}`,
-      { signal: AbortSignal.timeout(10000) });
-    if (res.ok) { const d = await res.json(); return d.contents || ''; }
-  } catch (_) {}
+  const attempts = [
+    // Proxy 1 : corsproxy.io (bug corrigé : paramètre url= obligatoire)
+    () => fetch(`https://corsproxy.io/?url=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
+            .then(r => r.ok ? r.text() : null),
+    // Proxy 2 : codetabs (souvent plus tolérant qu'allorigins)
+    () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
+            .then(r => r.ok ? r.text() : null),
+    // Proxy 3 : allorigins (fallback)
+    () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
+            .then(r => r.ok ? r.json() : null).then(d => d?.contents || null),
+  ];
+  for (const attempt of attempts) {
+    try {
+      const html = await attempt();
+      if (html && html.length > 500 && !isBlockedPage(html)) return html;
+    } catch (_) {}
+  }
   return null;
 }
 
+// Détecte les pages de blocage anti-bot / CAPTCHA eBay
+function isBlockedPage(html) {
+  const low = html.toLowerCase();
+  return low.includes('pardon our interruption')
+      || low.includes('captcha')
+      || low.includes('access denied')
+      || low.includes('are you a human');
+}
+
 function parseEbayPricesN(html, n = 5) {
-  return [...html.matchAll(/(\d{1,6}[,\.]\d{2})\s*EUR/g)]
-    .map(m => parseFloat(m[1].replace(',', '.')))
-    .filter(p => p > 0.5 && p < 100000)
-    .slice(0, n);
+  // Formats possibles : "19,99 EUR" / "EUR 19,99" / "19,99 €"
+  const patterns = [
+    /(\d{1,6}[,\.]\d{2})\s*EUR/g,
+    /EUR\s*(\d{1,6}[,\.]\d{2})/g,
+    /(\d{1,6}[,\.]\d{2})\s*€/g,
+  ];
+  let found = [];
+  for (const re of patterns) {
+    found = [...html.matchAll(re)].map(m => parseFloat(m[1].replace(',', '.')));
+    if (found.length) break;
+  }
+  return found.filter(p => p > 0.5 && p < 100000).slice(0, n);
 }
 
 async function fetchEbayAvg(query, n = 5) {
-  if (!query) return null;
+  if (!query) return { price: null, reason: 'Nom vide' };
   const ebayUrl = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_sacat=0&_sop=13`;
   const html = await fetchWithProxy(ebayUrl);
-  if (!html) return null;
+  if (!html) return { price: null, reason: 'Tous les proxies ont échoué / bloqués' };
   const prices = parseEbayPricesN(html, n);
-  if (!prices.length) return null;
-  return prices.reduce((a, b) => a + b, 0) / prices.length;
+  if (!prices.length) return { price: null, reason: 'Aucun résultat eBay pour cette recherche' };
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  return { price: avg, reason: `${prices.length} vente(s) trouvée(s)` };
 }
 
 async function fetchEbayPrice(query) {
-  return fetchEbayAvg(query, 5);
+  const r = await fetchEbayAvg(query, 5);
+  return r.price;
 }
 
 function scheduleEbayFetch() {
@@ -1043,19 +1067,19 @@ function scheduleEbayFetch() {
   if (!q || q.length < 3) return;
   setEbayHint('loading');
   ebayTimer = setTimeout(async () => {
-    const price = await fetchEbayAvg(q, 5);
+    const { price, reason } = await fetchEbayAvg(q, 5);
     const si = document.getElementById('input-sell');
     if (!si || si.value) return;
     if (price !== null) {
       si.value = price.toFixed(2);
       setEbayHint('found', price);
     } else {
-      setEbayHint('none');
+      setEbayHint('none', null, reason);
     }
   }, 900);
 }
 
-function setEbayHint(status, price) {
+function setEbayHint(status, price, reason) {
   const el = document.getElementById('ebay-hint');
   if (!el) return;
   if (status === 'loading') {
@@ -1065,8 +1089,8 @@ function setEbayHint(status, price) {
     el.innerHTML = `✅ Moy. 5 ventes eBay : <strong>€${price.toFixed(2)}</strong> — modifiable manuellement.`;
     el.style.color = 'var(--accent3)';
   } else {
-    el.innerHTML = 'Aucun prix trouvé. Entrez-le manuellement ou cliquez sur "Voir eBay".';
-    el.style.color = 'var(--muted)';
+    el.innerHTML = `⚠️ ${reason || 'Aucun prix trouvé'}. Entrez-le manuellement ou cliquez sur "Voir eBay".`;
+    el.style.color = 'var(--accent4)';
   }
 }
 
@@ -1078,42 +1102,52 @@ async function bulkUpdateEbay() {
   const toUpdate = products.filter(p => p.search_name || p.name);
   if (!toUpdate.length) return;
 
-  // Overlay de chargement
   const ol = document.createElement('div');
   ol.id = 'bulk-loading';
   ol.innerHTML = `
-    <div class="bulk-card">
-      <span class="big-spin">⟳</span>
-      <div class="bulk-title">Mise à jour eBay</div>
-      <div class="bulk-sub">Calcul sur les 5 dernières ventes…</div>
+    <div class="bulk-card" style="max-width:380px;text-align:left;">
+      <div style="text-align:center">
+        <span class="big-spin">⟳</span>
+        <div class="bulk-title">Mise à jour eBay</div>
+        <div class="bulk-sub">Calcul sur les 5 dernières ventes…</div>
+      </div>
       <div class="bulk-bar-wrap"><div class="bulk-bar" id="bulk-bar" style="width:0%"></div></div>
-      <div class="bulk-counter" id="bulk-counter">0 / ${toUpdate.length}</div>
+      <div class="bulk-counter" id="bulk-counter" style="text-align:center">0 / ${toUpdate.length}</div>
+      <div id="bulk-log" style="margin-top:14px;max-height:180px;overflow-y:auto;font-size:0.72rem;line-height:1.6;"></div>
     </div>`;
   document.body.appendChild(ol);
+  const logEl = document.getElementById('bulk-log');
 
   let done = 0;
   const results = [];
 
   for (const p of toUpdate) {
     const q = p.search_name || p.name;
-    const price = await fetchEbayAvg(q, 5);
+    const { price, reason } = await fetchEbayAvg(q, 5);
     results.push({ id: p.id, price });
     done++;
     const pct = Math.round((done / toUpdate.length) * 100);
-    const bar = document.getElementById('bulk-bar');
-    const ctr = document.getElementById('bulk-counter');
-    if (bar) bar.style.width = pct + '%';
-    if (ctr) ctr.textContent = `${done} / ${toUpdate.length}`;
-    // Petite pause anti-rate-limit proxy
-    await new Promise(r => setTimeout(r, 400));
+    document.getElementById('bulk-bar').style.width = pct + '%';
+    document.getElementById('bulk-counter').textContent = `${done} / ${toUpdate.length}`;
+    if (logEl) {
+      const line = document.createElement('div');
+      line.style.color = price !== null ? 'var(--accent3)' : 'var(--accent4)';
+      line.textContent = price !== null
+        ? `✅ ${p.name} → €${price.toFixed(2)}`
+        : `⚠️ ${p.name} → ${reason}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    await new Promise(r => setTimeout(r, 500));
   }
 
-  // Sauvegarde en BDD
+  let saveErrors = 0;
   for (const { id, price } of results) {
     if (price !== null) {
-      await db.from('collectapp_products')
+      const { error } = await db.from('collectapp_products')
         .update({ sell_price_ebay: parseFloat(price.toFixed(2)) })
         .eq('id', id).eq('user_id', currentUserId);
+      if (error) saveErrors++;
     }
   }
 
@@ -1123,7 +1157,10 @@ async function bulkUpdateEbay() {
 
   const updated = results.filter(r => r.price !== null).length;
   const skipped = results.length - updated;
-  alert(`✅ ${updated} prix mis à jour.\n${skipped > 0 ? `${skipped} produit(s) sans résultat eBay.` : ''}`);
+  let msg = `✅ ${updated} prix mis à jour.`;
+  if (skipped > 0) msg += `\n⚠️ ${skipped} produit(s) sans résultat (voir détail ci-dessus pendant le traitement).`;
+  if (saveErrors > 0) msg += `\n❌ ${saveErrors} erreur(s) d'enregistrement en base.`;
+  alert(msg);
 }
 
 // ════════════════════════════════════════════════════════════
