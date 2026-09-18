@@ -339,28 +339,6 @@
     .action-btn:hover { background: var(--border); border-color: var(--accent); }
     .action-btn.green  { border-color: var(--accent3); color: var(--accent3); }
 
-    /* ── EBAY IFRAME POPUP ── */
-    #ebay-frame-overlay {
-      position: fixed; inset: 0; z-index: 650;
-      background: #000; display: flex; flex-direction: column;
-    }
-    .ebay-frame-topbar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 10px 10px 16px; flex-shrink: 0;
-      background: var(--card); border-bottom: 1px solid var(--border);
-    }
-    .ebay-frame-title { font-weight: 800; font-size: 0.88rem; color: var(--text); }
-    .ebay-frame-close {
-      display: flex; align-items: center; justify-content: center;
-      width: 34px; height: 34px; border-radius: 50%;
-      background: var(--accent4); border: none; color: white;
-      font-size: 1rem; font-weight: 800; cursor: pointer; flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(239,71,111,0.4);
-    }
-    .ebay-frame-close:hover { background: #d63a5f; }
-    .ebay-frame-body { flex: 1; min-height: 0; }
-    .ebay-frame-iframe { width: 100%; height: 100%; border: none; background: white; }
-
     /* ── CROPPER ── */
     #crop-overlay {
       position: fixed; inset: 0; z-index: 700;
@@ -964,31 +942,13 @@ function openProductModal(pre) {
   ol.addEventListener('click', e => { if (e.target === ol) closeModal('modal-prod'); });
 }
 
-// ── eBay : ouverture en iframe popup avec croix de fermeture ──
+// ── eBay : ouverture dans un nouvel onglet (eBay bloque l'affichage en iframe) ──
 function openEbay() {
   const q = document.getElementById('input-sname').value.trim()
          || document.getElementById('input-pname').value.trim();
   if (!q) { alert('Entrez un nom de recherche d\'abord.'); return; }
   const url = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sacat=0`;
-  showEbayFrame(url);
-}
-
-function showEbayFrame(url) {
-  const ol = document.createElement('div');
-  ol.id = 'ebay-frame-overlay';
-  ol.innerHTML = `
-    <div class="ebay-frame-topbar">
-      <span class="ebay-frame-title">🔎 eBay — ventes terminées</span>
-      <button class="ebay-frame-close" onclick="closeEbayFrame()" aria-label="Fermer">✕</button>
-    </div>
-    <div class="ebay-frame-body">
-      <iframe class="ebay-frame-iframe" src="${url}" loading="eager"></iframe>
-    </div>`;
-  document.body.appendChild(ol);
-}
-
-function closeEbayFrame() {
-  document.getElementById('ebay-frame-overlay')?.remove();
+  window.open(url, '_blank');
 }
 
 // Sync nom produit → nom de recherche si non modifié manuellement
