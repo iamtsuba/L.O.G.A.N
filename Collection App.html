@@ -9,6 +9,7 @@
   <script src="/L.O.G.A.N/logan-guard.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -326,6 +327,41 @@
     .empty-icon { font-size: 2.8rem; margin-bottom: 10px; }
     .empty-text { font-size: 0.88rem; line-height: 1.7; }
 
+    /* ── ACTION BUTTONS ROW ── */
+    .action-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .action-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: var(--card2); border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 10px 8px;
+      color: var(--text); font-family: inherit; font-weight: 700; font-size: 0.82rem;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+    .action-btn:hover { background: var(--border); border-color: var(--accent); }
+    .action-btn.accent { border-color: var(--accent); color: var(--accent); }
+    .action-btn.green  { border-color: var(--accent3); color: var(--accent3); }
+
+    /* ── BULK LOADING ── */
+    #bulk-loading {
+      position: fixed; inset: 0; z-index: 600;
+      background: rgba(0,0,0,0.88);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .bulk-card {
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 20px; padding: 36px 40px;
+      text-align: center; max-width: 320px; width: 100%;
+    }
+    @keyframes spin2 { to { transform: rotate(360deg); } }
+    .big-spin {
+      display: block; font-size: 2.8rem; margin: 0 auto 16px;
+      animation: spin2 1s linear infinite;
+    }
+    .bulk-title { font-family: 'Bebas Neue',sans-serif; font-size: 1.4rem; letter-spacing: 1px; margin-bottom: 6px; }
+    .bulk-sub   { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; }
+    .bulk-bar-wrap { background: var(--bg); border-radius: 99px; height: 6px; overflow: hidden; }
+    .bulk-bar { height: 100%; background: linear-gradient(90deg,#6c63ff,#a78bfa); border-radius: 99px; transition: width 0.3s; }
+    .bulk-counter { font-size: 0.75rem; color: var(--muted); margin-top: 8px; }
+
     /* ── CROPPER ── */
     #crop-overlay {
       position: fixed; inset: 0; z-index: 700;
@@ -399,10 +435,11 @@ let currentView    = 'collections';
 let currentCollection = null;
 
 // Modal state
-let editingProductId   = null;
-let currentPhotoB64    = null;
-let ocrWorker          = null;
-let selectedTypeId     = null;
+let editingProductId       = null;
+let currentPhotoB64        = null;
+let ocrWorker              = null;
+let selectedTypeId         = null;
+let searchNameManualEdited = false; // suivi si l'utilisateur a modifié manuellement le nom de recherche
 
 // Cropper state
 let cropCallback       = null;
@@ -719,6 +756,11 @@ function renderProductsView() {
       </div>
     </div>
 
+    <div class="action-row">
+      <button class="action-btn accent" onclick="bulkUpdateEbay()">⟳ Maj prix eBay</button>
+      <button class="action-btn green"  onclick="exportToExcel()">📊 Export Excel</button>
+    </div>
+
     ${products.length === 0 ? `<div class="empty-state"><div class="empty-icon">🎁</div><div class="empty-text">Aucun produit.<br>Ajoutez votre premier item !</div></div>` : ''}
     <div class="product-list">
       ${products.map(p => productCard(p)).join('')}
@@ -855,6 +897,8 @@ function openEditProductModal(id) {
 }
 
 function openProductModal(pre) {
+  searchNameManualEdited = false; // reset à chaque ouverture
+  const defaultSname = pre?.search_name || pre?.name || ''; // par défaut = nom du produit
   const ol = document.createElement('div');
   ol.className = 'modal-overlay';
   ol.id = 'modal-prod';
@@ -887,7 +931,7 @@ function openProductModal(pre) {
       <!-- Nom produit -->
       <div class="form-group">
         <label class="form-label">Nom du produit</label>
-        <input class="form-input" id="input-pname" placeholder="Nom affiché…" value="${esc(pre?.name || '')}">
+        <input class="form-input" id="input-pname" placeholder="Nom affiché…" value="${esc(pre?.name || '')}" oninput="syncSearchName()">
       </div>
 
       <!-- Nom recherche + OCR -->
@@ -897,7 +941,7 @@ function openProductModal(pre) {
           <button class="mini-btn" id="ocr-btn" onclick="runOCR()">OCR 🔍</button>
           <span id="ocr-spin" style="display:none" class="spin">⟳</span>
         </label>
-        <input class="form-input" id="input-sname" placeholder="Utilisé pour chercher sur eBay…" value="${esc(pre?.search_name || '')}" oninput="scheduleEbayFetch()">
+        <input class="form-input" id="input-sname" placeholder="Utilisé pour chercher sur eBay…" value="${esc(defaultSname)}" oninput="searchNameManualEdited=true;scheduleEbayFetch()">
       </div>
 
       <!-- Prix achat -->
@@ -942,57 +986,66 @@ function openEbay() {
 // ════════════════════════════════════════════════════════════
 // EBAY AUTO-FETCH
 // ════════════════════════════════════════════════════════════
-async function fetchEbayPrice(query) {
-  if (!query) return null;
-  const ebayUrl = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_sacat=0&_sop=13`;
 
+// Sync nom produit → nom de recherche si non modifié manuellement
+function syncSearchName() {
+  if (!searchNameManualEdited) {
+    const pname = document.getElementById('input-pname');
+    const sname = document.getElementById('input-sname');
+    if (pname && sname) sname.value = pname.value;
+  }
+  scheduleEbayFetch();
+}
+
+async function fetchWithProxy(ebayUrl) {
   // Proxy 1 : corsproxy.io
   try {
     const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(ebayUrl)}`,
       { signal: AbortSignal.timeout(10000) });
-    if (res.ok) {
-      const html = await res.text();
-      const price = parseEbayPrices(html);
-      if (price) return price;
-    }
+    if (res.ok) return await res.text();
   } catch (_) {}
-
-  // Proxy 2 : allorigins (fallback)
+  // Proxy 2 : allorigins
   try {
     const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ebayUrl)}`,
       { signal: AbortSignal.timeout(10000) });
-    if (res.ok) {
-      const data = await res.json();
-      const price = parseEbayPrices(data.contents || '');
-      if (price) return price;
-    }
+    if (res.ok) { const d = await res.json(); return d.contents || ''; }
   } catch (_) {}
-
   return null;
 }
 
-function parseEbayPrices(html) {
-  // Extrait les prix au format "19,99 EUR" ou "19.99 EUR"
-  const matches = [...html.matchAll(/(\d{1,6}[,\.]\d{2})\s*EUR/g)]
+function parseEbayPricesN(html, n = 5) {
+  return [...html.matchAll(/(\d{1,6}[,\.]\d{2})\s*EUR/g)]
     .map(m => parseFloat(m[1].replace(',', '.')))
-    .filter(p => p > 0.5 && p < 100000);
-  return matches.length > 0 ? matches[0] : null;
+    .filter(p => p > 0.5 && p < 100000)
+    .slice(0, n);
+}
+
+async function fetchEbayAvg(query, n = 5) {
+  if (!query) return null;
+  const ebayUrl = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(query)}&LH_Sold=1&LH_Complete=1&_sacat=0&_sop=13`;
+  const html = await fetchWithProxy(ebayUrl);
+  if (!html) return null;
+  const prices = parseEbayPricesN(html, n);
+  if (!prices.length) return null;
+  return prices.reduce((a, b) => a + b, 0) / prices.length;
+}
+
+async function fetchEbayPrice(query) {
+  return fetchEbayAvg(query, 5);
 }
 
 function scheduleEbayFetch() {
   clearTimeout(ebayTimer);
   const sellInput = document.getElementById('input-sell');
-  if (sellInput?.value) return; // ne pas écraser une valeur saisie manuellement
-
+  if (sellInput?.value) return;
   const q = document.getElementById('input-sname')?.value.trim()
           || document.getElementById('input-pname')?.value.trim();
   if (!q || q.length < 3) return;
-
   setEbayHint('loading');
   ebayTimer = setTimeout(async () => {
-    const price = await fetchEbayPrice(q);
+    const price = await fetchEbayAvg(q, 5);
     const si = document.getElementById('input-sell');
-    if (!si || si.value) return; // valeur saisie entre-temps
+    if (!si || si.value) return;
     if (price !== null) {
       si.value = price.toFixed(2);
       setEbayHint('found', price);
@@ -1006,15 +1059,121 @@ function setEbayHint(status, price) {
   const el = document.getElementById('ebay-hint');
   if (!el) return;
   if (status === 'loading') {
-    el.innerHTML = '<span class="spin">⟳</span> Recherche du prix sur eBay…';
+    el.innerHTML = '<span class="spin">⟳</span> Recherche sur eBay (moy. 5 ventes)…';
     el.style.color = 'var(--muted)';
   } else if (status === 'found') {
-    el.innerHTML = `✅ Prix trouvé : <strong>€${price.toFixed(2)}</strong> — modifiable manuellement.`;
+    el.innerHTML = `✅ Moy. 5 ventes eBay : <strong>€${price.toFixed(2)}</strong> — modifiable manuellement.`;
     el.style.color = 'var(--accent3)';
   } else {
     el.innerHTML = 'Aucun prix trouvé. Entrez-le manuellement ou cliquez sur "Voir eBay".';
     el.style.color = 'var(--muted)';
   }
+}
+
+// ════════════════════════════════════════════════════════════
+// BULK EBAY UPDATE
+// ════════════════════════════════════════════════════════════
+async function bulkUpdateEbay() {
+  if (!products.length) { alert('Aucun produit dans cette collection.'); return; }
+  const toUpdate = products.filter(p => p.search_name || p.name);
+  if (!toUpdate.length) return;
+
+  // Overlay de chargement
+  const ol = document.createElement('div');
+  ol.id = 'bulk-loading';
+  ol.innerHTML = `
+    <div class="bulk-card">
+      <span class="big-spin">⟳</span>
+      <div class="bulk-title">Mise à jour eBay</div>
+      <div class="bulk-sub">Calcul sur les 5 dernières ventes…</div>
+      <div class="bulk-bar-wrap"><div class="bulk-bar" id="bulk-bar" style="width:0%"></div></div>
+      <div class="bulk-counter" id="bulk-counter">0 / ${toUpdate.length}</div>
+    </div>`;
+  document.body.appendChild(ol);
+
+  let done = 0;
+  const results = [];
+
+  for (const p of toUpdate) {
+    const q = p.search_name || p.name;
+    const price = await fetchEbayAvg(q, 5);
+    results.push({ id: p.id, price });
+    done++;
+    const pct = Math.round((done / toUpdate.length) * 100);
+    const bar = document.getElementById('bulk-bar');
+    const ctr = document.getElementById('bulk-counter');
+    if (bar) bar.style.width = pct + '%';
+    if (ctr) ctr.textContent = `${done} / ${toUpdate.length}`;
+    // Petite pause anti-rate-limit proxy
+    await new Promise(r => setTimeout(r, 400));
+  }
+
+  // Sauvegarde en BDD
+  for (const { id, price } of results) {
+    if (price !== null) {
+      await db.from('collectapp_products')
+        .update({ sell_price_ebay: parseFloat(price.toFixed(2)) })
+        .eq('id', id).eq('user_id', currentUserId);
+    }
+  }
+
+  document.getElementById('bulk-loading')?.remove();
+  await loadProducts(currentCollection.id);
+  renderProductsView();
+
+  const updated = results.filter(r => r.price !== null).length;
+  const skipped = results.length - updated;
+  alert(`✅ ${updated} prix mis à jour.\n${skipped > 0 ? `${skipped} produit(s) sans résultat eBay.` : ''}`);
+}
+
+// ════════════════════════════════════════════════════════════
+// EXPORT EXCEL
+// ════════════════════════════════════════════════════════════
+function exportToExcel() {
+  if (!products.length) { alert('Aucun produit à exporter.'); return; }
+
+  const rows = products.map(p => ({
+    'Nom':               p.name,
+    'Nom recherche':     p.search_name || '',
+    'Prix achat (€)':    p.buy_price   || 0,
+    'Prix revente eBay (€)': p.sell_price_ebay || '',
+    'P&L estimé (€)':   p.sell_price_ebay
+                          ? parseFloat((p.sell_price_ebay - (p.buy_price||0)).toFixed(2))
+                          : '',
+    'Photo':             p.photo ? 'Oui' : 'Non',
+    'Ajouté le':         p.created_at ? p.created_at.slice(0,10) : '',
+  }));
+
+  // Ligne totaux
+  const totalBuy  = products.reduce((s, p) => s + (p.buy_price||0), 0);
+  const withSell  = products.filter(p => p.sell_price_ebay);
+  const totalSell = withSell.reduce((s, p) => s + p.sell_price_ebay, 0);
+  rows.push({
+    'Nom': 'TOTAL',
+    'Nom recherche': '',
+    'Prix achat (€)': parseFloat(totalBuy.toFixed(2)),
+    'Prix revente eBay (€)': withSell.length ? parseFloat(totalSell.toFixed(2)) : '',
+    'P&L estimé (€)': withSell.length ? parseFloat((totalSell - totalBuy).toFixed(2)) : '',
+    'Photo': '',
+    'Ajouté le': '',
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+
+  // Largeurs colonnes
+  ws['!cols'] = [
+    { wch: 30 }, { wch: 30 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 8 }, { wch: 12 }
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const sheetName = (currentCollection.name || 'Collection').slice(0, 31);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  const t = typeById(currentCollection.type_id);
+  const label = currentCollection.type_id === 'custom' && currentCollection.custom_type
+    ? currentCollection.custom_type : t.label;
+
+  XLSX.writeFile(wb, `${currentCollection.name} — ${label}.xlsx`);
 }
 
 // ── Photo ──
