@@ -999,6 +999,9 @@ function syncSearchName() {
 
 async function fetchWithProxy(ebayUrl) {
   const attempts = [
+    // Proxy 0 : r.jina.ai — rendu via vrai navigateur headless, plus difficile à bloquer pour eBay
+    () => fetch(`https://r.jina.ai/${ebayUrl}`, { signal: AbortSignal.timeout(15000) })
+            .then(r => r.ok ? r.text() : null),
     // Proxy 1 : corsproxy.io (bug corrigé : paramètre url= obligatoire)
     () => fetch(`https://corsproxy.io/?url=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
             .then(r => r.ok ? r.text() : null),
