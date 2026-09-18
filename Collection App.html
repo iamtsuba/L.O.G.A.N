@@ -422,7 +422,8 @@
 const SUPABASE_URL  = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
 const APP_FILE      = 'Collection App.html';
-const VERSION       = '26.9.18.1640';
+const VERSION       = '26.9.19.1000';
+const SCRAPERAPI_KEY = '097601ba4d784e8c17ee2355e40711d9';
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -999,16 +1000,20 @@ function syncSearchName() {
 
 async function fetchWithProxy(ebayUrl) {
   const attempts = [
-    // Proxy 0 : r.jina.ai — rendu via vrai navigateur headless, plus difficile à bloquer pour eBay
+    // Proxy 0 (prioritaire) : ScraperAPI — proxies résidentiels + anti-bot pro
+    () => fetch(`https://api.scraperapi.com/?api_key=${SCRAPERAPI_KEY}&url=${encodeURIComponent(ebayUrl)}`,
+            { signal: AbortSignal.timeout(20000) })
+            .then(r => r.ok ? r.text() : null),
+    // Proxy 1 : r.jina.ai — rendu via vrai navigateur headless
     () => fetch(`https://r.jina.ai/${ebayUrl}`, { signal: AbortSignal.timeout(15000) })
             .then(r => r.ok ? r.text() : null),
-    // Proxy 1 : corsproxy.io (bug corrigé : paramètre url= obligatoire)
+    // Proxy 2 : corsproxy.io
     () => fetch(`https://corsproxy.io/?url=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
             .then(r => r.ok ? r.text() : null),
-    // Proxy 2 : codetabs (souvent plus tolérant qu'allorigins)
+    // Proxy 3 : codetabs
     () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
             .then(r => r.ok ? r.text() : null),
-    // Proxy 3 : allorigins (fallback)
+    // Proxy 4 : allorigins (dernier recours)
     () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ebayUrl)}`, { signal: AbortSignal.timeout(12000) })
             .then(r => r.ok ? r.json() : null).then(d => d?.contents || null),
   ];
