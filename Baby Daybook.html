@@ -186,8 +186,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   display: flex; align-items: center; gap: 10px;
   background: white; border-radius: 12px; padding: 10px 12px;
   box-shadow: var(--shadow); transition: all 0.15s;
+  cursor: pointer;
 }
 .af-item:hover { box-shadow: var(--shadow-card); }
+.af-item:active { transform: scale(0.99); }
 .af-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .af-body { flex: 1; min-width: 0; }
 .af-title { font-size: 13px; font-weight: 700; }
@@ -371,7 +373,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2341">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2343">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -747,7 +749,7 @@ function renderAfItem(e) {
   const icon = eventIcon(e);
   const detail = buildEventDetail(e);
   const timeStr = formatTime(e.started_at) + (e.ended_at ? ` - ${formatTime(e.ended_at)}` : '');
-  return `<div class="af-item">
+  return `<div class="af-item" onclick="editEvent('${e.id}','${e.type}')">
     <div class="af-icon" style="background:${m.color}">${icon}</div>
     <div class="af-body">
       <div class="af-title">${m.label}</div>
@@ -756,8 +758,7 @@ function renderAfItem(e) {
     <div class="af-right">
       <div class="af-time">${timeStr}</div>
       <div class="af-actions">
-        <button class="af-btn" onclick="editEvent('${e.id}','${e.type}')">✏️</button>
-        <button class="af-btn" onclick="deleteEvent('${e.id}')">🗑️</button>
+        <button class="af-btn" onclick="event.stopPropagation();deleteEvent('${e.id}')">🗑️</button>
       </div>
     </div>
   </div>`;
@@ -945,7 +946,7 @@ async function renderGrowth() {
   if (measures.length > 0) {
     growthChart = new Chart(ctx, { type:'line', data:{ labels:measures.map(m=>formatDate(m.measured_at.split('T')[0])), datasets:[{label:growthMetric==='weight'?'Poids (kg)':growthMetric==='height'?'Taille (cm)':'P. crânien (cm)', data:measures.map(m=>m.value), borderColor:'#0288D1', backgroundColor:'rgba(79,195,247,0.10)', borderWidth:2, tension:0.4, fill:true, pointBackgroundColor:'#0288D1', pointRadius:4}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{beginAtZero:false}} } });
   }
-  document.getElementById('growth-history').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div class="section-title" style="margin:0">Historique</div><button class="btn btn-primary btn-sm" onclick="openMeasureModal('${growthMetric}')">+ Ajouter</button></div><div style="margin-top:10px">${measures.length===0?`<div class="empty-state"><div class="es-emoji">📏</div><h3>Aucune mesure</h3></div>`:([...measures].reverse().map(m=>`<div class="af-item"><div class="af-icon" style="background:${growthMetric==='weight'?'#E0F7FA':'#E8EAF6'}">${growthMetric==='weight'?'⚖️':growthMetric==='height'?'📏':'🎯'}</div><div class="af-body"><div class="af-title">${m.value} ${unit}</div>${m.notes?`<div class="af-detail">${m.notes}</div>`:''}</div><div class="af-right"><div class="af-time">${formatDate(m.measured_at.split('T')[0])}</div><div class="af-actions"><button class="af-btn" onclick="editMeasure('${m.id}','${m.metric}','${m.value}','${m.measured_at.split('T')[0]}','${(m.notes||'').replace(/'/g,'')}')">✏️</button><button class="af-btn" onclick="deleteMeasure('${m.id}')">🗑️</button></div></div></div>`).join(''))}</div>`;
+  document.getElementById('growth-history').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div class="section-title" style="margin:0">Historique</div><button class="btn btn-primary btn-sm" onclick="openMeasureModal('${growthMetric}')">+ Ajouter</button></div><div style="margin-top:10px">${measures.length===0?`<div class="empty-state"><div class="es-emoji">📏</div><h3>Aucune mesure</h3></div>`:([...measures].reverse().map(m=>`<div class="af-item" onclick="editMeasure('${m.id}','${m.metric}','${m.value}','${m.measured_at.split('T')[0]}','${(m.notes||'').replace(/'/g,'')}')"><div class="af-icon" style="background:${growthMetric==='weight'?'#E0F7FA':'#E8EAF6'}">${growthMetric==='weight'?'⚖️':growthMetric==='height'?'📏':'🎯'}</div><div class="af-body"><div class="af-title">${m.value} ${unit}</div>${m.notes?`<div class="af-detail">${m.notes}</div>`:''}</div><div class="af-right"><div class="af-time">${formatDate(m.measured_at.split('T')[0])}</div><div class="af-actions"><button class="af-btn" onclick="event.stopPropagation();deleteMeasure('${m.id}')">🗑️</button></div></div></div>`).join(''))}</div>`;
 }
 
 function setGrowthMetric(m,btn) { growthMetric=m; document.querySelectorAll('.growth-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderGrowth(); }
@@ -961,7 +962,7 @@ async function renderProfile() {
     sb.from('babydaybook_measurements').select('*').eq('child_id', currentChildId).eq('metric','height').order('measured_at',{ascending:false}).limit(1),
   ]);
   const vaccines = vaxRes.data||[], lastWeight = lastWeightRes.data?.[0], lastHeight = lastHeightRes.data?.[0];
-  container.innerHTML = `<div class="profile-card"><div style="display:flex;align-items:center;gap:16px;margin-bottom:16px"><div class="profile-avatar-xl">${child.photo_url?`<img src="${child.photo_url}">`:child.name[0].toUpperCase()}<div class="avatar-edit">✏️</div></div><div><h2 style="font-size:22px;font-weight:800">${child.name}</h2><p style="color:var(--text2);font-size:13px">${child.gender==='F'?'👧 Fille':'👦 Garçon'}</p><span style="display:inline-block;background:var(--sky-light);color:var(--sky-dark);font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;margin-top:4px">${computeAge(child.birthdate)}</span></div></div><div class="info-row"><span class="ir-label">Date de naissance</span><span class="ir-value">${formatDate(child.birthdate)}</span></div><div class="info-row"><span class="ir-label">Dernier poids</span><span class="ir-value">${lastWeight?lastWeight.value+' kg':'—'}</span></div><div class="info-row"><span class="ir-label">Dernière taille</span><span class="ir-value">${lastHeight?lastHeight.value+' cm':'—'}</span></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-secondary btn-sm" onclick="editChild('${child.id}')">✏️ Modifier</button><button class="btn btn-danger btn-sm" style="margin:0" onclick="confirmDeleteChild('${child.id}')">🗑️ Supprimer</button></div></div><div class="measure-cards"><div class="measure-card" onclick="openMeasureModal('weight')"><div class="mc-icon">⚖️</div><div class="mc-label">Poids</div><div class="mc-val">${lastWeight?lastWeight.value+'kg':'—'}</div></div><div class="measure-card" onclick="openMeasureModal('height')"><div class="mc-icon">📏</div><div class="mc-label">Taille</div><div class="mc-val">${lastHeight?lastHeight.value+'cm':'—'}</div></div><div class="measure-card" onclick="openMeasureModal('head')"><div class="mc-icon">🎯</div><div class="mc-label">P. crânien</div><div class="mc-val">—</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="section-title" style="margin:0">💉 Vaccins</div><button class="btn btn-primary btn-sm" onclick="openVaccineModal()">+ Vaccin</button></div>${vaccines.length===0?`<div class="empty-state"><div class="es-emoji">💉</div><h3>Aucun vaccin</h3></div>`:vaccines.map(v=>`<div class="vaccine-item"><div class="vax-status vax-done"></div><div style="flex:1"><div style="font-weight:700;font-size:14px">${v.name}</div><div style="font-size:12px;color:var(--text2)">${formatDate(v.administered_at.split('T')[0])}${v.next_due_at?` · Rappel: ${formatDate(v.next_due_at.split('T')[0])}`:''}}</div></div><button class="af-btn" onclick="editVaccineModal('${v.id}','${v.name}','${v.administered_at.split('T')[0]}','${(v.next_due_at||'').split('T')[0]}','${(v.notes||'').replace(/'/g,'')}')">✏️</button><button class="af-btn" onclick="deleteVaccineAction('${v.id}')">🗑️</button></div>`).join('')}`;
+  container.innerHTML = `<div class="profile-card"><div style="display:flex;align-items:center;gap:16px;margin-bottom:16px"><div class="profile-avatar-xl">${child.photo_url?`<img src="${child.photo_url}">`:child.name[0].toUpperCase()}<div class="avatar-edit">✏️</div></div><div><h2 style="font-size:22px;font-weight:800">${child.name}</h2><p style="color:var(--text2);font-size:13px">${child.gender==='F'?'👧 Fille':'👦 Garçon'}</p><span style="display:inline-block;background:var(--sky-light);color:var(--sky-dark);font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;margin-top:4px">${computeAge(child.birthdate)}</span></div></div><div class="info-row"><span class="ir-label">Date de naissance</span><span class="ir-value">${formatDate(child.birthdate)}</span></div><div class="info-row"><span class="ir-label">Dernier poids</span><span class="ir-value">${lastWeight?lastWeight.value+' kg':'—'}</span></div><div class="info-row"><span class="ir-label">Dernière taille</span><span class="ir-value">${lastHeight?lastHeight.value+' cm':'—'}</span></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-secondary btn-sm" onclick="editChild('${child.id}')">✏️ Modifier</button><button class="btn btn-danger btn-sm" style="margin:0" onclick="confirmDeleteChild('${child.id}')">🗑️ Supprimer</button></div></div><div class="measure-cards"><div class="measure-card" onclick="openMeasureModal('weight')"><div class="mc-icon">⚖️</div><div class="mc-label">Poids</div><div class="mc-val">${lastWeight?lastWeight.value+'kg':'—'}</div></div><div class="measure-card" onclick="openMeasureModal('height')"><div class="mc-icon">📏</div><div class="mc-label">Taille</div><div class="mc-val">${lastHeight?lastHeight.value+'cm':'—'}</div></div><div class="measure-card" onclick="openMeasureModal('head')"><div class="mc-icon">🎯</div><div class="mc-label">P. crânien</div><div class="mc-val">—</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="section-title" style="margin:0">💉 Vaccins</div><button class="btn btn-primary btn-sm" onclick="openVaccineModal()">+ Vaccin</button></div>${vaccines.length===0?`<div class="empty-state"><div class="es-emoji">💉</div><h3>Aucun vaccin</h3></div>`:vaccines.map(v=>`<div class="vaccine-item" onclick="editVaccineModal('${v.id}','${v.name}','${v.administered_at.split('T')[0]}','${(v.next_due_at||'').split('T')[0]}','${(v.notes||'').replace(/'/g,'')}')" style="cursor:pointer"><div class="vax-status vax-done"></div><div style="flex:1"><div style="font-weight:700;font-size:14px">${v.name}</div><div style="font-size:12px;color:var(--text2)">${formatDate(v.administered_at.split('T')[0])}${v.next_due_at?` · Rappel: ${formatDate(v.next_due_at.split('T')[0])}`:''}}</div></div><button class="af-btn" onclick="event.stopPropagation();deleteVaccineAction('${v.id}')">🗑️</button></div>`).join('')}`;
 }
 
 // ===== CHILD CRUD =====
