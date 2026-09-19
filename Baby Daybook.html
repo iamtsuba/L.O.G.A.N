@@ -371,7 +371,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2337">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2341">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -826,14 +826,11 @@ function chronoNav(delta) {
 }
 
 function renderChronoHeader() {
-  const hours = [4,8,12,16,20];
+  const hours = [2,4,6,8,10,12,14,16,18,20,22];
   const marks = hours.map(h => {
     const pct = (h/24)*100;
     return `<span style="position:absolute;left:${pct}%;transform:translateX(-50%);font-size:8px;color:var(--text3);top:6px;font-weight:600">${h}</span>`;
-  }).join('') +
-    `<span style="position:absolute;left:${(0/24)*100}%;transform:translateX(-50%);font-size:9px;top:4px">🌙</span>` +
-    `<span style="position:absolute;left:${(12/24)*100}%;transform:translateX(-50%);font-size:9px;top:4px">☀️</span>` +
-    `<span style="position:absolute;left:${(23.9/24)*100}%;transform:translateX(-100%);font-size:9px;top:4px">🌙</span>`;
+  }).join('');
 
   return `
     <div style="width:42px;background:var(--surface2);border-bottom:1px solid var(--border)"></div>
