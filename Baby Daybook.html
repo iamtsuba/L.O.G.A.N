@@ -203,36 +203,36 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
 /* ===== CHRONOLOGIE ===== */
 .chrono-year-label { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
-.chrono-wrap { overflow-x: auto; }
+.chrono-wrap { width: 100%; }
 .chrono-grid {
   display: grid;
   background: white;
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
   overflow: hidden;
-  min-width: 600px;
+  width: 100%;
 }
 .chrono-header-row { display: flex; background: var(--surface2); border-bottom: 1px solid var(--border); }
-.chrono-day-col { width: 64px; flex-shrink: 0; }
+.chrono-day-col { width: 42px; flex-shrink: 0; }
 .chrono-hours-header {
   flex: 1; display: flex; position: relative; height: 24px;
 }
-.ch-hour-mark { position: absolute; font-size: 9px; color: var(--text3); font-weight: 600; transform: translateX(-50%); top: 6px; }
-.ch-sun-icon { position: absolute; font-size: 10px; transform: translateX(-50%); top: 4px; }
-.ch-moon-icon { position: absolute; font-size: 10px; transform: translateX(-50%); top: 4px; }
+.ch-hour-mark { position: absolute; font-size: 8px; color: var(--text3); font-weight: 600; transform: translateX(-50%); top: 6px; }
+.ch-sun-icon { position: absolute; font-size: 9px; transform: translateX(-50%); top: 4px; }
+.ch-moon-icon { position: absolute; font-size: 9px; transform: translateX(-50%); top: 4px; }
 
-.chrono-day-row { display: flex; border-bottom: 1px solid var(--border); min-height: 38px; }
+.chrono-day-row { display: flex; border-bottom: 1px solid var(--border); min-height: 34px; }
 .chrono-day-row:last-child { border-bottom: none; }
-.chrono-day-label { width: 64px; flex-shrink: 0; padding: 4px 6px; display: flex; flex-direction: column; justify-content: center; }
-.cdl-dow { font-size: 10px; font-weight: 700; color: var(--text2); }
-.cdl-day { font-size: 12px; font-weight: 800; color: var(--text); }
-.chrono-events-area { flex: 1; position: relative; min-height: 38px; }
+.chrono-day-label { width: 42px; flex-shrink: 0; padding: 3px 4px; display: flex; flex-direction: column; justify-content: center; }
+.cdl-dow { font-size: 8px; font-weight: 700; color: var(--text2); }
+.cdl-day { font-size: 11px; font-weight: 800; color: var(--text); }
+.chrono-events-area { flex: 1; position: relative; min-height: 34px; }
 
 /* Sleep bars in chrono */
-.chrono-sleep-bar { position: absolute; height: 10px; top: 14px; border-radius: 5px; background: #A5D6A7; opacity: 0.85; }
+.chrono-sleep-bar { position: absolute; height: 9px; top: 13px; border-radius: 4px; background: #A5D6A7; opacity: 0.85; }
 .chrono-sleep-bar.night { background: #80CBC4; }
 /* Event icons in chrono */
-.chrono-evt-icon { position: absolute; font-size: 14px; transform: translateX(-50%); cursor: pointer; }
+.chrono-evt-icon { position: absolute; font-size: 12px; transform: translateX(-50%); cursor: pointer; }
 
 /* ===== STATS ===== */
 .stats-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 16px; }
@@ -371,7 +371,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2335">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2337">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -826,17 +826,17 @@ function chronoNav(delta) {
 }
 
 function renderChronoHeader() {
-  const hours = [2,4,6,8,10,12,14,16,18,20,22];
+  const hours = [4,8,12,16,20];
   const marks = hours.map(h => {
     const pct = (h/24)*100;
-    return `<span style="position:absolute;left:${pct}%;transform:translateX(-50%);font-size:9px;color:var(--text3);top:4px;font-weight:600">${h}</span>`;
+    return `<span style="position:absolute;left:${pct}%;transform:translateX(-50%);font-size:8px;color:var(--text3);top:6px;font-weight:600">${h}</span>`;
   }).join('') +
-    `<span style="position:absolute;left:${(0/24)*100}%;transform:translateX(-50%);font-size:10px;top:3px">🌙</span>` +
-    `<span style="position:absolute;left:${(12/24)*100}%;transform:translateX(-50%);font-size:10px;top:3px">☀️</span>` +
-    `<span style="position:absolute;left:${(22/24)*100}%;transform:translateX(-50%);font-size:10px;top:3px">🌙</span>`;
+    `<span style="position:absolute;left:${(0/24)*100}%;transform:translateX(-50%);font-size:9px;top:4px">🌙</span>` +
+    `<span style="position:absolute;left:${(12/24)*100}%;transform:translateX(-50%);font-size:9px;top:4px">☀️</span>` +
+    `<span style="position:absolute;left:${(23.9/24)*100}%;transform:translateX(-100%);font-size:9px;top:4px">🌙</span>`;
 
   return `
-    <div style="width:52px;background:var(--surface2);border-bottom:1px solid var(--border)"></div>
+    <div style="width:42px;background:var(--surface2);border-bottom:1px solid var(--border)"></div>
     <div style="position:relative;height:24px;background:var(--surface2);border-bottom:1px solid var(--border)">${marks}</div>
   `;
 }
