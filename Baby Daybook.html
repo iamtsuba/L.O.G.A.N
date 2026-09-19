@@ -371,7 +371,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2311">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2330">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -576,18 +576,31 @@ async function renderDashboard() {
   const ds = dateFR(dashboardDate);
   // Compute Paris day boundaries in UTC using the parisDateRange helper
   const [dayStartISO, dayEndISO] = parisDateRange(ds);
+  // Sleep can start the day before (or extend past midnight) and still belong to `ds`,
+  // so fetch sleep events from a wider window (previous day start to next day end)
+  const prevDayStr = (() => { const d = new Date(ds + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().split('T')[0]; })();
+  const nextDayStrLocal = nextDayStr(ds);
+  const [sleepWindowStartISO] = parisDateRange(prevDayStr);
+  const [, sleepWindowEndISO] = parisDateRange(nextDayStrLocal);
 
-  const [evtRes, lastFeedRes, lastDiaperRes] = await Promise.all([
+  const [evtRes, lastFeedRes, lastDiaperRes, sleepWindowRes] = await Promise.all([
     sb.from('babydaybook_events').select('*').eq('child_id', currentChildId).gte('started_at', dayStartISO).lte('started_at', dayEndISO).order('started_at', {ascending: false}),
     sb.from('babydaybook_events').select('*').eq('child_id', currentChildId).in('type', ['allaitement','biberon','repas']).order('started_at', {ascending: false}).limit(1),
     sb.from('babydaybook_events').select('*').eq('child_id', currentChildId).eq('type','couche').order('started_at', {ascending: false}).limit(1),
+    sb.from('babydaybook_events').select('*').eq('child_id', currentChildId).eq('type','sommeil').gte('started_at', sleepWindowStartISO).lte('started_at', sleepWindowEndISO).order('started_at', {ascending: false}),
   ]);
 
   const todayEvts = evtRes.data || [];
   const lastFeed = lastFeedRes.data?.[0];
   const lastDiaper = lastDiaperRes.data?.[0];
-  const sleepEvts = todayEvts.filter(e => e.type === 'sommeil' && e.ended_at);
-  const totalSleepMs = sleepEvts.reduce((a,e) => a + (new Date(e.ended_at)-new Date(e.started_at)), 0);
+  const allSleepEvts = sleepWindowRes.data || [];
+  // Split every sleep event (including those crossing midnight) into per-day segments,
+  // then keep only the segments that fall on the displayed day `ds`.
+  const sleepSegmentsToday = allSleepEvts
+    .filter(e => e.ended_at)
+    .flatMap(e => splitSleepByDay(e))
+    .filter(seg => seg.day === ds);
+  const totalSleepMs = sleepSegmentsToday.reduce((a, seg) => a + seg.durationMs, 0);
   const feedCount = todayEvts.filter(e => ['allaitement','biberon','repas'].includes(e.type)).length;
   const diaperCount = todayEvts.filter(e => e.type === 'couche').length;
   const isToday = ds === dateFR();
@@ -597,7 +610,7 @@ async function renderDashboard() {
   const lastAllait = todayEvts.find(e => e.type === 'allaitement');
   const lastBiberon = todayEvts.find(e => e.type === 'biberon');
   const lastCouche = todayEvts.find(e => e.type === 'couche');
-  const lastSommeil = todayEvts.find(e => e.type === 'sommeil');
+  const lastSommeil = allSleepEvts[0];
   const lastRepas = todayEvts.find(e => e.type === 'repas');
 
   function qaCircleSub(evt, type) {
@@ -655,7 +668,7 @@ async function renderDashboard() {
       <button class="date-nav-btn" onclick="changeDashDate(1)" ${isToday?'style="color:var(--text3);cursor:default"':''}>›</button>
     </div>
 
-    ${renderMiniTimeline(todayEvts)}
+    ${renderMiniTimeline(todayEvts, allSleepEvts, ds)}
 
     <div class="today-summary">
       <div class="ts-item"><div class="ts-icon">${svgAllaitement()}</div><div class="ts-val">${feedCount}</div><div class="ts-label">Repas</div></div>
@@ -680,7 +693,7 @@ function changeDashDate(delta) {
   renderDashboard();
 }
 
-function renderMiniTimeline(events) {
+function renderMiniTimeline(events, sleepEvents, displayDay) {
   const hours = [2,4,6,8,10,12,14,16,18,20,22];
   const hoursHTML = hours.map(h => {
     const pct = (h/24)*100;
@@ -690,21 +703,25 @@ function renderMiniTimeline(events) {
     `<span class="tl-moon-icon" style="left:${(22/24)*100}%">🌙</span>` +
     `<span class="tl-moon-icon" style="left:${(2/24)*100}%">🌙</span>`;
 
-  // sleep bars with duration label
+  // Sleep bars: split every sleep event by calendar day (Paris) and keep only
+  // the segment(s) that fall on `displayDay`, so a sleep spanning midnight
+  // shows correctly on both days it touches.
   let barsHTML = '';
-  events.filter(e => e.type === 'sommeil' && e.ended_at).forEach(e => {
-    const s = timeToFrac(e.started_at);
-    const en = timeToFrac(e.ended_at);
-    let widthPct = (en - s) * 100;
-    if (widthPct < 0) widthPct += 100; // sleep crossing midnight within same fetched day (rare)
-    const durMs = new Date(e.ended_at) - new Date(e.started_at);
-    const durLabel = fmtDurH(durMs);
-    barsHTML += `<div class="tl-sleep-bar" style="left:${s*100}%;width:${Math.max(widthPct,1.5)}%" title="Sommeil ${formatTime(e.started_at)} - ${formatTime(e.ended_at)} (${durLabel})">
-      <span class="tl-sleep-bar-label">${durLabel}</span>
-    </div>`;
+  (sleepEvents || []).filter(e => e.ended_at).forEach(e => {
+    const segments = splitSleepByDay(e).filter(seg => seg.day === displayDay);
+    segments.forEach(seg => {
+      const s = timeToFrac(seg.startISO);
+      let en = timeToFrac(seg.endISO);
+      if (en <= s) en = 1; // segment reaching midnight (end-of-day) -> full width to day end
+      const widthPct = (en - s) * 100;
+      const durLabel = fmtDurH(seg.durationMs);
+      barsHTML += `<div class="tl-sleep-bar" style="left:${s*100}%;width:${Math.max(widthPct,1.5)}%" title="Sommeil ${formatTime(seg.startISO)} - ${en===1?'00:00':formatTime(seg.endISO)} (${durLabel})">
+        <span class="tl-sleep-bar-label">${durLabel}</span>
+      </div>`;
+    });
   });
 
-  // event dots (non-sleep) — now correctly using .tl-event-dot to match CSS
+  // event dots (non-sleep)
   let dotsHTML = '';
   const dotMap = {allaitement:'🤱', biberon:'🍼', repas:'🥣', couche:'🚼', medicament:'💊', rdv:'🏥', activite:'🎮', note:'📝'};
   events.filter(e => e.type !== 'sommeil').forEach(e => {
@@ -714,9 +731,8 @@ function renderMiniTimeline(events) {
 
   // Now line
   const nowDs = dateFR();
-  const ds = dateFR(dashboardDate);
   const nowFrac = (() => { const sv=new Date().toLocaleString('sv-SE',{timeZone:TZ}); const tp=(sv.split(' ')[1]||'0:0').split(':'); return (parseInt(tp[0])*60+parseInt(tp[1]))/(24*60); })();
-  const nowLine = ds === nowDs ? `<div class="tl-now-line" style="left:${nowFrac*100}%"></div>` : '';
+  const nowLine = displayDay === nowDs ? `<div class="tl-now-line" style="left:${nowFrac*100}%"></div>` : '';
 
   return `<div class="mini-timeline-wrap">
     <div class="mini-timeline">
@@ -762,6 +778,13 @@ async function renderChrono() {
   const { data } = await sb.from('babydaybook_events').select('*').eq('child_id', currentChildId).gte('started_at', startISO).lte('started_at', endISO).order('started_at', {ascending: false});
   const events = data || [];
 
+  // Sleep events can start just before the visible window and still show up
+  // on its first day, so fetch sleep separately with a 1-day lookback.
+  const lookbackDay = (() => { const d = new Date(dateFR(startDate) + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().split('T')[0]; })();
+  const [sleepStartISO] = parisDateRange(lookbackDay);
+  const { data: sleepData } = await sb.from('babydaybook_events').select('*').eq('child_id', currentChildId).eq('type', 'sommeil').gte('started_at', sleepStartISO).lte('started_at', endISO).order('started_at', {ascending: false});
+  const sleepEvents = sleepData || [];
+
   // Build days array (most recent first)
   const days = [];
   for (let i = 0; i < 14; i++) {
@@ -783,7 +806,7 @@ async function renderChrono() {
     <div class="chrono-wrap">
       <div class="chrono-grid" style="grid-template-columns:auto 1fr">
         ${renderChronoHeader()}
-        ${days.map(d => renderChronoRow(d, events)).join('')}
+        ${days.map(d => renderChronoRow(d, events, sleepEvents)).join('')}
       </div>
     </div>
     <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--text2)">
@@ -818,28 +841,33 @@ function renderChronoHeader() {
   `;
 }
 
-function renderChronoRow(date, allEvents) {
+function renderChronoRow(date, allEvents, sleepEvents) {
   const ds = dateFR(date);
-  const dayEvts = allEvents.filter(e => isoDateFR(e.started_at) === ds);
+  const dayEvts = allEvents.filter(e => isoDateFR(e.started_at) === ds && e.type !== 'sommeil');
   const dow = date.toLocaleDateString('fr-FR', {weekday:'short'});
   const dom = date.getDate();
   const monthLabel = date.toLocaleDateString('fr-FR', {month:'short'});
 
-  // Sleep bars
+  // Sleep bars: split each sleep event by calendar day so segments crossing
+  // midnight render correctly on every day they touch.
   let barsHTML = '';
-  dayEvts.filter(e => e.type==='sommeil' && e.ended_at).forEach(e => {
-    const s = timeToFrac(e.started_at);
-    const en = timeToFrac(e.ended_at);
-    const eHourSv = parseInt((new Date(e.started_at).toLocaleString('sv-SE',{timeZone:TZ}).split(' ')[1]||'0:').split(':')[0]);
-    const isNight = eHourSv < 6 || eHourSv >= 21;
-    barsHTML += `<div class="chrono-sleep-bar ${isNight?'night':''}" style="left:${s*100}%;width:${Math.max((en-s)*100,0.5)}%;"></div>`;
+  (sleepEvents || []).filter(e => e.ended_at).forEach(e => {
+    const segments = splitSleepByDay(e).filter(seg => seg.day === ds);
+    segments.forEach(seg => {
+      const s = timeToFrac(seg.startISO);
+      let en = timeToFrac(seg.endISO);
+      if (en <= s) en = 1; // segment reaching midnight -> full width to day end
+      const startHourSv = parseInt((new Date(seg.startISO).toLocaleString('sv-SE',{timeZone:TZ}).split(' ')[1]||'0:').split(':')[0]);
+      const isNight = startHourSv < 6 || startHourSv >= 21;
+      barsHTML += `<div class="chrono-sleep-bar ${isNight?'night':''}" style="left:${s*100}%;width:${Math.max((en-s)*100,0.5)}%;" title="${fmtDurH(seg.durationMs)}"></div>`;
+    });
   });
 
   // Event icons
   const dotIcons = {allaitement:'🤱', biberon:'🍼', repas:'🥣', couche:'🚼', medicament:'💊', rdv:'🏥', activite:'🎮', note:'📝'};
   // Group close events to avoid overlap (bucket by hour/4 = 15min slots)
   const slots = {};
-  dayEvts.filter(e => e.type !== 'sommeil').forEach(e => {
+  dayEvts.forEach(e => {
     const frac = timeToFrac(e.started_at);
     const slot = Math.round(frac * 96); // 15-min slots
     if (!slots[slot]) slots[slot] = [];
@@ -1432,6 +1460,41 @@ function parisLocalToISO(dateStr, timeStr) {
   const baseDate = new Date(dateStr + 'T00:00:00Z');
   baseDate.setDate(baseDate.getDate() + utcDayOffset);
   return new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth(), baseDate.getUTCDate(), utcH2, utcM2, 0)).toISOString();
+}
+
+// Splits a sleep event (started_at/ended_at ISO) into per-Paris-day segments.
+// Returns an array of { day: 'YYYY-MM-DD', startISO, endISO, durationMs }
+// e.g. a sleep from 18th 20:00 to 19th 08:00 returns two segments:
+//   { day:'18', start:20:00, end:24:00 (next midnight) } and { day:'19', start:00:00, end:08:00 }
+function splitSleepByDay(event) {
+  if (!event.ended_at) return [];
+  const segments = [];
+  let cursor = new Date(event.started_at);
+  const end = new Date(event.ended_at);
+  if (end <= cursor) return [];
+
+  while (cursor < end) {
+    const day = dateFR(cursor);
+    // Midnight (Paris) marking the end of `day`, expressed as a UTC Date
+    const nextMidnightISO = parisLocalToISO(nextDayStr(day), '00:00');
+    const nextMidnight = new Date(nextMidnightISO);
+    const segEnd = end < nextMidnight ? end : nextMidnight;
+    segments.push({
+      day,
+      startISO: cursor.toISOString(),
+      endISO: segEnd.toISOString(),
+      durationMs: segEnd - cursor
+    });
+    cursor = segEnd;
+  }
+  return segments;
+}
+
+// Returns YYYY-MM-DD for the day after the given YYYY-MM-DD string
+function nextDayStr(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00Z'); // noon UTC avoids DST edge issues
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().split('T')[0];
 }
 
 // Returns [startISO, endISO] UTC strings for a Paris-local date string YYYY-MM-DD
