@@ -371,7 +371,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2330">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2335">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -723,10 +723,9 @@ function renderMiniTimeline(events, sleepEvents, displayDay) {
 
   // event dots (non-sleep)
   let dotsHTML = '';
-  const dotMap = {allaitement:'🤱', biberon:'🍼', repas:'🥣', couche:'🚼', medicament:'💊', rdv:'🏥', activite:'🎮', note:'📝'};
   events.filter(e => e.type !== 'sommeil').forEach(e => {
     const frac = timeToFrac(e.started_at);
-    dotsHTML += `<span class="tl-event-dot" style="left:${frac*100}%" title="${eventMeta(e.type).label} · ${formatTime(e.started_at)}">${dotMap[e.type]||'✨'}</span>`;
+    dotsHTML += `<span class="tl-event-dot" style="left:${frac*100}%" title="${eventMeta(e.type).label} · ${formatTime(e.started_at)}">${eventIcon(e)}</span>`;
   });
 
   // Now line
@@ -745,10 +744,11 @@ function renderMiniTimeline(events, sleepEvents, displayDay) {
 
 function renderAfItem(e) {
   const m = eventMeta(e.type);
+  const icon = eventIcon(e);
   const detail = buildEventDetail(e);
   const timeStr = formatTime(e.started_at) + (e.ended_at ? ` - ${formatTime(e.ended_at)}` : '');
   return `<div class="af-item">
-    <div class="af-icon" style="background:${m.color}">${m.icon}</div>
+    <div class="af-icon" style="background:${m.color}">${icon}</div>
     <div class="af-body">
       <div class="af-title">${m.label}</div>
       ${detail ? `<div class="af-detail">${detail}</div>` : ''}
@@ -864,7 +864,6 @@ function renderChronoRow(date, allEvents, sleepEvents) {
   });
 
   // Event icons
-  const dotIcons = {allaitement:'🤱', biberon:'🍼', repas:'🥣', couche:'🚼', medicament:'💊', rdv:'🏥', activite:'🎮', note:'📝'};
   // Group close events to avoid overlap (bucket by hour/4 = 15min slots)
   const slots = {};
   dayEvts.forEach(e => {
@@ -879,12 +878,12 @@ function renderChronoRow(date, allEvents, sleepEvents) {
     const frac = parseInt(slot) / 96;
     if (evts.length === 1) {
       const e = evts[0];
-      dotsHTML += `<span class="chrono-evt-icon" style="left:${frac*100}%;top:2px" title="${formatTime(e.started_at)}">${dotIcons[e.type]||'✨'}</span>`;
+      dotsHTML += `<span class="chrono-evt-icon" style="left:${frac*100}%;top:2px" title="${formatTime(e.started_at)}">${eventIcon(e)}</span>`;
     } else {
       // stack icons
       evts.forEach((e, i) => {
         const topOffset = 1 + i * 0;
-        dotsHTML += `<span class="chrono-evt-icon" style="left:${frac*100}%;top:${topOffset}px;font-size:11px" title="${formatTime(e.started_at)}">${dotIcons[e.type]||'✨'}</span>`;
+        dotsHTML += `<span class="chrono-evt-icon" style="left:${frac*100}%;top:${topOffset}px;font-size:11px" title="${formatTime(e.started_at)}">${eventIcon(e)}</span>`;
       });
     }
   });
@@ -1361,6 +1360,19 @@ function eventMeta(type) {
   return map[type]||{icon:'✨',color:'#F0F7FF',label:type};
 }
 
+// Returns the icon for a diaper event based on its diaper_type: wet -> droplet,
+// dirty -> poop, both -> toilet. Falls back to the generic couche icon.
+function diaperIcon(e) {
+  if (!e || e.type !== 'couche') return eventMeta(e ? e.type : '').icon;
+  return {wet:'💧', dirty:'💩', both:'🚽'}[e.diaper_type] || '🚼';
+}
+
+// Returns the icon to use for any event in lists/timelines — diaper events
+// get their type-specific icon, everything else uses eventMeta's default.
+function eventIcon(e) {
+  return e.type === 'couche' ? diaperIcon(e) : eventMeta(e.type).icon;
+}
+
 function buildEventDetail(e) {
   const parts=[];
   if (e.type==='allaitement') {
@@ -1371,7 +1383,7 @@ function buildEventDetail(e) {
   if (e.duration_min && e.type!=='allaitement') parts.push(`${e.duration_min} min`);
   if (e.quantity_ml) parts.push(`${e.quantity_ml} ml`);
   if (e.quantity_g) parts.push(`${e.quantity_g} g`);
-  if (e.diaper_type) parts.push({wet:'💧 Urine',dirty:'💩 Selles',both:'🔄 Mixte'}[e.diaper_type]||e.diaper_type);
+  if (e.diaper_type) parts.push({wet:'💧 Urine',dirty:'💩 Selles',both:'🚽 Mixte'}[e.diaper_type]||e.diaper_type);
   if (e.ended_at) parts.push(fmtDurH(new Date(e.ended_at)-new Date(e.started_at)));
   if (e.notes&&!e.notes.includes('G:')) parts.push(e.notes.substring(0,40));
   return parts.filter(Boolean).join(' · ');
