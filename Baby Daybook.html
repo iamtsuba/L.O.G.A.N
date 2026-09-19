@@ -134,25 +134,35 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .mini-timeline-wrap { position: relative; margin: 4px 0 12px; overflow-x: auto; }
 .mini-timeline-wrap::-webkit-scrollbar { display: none; }
 .mini-timeline {
-  position: relative; height: 52px;
+  position: relative; height: 76px;
   background: white; border-radius: 12px;
   border: 1px solid var(--border);
   min-width: 100%;
+  padding-bottom: 4px;
 }
-.timeline-hours { display: flex; position: absolute; top: 0; left: 0; right: 0; height: 18px; }
-.tl-hour { flex: 1; font-size: 9px; color: var(--text3); text-align: center; border-right: 1px solid var(--border); padding-top: 3px; font-weight: 500; }
-.tl-events-row { position: absolute; top: 18px; left: 0; right: 0; height: 34px; }
+.tl-hours-row { position: relative; height: 22px; }
+.tl-hour-mark { position: absolute; font-size: 9px; color: var(--text3); font-weight: 600; transform: translateX(-50%); top: 4px; }
+.tl-sun-icon, .tl-moon-icon { position: absolute; font-size: 10px; transform: translateX(-50%); top: 2px; }
+.tl-events-row { position: relative; height: 24px; }
 .tl-event-dot {
-  position: absolute; font-size: 13px; transform: translateX(-50%);
-  cursor: pointer; top: 2px;
+  position: absolute; font-size: 14px; transform: translateX(-50%);
+  cursor: pointer; top: 2px; line-height: 1;
 }
+.tl-sleep-row { position: relative; height: 22px; }
 .tl-sleep-bar {
-  position: absolute; height: 8px; border-radius: 4px;
-  background: #A5D6A7; top: 18px;
+  position: absolute; height: 14px; border-radius: 7px;
+  background: linear-gradient(135deg, #A5D6A7 0%, #81C784 100%);
+  top: 2px; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+.tl-sleep-bar-label {
+  font-size: 8px; font-weight: 700; color: white;
+  white-space: nowrap; padding: 0 3px;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.2);
 }
 .tl-now-line {
   position: absolute; top: 0; bottom: 0; width: 2px;
-  background: var(--sky-dark); border-radius: 1px; z-index: 2;
+  background: var(--sky-dark); border-radius: 1px; z-index: 3;
 }
 
 /* Today summary bar */
@@ -361,7 +371,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.6.11.1205">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2311">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -674,25 +684,32 @@ function renderMiniTimeline(events) {
   const hours = [2,4,6,8,10,12,14,16,18,20,22];
   const hoursHTML = hours.map(h => {
     const pct = (h/24)*100;
-    return `<span class="ch-hour-mark" style="left:${pct}%">${h}</span>`;
+    return `<span class="tl-hour-mark" style="left:${pct}%">${h}</span>`;
   }).join('') +
-    `<span class="ch-sun-icon" style="left:${(12/24)*100}%">☀️</span>` +
-    `<span class="ch-moon-icon" style="left:${(22/24)*100}%">🌙</span>` +
-    `<span class="ch-moon-icon" style="left:${(2/24)*100}%">🌙</span>`;
+    `<span class="tl-sun-icon" style="left:${(12/24)*100}%">☀️</span>` +
+    `<span class="tl-moon-icon" style="left:${(22/24)*100}%">🌙</span>` +
+    `<span class="tl-moon-icon" style="left:${(2/24)*100}%">🌙</span>`;
 
-  // sleep bars
+  // sleep bars with duration label
   let barsHTML = '';
   events.filter(e => e.type === 'sommeil' && e.ended_at).forEach(e => {
-    const s = timeToFrac(e.started_at); const en = timeToFrac(e.ended_at);
-    barsHTML += `<div class="tl-sleep-bar" style="left:${s*100}%;width:${(en-s)*100}%;top:20px"></div>`;
+    const s = timeToFrac(e.started_at);
+    const en = timeToFrac(e.ended_at);
+    let widthPct = (en - s) * 100;
+    if (widthPct < 0) widthPct += 100; // sleep crossing midnight within same fetched day (rare)
+    const durMs = new Date(e.ended_at) - new Date(e.started_at);
+    const durLabel = fmtDurH(durMs);
+    barsHTML += `<div class="tl-sleep-bar" style="left:${s*100}%;width:${Math.max(widthPct,1.5)}%" title="Sommeil ${formatTime(e.started_at)} - ${formatTime(e.ended_at)} (${durLabel})">
+      <span class="tl-sleep-bar-label">${durLabel}</span>
+    </div>`;
   });
 
-  // event dots (non-sleep)
+  // event dots (non-sleep) — now correctly using .tl-event-dot to match CSS
   let dotsHTML = '';
   const dotMap = {allaitement:'🤱', biberon:'🍼', repas:'🥣', couche:'🚼', medicament:'💊', rdv:'🏥', activite:'🎮', note:'📝'};
   events.filter(e => e.type !== 'sommeil').forEach(e => {
     const frac = timeToFrac(e.started_at);
-    dotsHTML += `<span class="tl-evt-dot" style="left:${frac*100}%" title="${eventMeta(e.type).label}">${dotMap[e.type]||'✨'}</span>`;
+    dotsHTML += `<span class="tl-event-dot" style="left:${frac*100}%" title="${eventMeta(e.type).label} · ${formatTime(e.started_at)}">${dotMap[e.type]||'✨'}</span>`;
   });
 
   // Now line
@@ -703,8 +720,9 @@ function renderMiniTimeline(events) {
 
   return `<div class="mini-timeline-wrap">
     <div class="mini-timeline">
-      <div style="position:relative;height:24px">${hoursHTML}</div>
-      <div style="position:relative;height:28px">${barsHTML}${dotsHTML}${nowLine}</div>
+      <div class="tl-hours-row">${hoursHTML}${nowLine}</div>
+      <div class="tl-events-row">${dotsHTML}${nowLine}</div>
+      <div class="tl-sleep-row">${barsHTML}${nowLine}</div>
     </div>
   </div>`;
 }
