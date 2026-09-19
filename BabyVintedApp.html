@@ -52,6 +52,33 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   text-decoration:none;letter-spacing:.3px;transition:all .2s;white-space:nowrap;flex-shrink:0}
 .btn-logan:hover{background:rgba(0,0,0,.30)}
 
+/* NAV TABS */
+.nav-tabs{background:var(--surface);border-bottom:1.5px solid var(--border);position:sticky;top:0;z-index:90}
+.nav-tabs-inner{max-width:800px;margin:0 auto;display:flex}
+.nav-tab{flex:1;background:none;border:none;padding:12px 8px;font-size:14px;font-weight:700;
+  color:var(--t2);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;border-bottom:3px solid transparent;
+  transition:all .2s}
+.nav-tab.active{color:var(--teal-dark);border-bottom-color:var(--teal)}
+.nav-tab:hover:not(.active){background:var(--s2)}
+
+/* HABITS VIEW */
+.habits-header{display:flex;justify-content:flex-end;margin-bottom:16px}
+.habits-size-group{margin-bottom:22px}
+.habits-size-title{font-size:16px;font-weight:800;color:var(--teal-dark);margin-bottom:10px;
+  padding-bottom:6px;border-bottom:2px solid var(--teal-light)}
+.habits-cat-list{display:flex;flex-direction:column;gap:8px}
+.habits-cat-row{background:var(--surface);border-radius:var(--radius-sm);box-shadow:var(--shadow);
+  padding:10px 14px;display:flex;align-items:center;gap:10px}
+.habits-cat-name{flex:1;font-size:14px;font-weight:600;color:var(--text)}
+.habits-counter{display:flex;align-items:center;gap:10px}
+.habits-counter-btn{width:30px;height:30px;border-radius:8px;border:1.5px solid var(--teal-mid);
+  background:var(--teal-light);color:var(--teal-dark);font-size:16px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:'Plus Jakarta Sans',sans-serif}
+.habits-counter-btn:hover{background:var(--teal-mid)}
+.habits-counter-btn:active{transform:scale(.92)}
+.habits-counter-value{min-width:24px;text-align:center;font-size:15px;font-weight:800;color:var(--text)}
+.habits-empty{text-align:center;padding:40px 20px;color:var(--t2);font-size:14px}
+
 /* MAIN */
 .main{flex:1;max-width:800px;margin:0 auto;width:100%;padding:16px}
 
@@ -218,12 +245,20 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <span class="topbar-sub" id="topbar-count"></span>
       </div>
       <span id="topbar-email" style="font-size:11px;color:rgba(255,255,255,.8);font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none"></span>
-      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.7.16.1804">L.O.G.A.N</a>
+      <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.1513">L.O.G.A.N</a>
+    </div>
+  </div>
+
+  <!-- NAV TABS -->
+  <div class="nav-tabs">
+    <div class="nav-tabs-inner">
+      <button class="nav-tab active" id="tab-ventes" onclick="switchView('ventes')">💰 Ventes</button>
+      <button class="nav-tab" id="tab-habits" onclick="switchView('habits')">👕 Habits</button>
     </div>
   </div>
 
   <!-- MAIN -->
-  <div class="main">
+  <div class="main" id="view-ventes">
     <div class="search-bar">
       <input class="search-input" type="search" id="searchInput" placeholder="🔍 Rechercher…" oninput="renderList()">
       <button class="btn-archive-toggle" id="archiveToggle" onclick="toggleShowArchived()" title="Afficher les archivés">📦</button>
@@ -232,6 +267,30 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       </button>
     </div>
     <div class="item-list" id="itemList"></div>
+  </div>
+
+  <!-- HABITS VIEW -->
+  <div class="main" id="view-habits" style="display:none">
+    <div class="habits-header">
+      <button class="btn-add" onclick="openAddCategory()"><span>+</span> Catégorie</button>
+    </div>
+    <div id="habitsGrid"></div>
+  </div>
+</div>
+
+<!-- MODAL ADD CATEGORY -->
+<div class="modal-overlay" id="categoryModal" onclick="closeCategoryModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Nouvelle catégorie</div>
+    <div class="form-group">
+      <label class="form-label" for="cat-name">Nom de la catégorie</label>
+      <input class="form-input" id="cat-name" type="text" placeholder="Ex: T-shirt, Pull, Pantalon…">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn-secondary" onclick="closeCategoryModal()">Annuler</button>
+      <button class="btn-primary" onclick="saveCategory()">Ajouter</button>
+    </div>
   </div>
 </div>
 
@@ -768,6 +827,101 @@ function compressImage(dataUrl, maxSize, quality) {
     };
     img.src = dataUrl;
   });
+}
+
+// ── ESCAPE ──
+// ── VIEW SWITCHING ──
+const AGE_SIZES = ['1 mois','3 mois','6 mois','9 mois','12 mois','18 mois','24 mois','36 mois'];
+let habitsCategories = []; // [{id, size, name, count}]
+
+function switchView(view) {
+  document.getElementById('tab-ventes').classList.toggle('active', view === 'ventes');
+  document.getElementById('tab-habits').classList.toggle('active', view === 'habits');
+  document.getElementById('view-ventes').style.display = view === 'ventes' ? '' : 'none';
+  document.getElementById('view-habits').style.display = view === 'habits' ? '' : 'none';
+  if (view === 'habits' && habitsCategories.length === 0) {
+    loadHabits();
+  }
+}
+
+// ── HABITS: SUPABASE CRUD ──
+async function loadHabits() {
+  const { data, error } = await sb
+    .from('babyvinted_habits')
+    .select('*')
+    .eq('user_id', currentUserId)
+    .order('size', { ascending: true })
+    .order('name', { ascending: true });
+  if (error) { toast('Erreur chargement Habits : ' + error.message, true); return; }
+  habitsCategories = data || [];
+  renderHabits();
+}
+
+function renderHabits() {
+  const grid = document.getElementById('habitsGrid');
+  if (habitsCategories.length === 0) {
+    grid.innerHTML = `<div class="habits-empty">Aucune catégorie. Ajoutez-en une pour commencer.</div>`;
+    return;
+  }
+  // Group by size, following AGE_SIZES order; ignore sizes not in list at the end
+  const bySize = {};
+  habitsCategories.forEach(c => {
+    if (!bySize[c.size]) bySize[c.size] = [];
+    bySize[c.size].push(c);
+  });
+  const orderedSizes = [...AGE_SIZES.filter(s => bySize[s]), ...Object.keys(bySize).filter(s => !AGE_SIZES.includes(s))];
+
+  grid.innerHTML = orderedSizes.map(size => `
+    <div class="habits-size-group">
+      <div class="habits-size-title">${esc(size)}</div>
+      <div class="habits-cat-list">
+        ${bySize[size].map(c => `
+          <div class="habits-cat-row">
+            <div class="habits-cat-name">${esc(c.name)}</div>
+            <div class="habits-counter">
+              <button class="habits-counter-btn" onclick="changeCount('${c.id}',-1)">−</button>
+              <div class="habits-counter-value">${c.count}</div>
+              <button class="habits-counter-btn" onclick="changeCount('${c.id}',1)">+</button>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+let pendingCategorySize = null;
+function openAddCategory() {
+  document.getElementById('cat-name').value = '';
+  openModal('categoryModal');
+}
+function closeCategoryModal(e) {
+  if (e && e.target !== document.getElementById('categoryModal')) return;
+  closeModal('categoryModal');
+}
+
+async function saveCategory() {
+  const name = document.getElementById('cat-name').value.trim();
+  if (!name) { toast('Le nom de la catégorie est requis.', true); return; }
+  // Create this category for every age size
+  const rows = AGE_SIZES.map(size => ({
+    user_id: currentUserId, size, name, count: 0
+  }));
+  const { error } = await sb.from('babyvinted_habits').insert(rows);
+  if (error) { toast('Erreur : ' + error.message, true); return; }
+  toast('Catégorie ajoutée pour toutes les tailles !');
+  closeCategoryModal();
+  await loadHabits();
+}
+
+async function changeCount(id, delta) {
+  const cat = habitsCategories.find(c => c.id === id);
+  if (!cat) return;
+  const newCount = Math.max(0, cat.count + delta);
+  cat.count = newCount; // optimistic
+  renderHabits();
+  const { error } = await sb.from('babyvinted_habits')
+    .update({ count: newCount, updated_at: new Date().toISOString() })
+    .eq('id', id).eq('user_id', currentUserId);
+  if (error) { toast('Erreur : ' + error.message, true); }
 }
 
 // ── ESCAPE ──
