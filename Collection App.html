@@ -989,7 +989,7 @@ function openEbay() {
   const q = document.getElementById('input-sname').value.trim()
          || document.getElementById('input-pname').value.trim();
   if (!q) { alert('Entrez un nom de recherche d\'abord.'); return; }
-  const url = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sacat=0`;
+  const url = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sacat=0&rt=nc`;
   window.open(url, '_blank');
 }
 
