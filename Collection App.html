@@ -727,6 +727,8 @@ function renderProductsView() {
     <div class="view-title">${esc(currentCollection.name)}</div>
     <div class="view-subtitle">${t.emoji} ${esc(label)} · ${products.length} item${products.length !== 1 ? 's' : ''}${excludedCount > 0 ? ` · ${excludedCount} exclu(s) du calcul` : ''}</div>
 
+    <button class="add-product-btn" onclick="openNewProductModal()" style="margin-top:0;margin-bottom:14px;">＋ Ajouter un produit</button>
+
     <div class="pnl-banner">
       <div class="pnl-item">
         <div class="pnl-value" style="color:var(--accent)">${included.length}</div>
@@ -758,8 +760,7 @@ function renderProductsView() {
     ${products.length === 0 ? `<div class="empty-state"><div class="empty-icon">🎁</div><div class="empty-text">Aucun produit.<br>Ajoutez votre premier item !</div></div>` : ''}
     <div class="product-list">
       ${products.map(p => productCard(p)).join('')}
-    </div>
-    <button class="add-product-btn" onclick="openNewProductModal()">＋ Ajouter un produit</button>`;
+    </div>`;
 
   document.getElementById('main-content').innerHTML = html;
 }
