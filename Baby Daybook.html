@@ -388,7 +388,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.20.1445">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.20.1654">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -663,49 +663,40 @@ async function renderDashboard() {
   const lastSommeil = allSleepEvts[0];
   const lastRepas = todayEvts.find(e => e.type === 'repas');
   const lastTireLait = todayEvts.find(e => e.type === 'tirelait');
+  const lastMedicament = todayEvts.find(e => e.type === 'medicament');
 
   function qaCircleSub(evt, type) {
     if (!evt) return 'Aucun';
     return timeSince(evt.started_at);
   }
 
+  // Build the quick-action circles as data, then sort them so the most
+  // recently logged activity type appears first (left to right), with
+  // never-logged types kept at the end in their default order.
+  const qaCircleDefs = [
+    { type:'allaitement', label:'Allaitement', bg:'#FF80AB', icon: svgAllaitement(), lastEvt: lastAllait },
+    { type:'biberon', label:'Biberon', bg:'#4FC3F7', icon: svgBiberon(), lastEvt: lastBiberon },
+    { type:'couche', label:'Couche', bg:'#81C784', icon: svgCouche(), lastEvt: lastCouche },
+    { type:'sommeil', label:'Sommeil', bg:'#A5D6A7', icon: svgSommeil(), lastEvt: lastSommeil },
+    { type:'repas', label:'Repas', bg:'#FFB74D', icon: '🥣', lastEvt: lastRepas },
+    { type:'medicament', label:'Médicament', bg:'#F48FB1', icon: '💊', lastEvt: lastMedicament },
+    { type:'tirelait', label:'Tire-lait', bg:'#9575CD', icon: '🫙', lastEvt: lastTireLait },
+  ];
+  const qaCirclesSorted = [...qaCircleDefs].sort((a, b) => {
+    const aTime = a.lastEvt ? new Date(a.lastEvt.started_at).getTime() : -Infinity;
+    const bTime = b.lastEvt ? new Date(b.lastEvt.started_at).getTime() : -Infinity;
+    return bTime - aTime;
+  });
+  const qaCirclesHTML = qaCirclesSorted.map(d => `
+      <button class="qa-circle-btn" onclick="openAddEventModal('${d.type}')">
+        <div class="qa-circle-icon" style="background:${d.bg}">${d.icon}</div>
+        <span class="qa-circle-label">${d.label}</span>
+        <span class="qa-circle-sub">${qaCircleSub(d.lastEvt)}</span>
+      </button>`).join('');
+
   container.innerHTML = `
     <div class="qa-circles">
-      <button class="qa-circle-btn" onclick="openAddEventModal('allaitement')">
-        <div class="qa-circle-icon" style="background:#FF80AB">${svgAllaitement()}</div>
-        <span class="qa-circle-label">Allaitement</span>
-        <span class="qa-circle-sub">${qaCircleSub(lastAllait)}</span>
-      </button>
-      <button class="qa-circle-btn" onclick="openAddEventModal('biberon')">
-        <div class="qa-circle-icon" style="background:#4FC3F7">${svgBiberon()}</div>
-        <span class="qa-circle-label">Biberon</span>
-        <span class="qa-circle-sub">${qaCircleSub(lastBiberon)}</span>
-      </button>
-      <button class="qa-circle-btn" onclick="openAddEventModal('couche')">
-        <div class="qa-circle-icon" style="background:#81C784">${svgCouche()}</div>
-        <span class="qa-circle-label">Couche</span>
-        <span class="qa-circle-sub">${qaCircleSub(lastCouche)}</span>
-      </button>
-      <button class="qa-circle-btn" onclick="openAddEventModal('sommeil')">
-        <div class="qa-circle-icon" style="background:#A5D6A7">${svgSommeil()}</div>
-        <span class="qa-circle-label">Sommeil</span>
-        <span class="qa-circle-sub">${qaCircleSub(lastSommeil)}</span>
-      </button>
-      <button class="qa-circle-btn" onclick="openAddEventModal('repas')">
-        <div class="qa-circle-icon" style="background:#FFB74D">🥣</div>
-        <span class="qa-circle-label">Repas</span>
-        <span class="qa-circle-sub">${qaCircleSub(lastRepas)}</span>
-      </button>
-      <button class="qa-circle-btn" onclick="openAddEventModal('medicament')">
-        <div class="qa-circle-icon" style="background:#F48FB1">💊</div>
-        <span class="qa-circle-label">Médicament</span>
-        <span class="qa-circle-sub">—</span>
-      </button>
-      <button class="qa-circle-btn" onclick="openAddEventModal('tirelait')">
-        <div class="qa-circle-icon" style="background:#9575CD">🫙</div>
-        <span class="qa-circle-label">Tire-lait</span>
-        <span class="qa-circle-sub">${qaCircleSub(lastTireLait)}</span>
-      </button>
+      ${qaCirclesHTML}
     </div>
 
     <div class="date-bar">
