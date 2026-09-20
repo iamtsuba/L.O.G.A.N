@@ -388,7 +388,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.20.2254">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.20.2300">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -563,14 +563,26 @@ if (window.navigator.standalone === true) { // iOS Safari
 // Builds a minimal manifest for this app on the fly (as a Blob URL), reusing
 // the inline logo already present as the page favicon, and attaches it to
 // the document head so browsers recognize the page as installable.
+//
+// IMPORTANT: Baby Daybook.html lives at the L.O.G.A.N repo root, the same
+// folder as index.html (the L.O.G.A.N hub), which publishes its own
+// manifest with scope "/L.O.G.A.N/". A scope that wide would make Chrome
+// treat every sub-app under that path as belonging to the SAME installed
+// PWA as the hub, so "Baby Daybook" would show up as "already installed"
+// once L.O.G.A.N itself is on the home screen. To install as a distinct
+// app, the scope (and the manifest's "id") must be narrowed to exactly
+// this page's own URL — not the parent folder — and must differ from
+// L.O.G.A.N's manifest URL and id.
 function setupPwaManifest() {
   try {
     const iconHref = document.querySelector('link[rel="icon"]')?.href || '';
+    const pageUrl = window.location.href.split('#')[0].split('?')[0];
     const manifest = {
+      id: pageUrl,               // unique PWA identity, distinct from L.O.G.A.N's "/L.O.G.A.N/"
       name: 'Baby Daybook',
       short_name: 'Baby Daybook',
-      start_url: window.location.href.split('#')[0],
-      scope: window.location.href.replace(/[^/]*$/, ''),
+      start_url: pageUrl,
+      scope: pageUrl,             // narrowed to this exact file, not the shared /L.O.G.A.N/ folder
       display: 'standalone',
       background_color: '#F8FBFF',
       theme_color: '#0288D1',
@@ -593,11 +605,12 @@ function setupPwaManifest() {
   }
   // A registered service worker is required by Chrome/Edge for the native
   // install prompt (beforeinstallprompt) to fire. sw.js is a shared no-op
-  // worker at the L.O.G.A.N root; scope is narrowed to this page's own URL
-  // so it does not affect other sub-apps that haven't registered it.
+  // worker at the L.O.G.A.N root; its registration scope here is narrowed
+  // to this page's own URL (not the shared folder) so it stays a distinct
+  // PWA from the L.O.G.A.N hub and from other sub-apps.
   if ('serviceWorker' in navigator) {
-    const swScope = window.location.href.replace(/[^/]*$/, '');
-    navigator.serviceWorker.register('/L.O.G.A.N/sw.js', { scope: swScope }).catch(err => {
+    const pageUrl = window.location.href.split('#')[0].split('?')[0];
+    navigator.serviceWorker.register('/L.O.G.A.N/sw.js', { scope: pageUrl }).catch(err => {
       console.warn('Service worker registration failed', err);
     });
   }
