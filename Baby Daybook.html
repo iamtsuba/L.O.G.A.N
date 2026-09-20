@@ -230,9 +230,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .cdl-day { font-size: 11px; font-weight: 800; color: var(--text); }
 .chrono-events-area { flex: 1; position: relative; min-height: 34px; }
 
-/* Sleep bars in chrono */
-.chrono-sleep-bar { position: absolute; height: 9px; top: 13px; border-radius: 4px; background: #A5D6A7; opacity: 0.85; }
-.chrono-sleep-bar.night { background: #80CBC4; }
+/* Sleep bars in chrono — single consistent color for all sleep segments */
+.chrono-sleep-bar { position: absolute; height: 9px; top: 13px; border-radius: 4px; background: #81C784; opacity: 0.9; }
 /* Event icons in chrono */
 .chrono-evt-icon { position: absolute; font-size: 12px; transform: translateX(-50%); cursor: pointer; }
 
@@ -389,7 +388,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.20.1428">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.20.1445">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -628,13 +627,34 @@ async function renderDashboard() {
   // then keep only the segments that fall on the displayed day `ds`.
   const sleepSegmentsToday = allSleepEvts
     .filter(e => e.ended_at)
-    .flatMap(e => splitSleepByDay(e))
+    .flatMap(e => splitSleepByDay(e).map(seg => ({ ...seg, sourceEvent: e })))
     .filter(seg => seg.day === ds);
   const totalSleepMs = sleepSegmentsToday.reduce((a, seg) => a + seg.durationMs, 0);
   const feedCount = todayEvts.filter(e => ['allaitement','biberon','repas'].includes(e.type)).length;
   const diaperCount = todayEvts.filter(e => e.type === 'couche').length;
   const isToday = ds === dateFR();
   const dateLabel = isToday ? 'Aujourd\'hui' : dashboardDate.toLocaleDateString('fr-FR', {timeZone:TZ, weekday:'long', day:'numeric', month:'long'});
+
+  // Build the combined "Activités du jour" list: non-sleep events from todayEvts,
+  // plus one card per sleep segment touching this day (even if the sleep started
+  // the day before). Each sleep card shows both the segment duration for this
+  // day and the total duration of the whole sleep (which may span two days).
+  const nonSleepTodayEvts = todayEvts.filter(e => e.type !== 'sommeil');
+  const sleepCards = sleepSegmentsToday.map(seg => ({
+    isSleepSegment: true,
+    sortKey: new Date(seg.startISO).getTime(),
+    seg
+  }));
+  const otherCards = nonSleepTodayEvts.map(e => ({
+    isSleepSegment: false,
+    sortKey: new Date(e.started_at).getTime(),
+    e
+  }));
+  const allDayCards = [...sleepCards, ...otherCards].sort((a,b) => b.sortKey - a.sortKey);
+  const dayActivityCount = allDayCards.length;
+  const combinedDayActivities = allDayCards.map(card =>
+    card.isSleepSegment ? renderSleepSegmentItem(card.seg) : renderAfItem(card.e)
+  ).join('');
 
   // Last feed/diaper summaries for QA circles
   const lastAllait = todayEvts.find(e => e.type === 'allaitement');
@@ -700,13 +720,13 @@ async function renderDashboard() {
       <div class="ts-item"><div class="ts-icon">${svgAllaitement()}</div><div class="ts-val">${feedCount}</div><div class="ts-label">Repas</div></div>
       <div class="ts-item"><div class="ts-icon">${svgCouche()}</div><div class="ts-val">${diaperCount}</div><div class="ts-label">Couches</div></div>
       <div class="ts-item"><div class="ts-icon">😴</div><div class="ts-val">${totalSleepMs>0?fmtDurH(totalSleepMs):'—'}</div><div class="ts-label">Sommeil</div></div>
-      <div class="ts-item"><div class="ts-icon">✅</div><div class="ts-val">${todayEvts.length}</div><div class="ts-label">Total</div></div>
+      <div class="ts-item"><div class="ts-icon">✅</div><div class="ts-val">${dayActivityCount}</div><div class="ts-label">Total</div></div>
     </div>
 
     <div class="section-title">Activités du jour</div>
     <div class="activity-feed">
-      ${todayEvts.length === 0 ? `<div class="empty-state"><div class="es-emoji">🌟</div><h3>Aucune activité</h3><p>Commencez à enregistrer les activités de ${child.name}.</p></div>` :
-        todayEvts.map(e => renderAfItem(e)).join('')}
+      ${dayActivityCount === 0 ? `<div class="empty-state"><div class="es-emoji">🌟</div><h3>Aucune activité</h3><p>Commencez à enregistrer les activités de ${child.name}.</p></div>` :
+        combinedDayActivities}
     </div>
   `;
 }
@@ -724,10 +744,7 @@ function renderMiniTimeline(events, sleepEvents, displayDay) {
   const hoursHTML = hours.map(h => {
     const pct = (h/24)*100;
     return `<span class="tl-hour-mark" style="left:${pct}%">${h}</span>`;
-  }).join('') +
-    `<span class="tl-sun-icon" style="left:${(12/24)*100}%">☀️</span>` +
-    `<span class="tl-moon-icon" style="left:${(22/24)*100}%">🌙</span>` +
-    `<span class="tl-moon-icon" style="left:${(2/24)*100}%">🌙</span>`;
+  }).join('');
 
   // Sleep bars: split every sleep event by calendar day (Paris) and keep only
   // the segment(s) that fall on `displayDay`, so a sleep spanning midnight
@@ -788,15 +805,44 @@ function renderAfItem(e) {
   </div>`;
 }
 
+// Renders a sleep segment card for "Activités du jour": shows the portion of
+// sleep that falls on the displayed day, plus the total duration of the full
+// sleep event (which may span into the previous or next calendar day).
+function renderSleepSegmentItem(seg) {
+  const e = seg.sourceEvent;
+  const m = eventMeta('sommeil');
+  const segTimeStr = `${formatTime(seg.startISO)} - ${formatTime(seg.endISO)}`;
+  const segDurLabel = fmtDurH(seg.durationMs);
+  const fullDurMs = new Date(e.ended_at) - new Date(e.started_at);
+  const fullDurLabel = fmtDurH(fullDurMs);
+  const spansMultipleDays = isoDateFR(e.started_at) !== isoDateFR(e.ended_at);
+  const detail = spansMultipleDays
+    ? `${segDurLabel} ce jour · ${fullDurLabel} au total (${formatTime(e.started_at)} - ${formatTime(e.ended_at)})`
+    : segDurLabel;
+  return `<div class="af-item" onclick="editEvent('${e.id}','sommeil')">
+    <div class="af-icon" style="background:${m.color}">${m.icon}</div>
+    <div class="af-body">
+      <div class="af-title">${m.label}</div>
+      <div class="af-detail">${detail}</div>
+    </div>
+    <div class="af-right">
+      <div class="af-time">${segTimeStr}</div>
+      <div class="af-actions">
+        <button class="af-btn" onclick="event.stopPropagation();deleteEvent('${e.id}')">🗑️</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 // ===== CHRONOLOGIE =====
 async function renderChrono() {
   const container = document.getElementById('chrono-content');
   if (!currentChildId) { container.innerHTML = '<div class="empty-state"><div class="es-emoji">🕐</div><h3>Aucun enfant</h3></div>'; return; }
 
-  // Load last 14 days
+  // Load last 10 days
   const endDate = new Date(chronoDate);
   const startDate = new Date(chronoDate);
-  startDate.setDate(startDate.getDate() - 13);
+  startDate.setDate(startDate.getDate() - 9);
   const [startISO] = parisDateRange(dateFR(startDate));
   const [, endISO] = parisDateRange(dateFR(endDate));
 
@@ -812,7 +858,7 @@ async function renderChrono() {
 
   // Build days array (most recent first)
   const days = [];
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 10; i++) {
     const d = new Date(chronoDate);
     d.setDate(d.getDate() - i);
     days.push(d);
@@ -824,8 +870,8 @@ async function renderChrono() {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div class="chrono-year-label">Chronologie</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary btn-sm" onclick="chronoNav(-14)">‹ 14j</button>
-        <button class="btn btn-secondary btn-sm" onclick="chronoNav(14)" ${isNow?'style="opacity:0.4;pointer-events:none"':''}>14j ›</button>
+        <button class="btn btn-secondary btn-sm" onclick="chronoNav(-10)">‹ 10j</button>
+        <button class="btn btn-secondary btn-sm" onclick="chronoNav(10)" ${isNow?'style="opacity:0.4;pointer-events:none"':''}>10j ›</button>
       </div>
     </div>
     <div class="chrono-wrap">
@@ -871,7 +917,7 @@ function renderChronoRow(date, allEvents, sleepEvents) {
   const monthLabel = date.toLocaleDateString('fr-FR', {month:'short'});
 
   // Sleep bars: split each sleep event by calendar day so segments crossing
-  // midnight render correctly on every day they touch.
+  // midnight render correctly on every day they touch. Single consistent color.
   let barsHTML = '';
   (sleepEvents || []).filter(e => e.ended_at).forEach(e => {
     const segments = splitSleepByDay(e).filter(seg => seg.day === ds);
@@ -879,9 +925,7 @@ function renderChronoRow(date, allEvents, sleepEvents) {
       const s = timeToFrac(seg.startISO);
       let en = timeToFrac(seg.endISO);
       if (en <= s) en = 1; // segment reaching midnight -> full width to day end
-      const startHourSv = parseInt((new Date(seg.startISO).toLocaleString('sv-SE',{timeZone:TZ}).split(' ')[1]||'0:').split(':')[0]);
-      const isNight = startHourSv < 6 || startHourSv >= 21;
-      barsHTML += `<div class="chrono-sleep-bar ${isNight?'night':''}" style="left:${s*100}%;width:${Math.max((en-s)*100,0.5)}%;" title="${fmtDurH(seg.durationMs)}"></div>`;
+      barsHTML += `<div class="chrono-sleep-bar" style="left:${s*100}%;width:${Math.max((en-s)*100,0.5)}%;" title="${fmtDurH(seg.durationMs)}"></div>`;
     });
   });
 
@@ -1102,22 +1146,34 @@ async function renderEventForm(type, editId) {
   </div>`;
 
   if (type === 'allaitement') {
-    // Reset timers on open
-    breastTimers = { L:{running:false,elapsed:ex.duration_min?(ex.breast_side==='L'||ex.breast_side==='B'?ex.duration_min*60000/2:0):0,interval:null,start:null}, R:{running:false,elapsed:ex.duration_min?(ex.breast_side==='R'||ex.breast_side==='B'?ex.duration_min*60000/2:0):0,interval:null,start:null} };
+    // Reset timers, restoring exact per-side durations parsed from notes (format "G:XmYs / D:XmYs")
+    // Falls back to splitting duration_min evenly across breast_side if notes are absent/unparseable.
+    let restoredL = 0, restoredR = 0;
+    if (ex.notes) {
+      const mL = ex.notes.match(/G:(\d+)m(\d+)s/);
+      const mR = ex.notes.match(/D:(\d+)m(\d+)s/);
+      if (mL) restoredL = (parseInt(mL[1])*60 + parseInt(mL[2])) * 1000;
+      if (mR) restoredR = (parseInt(mR[1])*60 + parseInt(mR[2])) * 1000;
+    }
+    if (!restoredL && !restoredR && ex.duration_min) {
+      // Legacy fallback: no parseable notes, split total evenly per breast_side
+      restoredL = (ex.breast_side==='L'||ex.breast_side==='B') ? ex.duration_min*60000/2 : 0;
+      restoredR = (ex.breast_side==='R'||ex.breast_side==='B') ? ex.duration_min*60000/2 : 0;
+    }
+    breastTimers = { L:{running:false,elapsed:restoredL,interval:null,start:null}, R:{running:false,elapsed:restoredR,interval:null,start:null} };
     html += `<div class="breast-timers">
       <div class="breast-timer-card" id="btCard_L">
         <div class="bt-side">👈 Gauche</div>
         <div class="bt-time" id="btTime_L">00:00</div>
-        <button class="bt-btn bt-btn-start" id="btBtn_L" onclick="toggleBreastTimer('L')">▶ Démarrer</button>
+        <button class="bt-btn ${restoredL>0?'bt-btn-resume':'bt-btn-start'}" id="btBtn_L" onclick="toggleBreastTimer('L')">▶ ${restoredL>0?'Reprendre':'Démarrer'}</button>
       </div>
       <div class="breast-timer-card" id="btCard_R">
         <div class="bt-side">👉 Droite</div>
         <div class="bt-time" id="btTime_R">00:00</div>
-        <button class="bt-btn bt-btn-start" id="btBtn_R" onclick="toggleBreastTimer('R')">▶ Démarrer</button>
+        <button class="bt-btn ${restoredR>0?'bt-btn-resume':'bt-btn-start'}" id="btBtn_R" onclick="toggleBreastTimer('R')">▶ ${restoredR>0?'Reprendre':'Démarrer'}</button>
       </div>
     </div>
     <div class="breast-total" id="breastTotal">Total : 0 min</div>`;
-    updateBreastDisplay();
   } else if (type==='biberon') {
     html += `<div class="form-group"><label class="form-label">Quantité (ml)</label><input class="form-input" type="number" id="evtQtyMl" value="${ex.quantity_ml||''}" placeholder="120"></div>`;
   } else if (type==='repas') {
@@ -1157,6 +1213,7 @@ async function renderEventForm(type, editId) {
   html += `<button class="btn btn-primary" onclick="saveEvent('${type}')">${editId?'Mettre à jour':'Enregistrer'}</button>`;
   if (editId) html += `<button class="btn btn-danger" onclick="deleteEvent('${editId}')">Supprimer</button>`;
   document.getElementById('event-form-container').innerHTML = html;
+  if (type === 'allaitement') updateBreastDisplay();
 }
 
 // ===== BREAST TIMERS =====
@@ -1198,6 +1255,19 @@ function updateBreastDisplay() {
   const totalMs = ['L','R'].reduce((a,s) => { const t=breastTimers[s]; return a + t.elapsed + (t.running&&t.start?Date.now()-t.start:0); }, 0);
   const tot = document.getElementById('breastTotal');
   if (tot) { const m=Math.floor(totalMs/60000),s=Math.floor((totalMs%60000)/1000); tot.textContent = `Total : ${m}m ${s}s`; }
+  // Keep the Notes field live-updated with the current per-side split (G:.../D:...),
+  // preserving any free-text the user typed before that marker.
+  const notesEl = document.getElementById('evtNotes');
+  if (notesEl) {
+    const lMs = breastTimers.L.elapsed + (breastTimers.L.running&&breastTimers.L.start?Date.now()-breastTimers.L.start:0);
+    const rMs = breastTimers.R.elapsed + (breastTimers.R.running&&breastTimers.R.start?Date.now()-breastTimers.R.start:0);
+    const lMin=Math.floor(lMs/60000),lSec=Math.floor((lMs%60000)/1000);
+    const rMin=Math.floor(rMs/60000),rSec=Math.floor((rMs%60000)/1000);
+    const autoSuffix = `G:${lMin}m${lSec}s / D:${rMin}m${rSec}s`;
+    const currentVal = notesEl.value || '';
+    const freeText = currentVal.includes('·') ? currentVal.split('·')[0].trim() : (currentVal.match(/^G:\d+m\d+s \/ D:\d+m\d+s$/) ? '' : currentVal);
+    notesEl.value = freeText ? `${freeText} · ${autoSuffix}` : autoSuffix;
+  }
 }
 
 // ===== SLEEP TIMER =====
@@ -1412,22 +1482,39 @@ function eventIcon(e) {
   return e.type === 'couche' ? diaperIcon(e) : eventMeta(e.type).icon;
 }
 
+// Extracts { freeText, gLabel, dLabel } from an allaitement/tirelait notes string
+// that may contain a "G:...  / D:..." auto-generated marker preceded by free text.
+function parseBreastNotes(notes) {
+  if (!notes) return { freeText: '', gLabel: '', dLabel: '' };
+  const markerMatch = notes.match(/G:([^/]+)\/\s*D:(.+)$/);
+  if (!markerMatch) return { freeText: notes, gLabel: '', dLabel: '' };
+  const freeText = notes.slice(0, markerMatch.index).replace(/·\s*$/, '').trim();
+  return { freeText, gLabel: markerMatch[1].trim(), dLabel: markerMatch[2].trim() };
+}
+
 function buildEventDetail(e) {
   const parts=[];
   if (e.type==='allaitement') {
-    if (e.duration_min) parts.push(`${e.duration_min} min`);
-    if (e.notes && e.notes.includes('G:')) parts.push(e.notes.split('·')[1]?.trim()||'');
-    else if (e.breast_side) parts.push(e.breast_side==='L'?'Gauche':e.breast_side==='R'?'Droite':'Les deux');
+    const { freeText, gLabel, dLabel } = parseBreastNotes(e.notes);
+    if (e.duration_min != null) parts.push(`${e.duration_min} min total`);
+    if (gLabel) parts.push(`👈 ${gLabel}`);
+    if (dLabel) parts.push(`👉 ${dLabel}`);
+    if (!gLabel && !dLabel && e.breast_side) parts.push(e.breast_side==='L'?'Gauche':e.breast_side==='R'?'Droite':'Les deux');
+    if (freeText) parts.push(freeText.substring(0,40));
   } else if (e.type==='tirelait') {
-    if (e.quantity_ml) parts.push(`${e.quantity_ml} ml total`);
-    if (e.notes && e.notes.includes('G:')) parts.push(e.notes.split('·').pop()?.trim()||'');
+    const { freeText, gLabel, dLabel } = parseBreastNotes(e.notes);
+    if (e.quantity_ml != null) parts.push(`${e.quantity_ml} ml total`);
+    if (gLabel) parts.push(`👈 ${gLabel}`);
+    if (dLabel) parts.push(`👉 ${dLabel}`);
+    if (freeText) parts.push(freeText.substring(0,40));
+  } else {
+    if (e.duration_min) parts.push(`${e.duration_min} min`);
+    if (e.quantity_ml) parts.push(`${e.quantity_ml} ml`);
+    if (e.quantity_g) parts.push(`${e.quantity_g} g`);
+    if (e.diaper_type) parts.push({wet:'💧 Urine',dirty:'💩 Selles',both:'🚽 Mixte'}[e.diaper_type]||e.diaper_type);
+    if (e.ended_at) parts.push(fmtDurH(new Date(e.ended_at)-new Date(e.started_at)));
+    if (e.notes) parts.push(e.notes.substring(0,40));
   }
-  if (e.duration_min && e.type!=='allaitement') parts.push(`${e.duration_min} min`);
-  if (e.quantity_ml && e.type!=='tirelait') parts.push(`${e.quantity_ml} ml`);
-  if (e.quantity_g) parts.push(`${e.quantity_g} g`);
-  if (e.diaper_type) parts.push({wet:'💧 Urine',dirty:'💩 Selles',both:'🚽 Mixte'}[e.diaper_type]||e.diaper_type);
-  if (e.ended_at) parts.push(fmtDurH(new Date(e.ended_at)-new Date(e.started_at)));
-  if (e.notes && !e.notes.includes('G:')) parts.push(e.notes.substring(0,40));
   return parts.filter(Boolean).join(' · ');
 }
 
