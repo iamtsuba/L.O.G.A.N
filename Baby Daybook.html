@@ -388,7 +388,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.20.1654">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.20.2254">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -533,8 +533,138 @@ let sleepTimer = null, sleepStartTime = null;
 // Chrono date
 let chronoDate = new Date();
 
+// ===== PWA INSTALL =====
+// Captures the browser's install prompt (Chrome/Edge/Android) so the Profil
+// page can trigger it from a normal button instead of relying on the
+// browser's own install icon in the address bar.
+let deferredInstallPrompt = null;
+let pwaIsInstalled = false;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  refreshInstallButton();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  pwaIsInstalled = true;
+  refreshInstallButton();
+});
+
+// Detect if already running as an installed PWA (standalone display mode)
+if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+  pwaIsInstalled = true;
+}
+if (window.navigator.standalone === true) { // iOS Safari
+  pwaIsInstalled = true;
+}
+
+// Builds a minimal manifest for this app on the fly (as a Blob URL), reusing
+// the inline logo already present as the page favicon, and attaches it to
+// the document head so browsers recognize the page as installable.
+function setupPwaManifest() {
+  try {
+    const iconHref = document.querySelector('link[rel="icon"]')?.href || '';
+    const manifest = {
+      name: 'Baby Daybook',
+      short_name: 'Baby Daybook',
+      start_url: window.location.href.split('#')[0],
+      scope: window.location.href.replace(/[^/]*$/, ''),
+      display: 'standalone',
+      background_color: '#F8FBFF',
+      theme_color: '#0288D1',
+      icons: iconHref ? [
+        { src: iconHref, sizes: '192x192', type: 'image/png' },
+        { src: iconHref, sizes: '512x512', type: 'image/png' }
+      ] : []
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    let link = document.querySelector('link[rel="manifest"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'manifest';
+      document.head.appendChild(link);
+    }
+    link.href = url;
+  } catch (err) {
+    console.warn('PWA manifest setup failed', err);
+  }
+  // A registered service worker is required by Chrome/Edge for the native
+  // install prompt (beforeinstallprompt) to fire. sw.js is a shared no-op
+  // worker at the L.O.G.A.N root; scope is narrowed to this page's own URL
+  // so it does not affect other sub-apps that haven't registered it.
+  if ('serviceWorker' in navigator) {
+    const swScope = window.location.href.replace(/[^/]*$/, '');
+    navigator.serviceWorker.register('/L.O.G.A.N/sw.js', { scope: swScope }).catch(err => {
+      console.warn('Service worker registration failed', err);
+    });
+  }
+}
+
+// Re-renders the install button in Profil if that page is currently shown,
+// so its state (available / installed / unsupported) stays accurate.
+function refreshInstallButton() {
+  const btn = document.getElementById('pwaInstallBtn');
+  if (!btn) return;
+  renderPwaInstallSection();
+}
+
+function isIos() {
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+}
+
+async function triggerPwaInstall() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const choice = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  if (choice.outcome === 'accepted') {
+    pwaIsInstalled = true;
+  }
+  refreshInstallButton();
+}
+
+// Renders the "Install app" section shown in Profil. Three states:
+// 1. Already installed -> confirmation message, no button
+// 2. Browser supports the native prompt (Chrome/Edge/Android) -> button that triggers it
+// 3. iOS Safari (no beforeinstallprompt support) -> manual "Add to Home Screen" instructions
+function renderPwaInstallSection() {
+  if (pwaIsInstalled) {
+    return `<div class="profile-card" style="text-align:center">
+      <div style="font-size:32px;margin-bottom:6px">✅</div>
+      <div style="font-weight:700;font-size:14px">Application installée</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px">Baby Daybook est disponible sur votre écran d'accueil.</div>
+    </div>`;
+  }
+  if (deferredInstallPrompt) {
+    return `<div class="profile-card" style="text-align:center">
+      <div style="font-size:32px;margin-bottom:6px">📲</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px">Installer l'application</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Ajoutez Baby Daybook sur votre écran d'accueil pour y accéder comme une app.</div>
+      <button class="btn btn-primary" id="pwaInstallBtn" onclick="triggerPwaInstall()">📲 Installer sur cet appareil</button>
+    </div>`;
+  }
+  if (isIos()) {
+    return `<div class="profile-card" style="text-align:center">
+      <div style="font-size:32px;margin-bottom:6px">📲</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px">Installer l'application</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">Sur iPhone/iPad : appuyez sur <b>Partager</b> ⬆️ dans Safari, puis <b>« Sur l'écran d'accueil »</b>.</div>
+      <button class="btn btn-primary" id="pwaInstallBtn" style="margin-top:12px" disabled>📲 Voir les instructions ci-dessus</button>
+    </div>`;
+  }
+  return `<div class="profile-card" style="text-align:center">
+    <div style="font-size:32px;margin-bottom:6px">📲</div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:4px">Installer l'application</div>
+    <div style="font-size:12px;color:var(--text2)">Ouvrez le menu de votre navigateur et choisissez « Ajouter à l'écran d'accueil » ou « Installer l'application ».</div>
+    <button class="btn btn-primary" id="pwaInstallBtn" style="margin-top:12px" disabled>📲 Installer sur cet appareil</button>
+  </div>`;
+}
+
 // ===== INIT =====
 async function init() {
+  setupPwaManifest();
   let uid = null;
   if (window.LOGAN_USER_ID) uid = window.LOGAN_USER_ID;
   if (!uid) {
@@ -1013,7 +1143,7 @@ function setGrowthMetric(m,btn) { growthMetric=m; document.querySelectorAll('.gr
 // ===== PROFILE =====
 async function renderProfile() {
   const container = document.getElementById('profile-content');
-  if (!currentChildId) { container.innerHTML = `<div class="no-child-state"><div class="ncs-emoji">👤</div><h2>Aucun enfant</h2></div>`; return; }
+  if (!currentChildId) { container.innerHTML = renderPwaInstallSection() + `<div class="no-child-state"><div class="ncs-emoji">👤</div><h2>Aucun enfant</h2></div>`; return; }
   const child = children.find(c => c.id === currentChildId);
   const [vaxRes, lastWeightRes, lastHeightRes] = await Promise.all([
     sb.from('babydaybook_vaccines').select('*').eq('child_id', currentChildId).order('administered_at'),
@@ -1021,7 +1151,7 @@ async function renderProfile() {
     sb.from('babydaybook_measurements').select('*').eq('child_id', currentChildId).eq('metric','height').order('measured_at',{ascending:false}).limit(1),
   ]);
   const vaccines = vaxRes.data||[], lastWeight = lastWeightRes.data?.[0], lastHeight = lastHeightRes.data?.[0];
-  container.innerHTML = `<div class="profile-card"><div style="display:flex;align-items:center;gap:16px;margin-bottom:16px"><div class="profile-avatar-xl">${child.photo_url?`<img src="${child.photo_url}">`:child.name[0].toUpperCase()}<div class="avatar-edit">✏️</div></div><div><h2 style="font-size:22px;font-weight:800">${child.name}</h2><p style="color:var(--text2);font-size:13px">${child.gender==='F'?'👧 Fille':'👦 Garçon'}</p><span style="display:inline-block;background:var(--sky-light);color:var(--sky-dark);font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;margin-top:4px">${computeAge(child.birthdate)}</span></div></div><div class="info-row"><span class="ir-label">Date de naissance</span><span class="ir-value">${formatDate(child.birthdate)}</span></div><div class="info-row"><span class="ir-label">Dernier poids</span><span class="ir-value">${lastWeight?lastWeight.value+' kg':'—'}</span></div><div class="info-row"><span class="ir-label">Dernière taille</span><span class="ir-value">${lastHeight?lastHeight.value+' cm':'—'}</span></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-secondary btn-sm" onclick="editChild('${child.id}')">✏️ Modifier</button><button class="btn btn-danger btn-sm" style="margin:0" onclick="confirmDeleteChild('${child.id}')">🗑️ Supprimer</button></div></div><div class="measure-cards"><div class="measure-card" onclick="openMeasureModal('weight')"><div class="mc-icon">⚖️</div><div class="mc-label">Poids</div><div class="mc-val">${lastWeight?lastWeight.value+'kg':'—'}</div></div><div class="measure-card" onclick="openMeasureModal('height')"><div class="mc-icon">📏</div><div class="mc-label">Taille</div><div class="mc-val">${lastHeight?lastHeight.value+'cm':'—'}</div></div><div class="measure-card" onclick="openMeasureModal('head')"><div class="mc-icon">🎯</div><div class="mc-label">P. crânien</div><div class="mc-val">—</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="section-title" style="margin:0">💉 Vaccins</div><button class="btn btn-primary btn-sm" onclick="openVaccineModal()">+ Vaccin</button></div>${vaccines.length===0?`<div class="empty-state"><div class="es-emoji">💉</div><h3>Aucun vaccin</h3></div>`:vaccines.map(v=>`<div class="vaccine-item" onclick="editVaccineModal('${v.id}','${v.name}','${v.administered_at.split('T')[0]}','${(v.next_due_at||'').split('T')[0]}','${(v.notes||'').replace(/'/g,'')}')" style="cursor:pointer"><div class="vax-status vax-done"></div><div style="flex:1"><div style="font-weight:700;font-size:14px">${v.name}</div><div style="font-size:12px;color:var(--text2)">${formatDate(v.administered_at.split('T')[0])}${v.next_due_at?` · Rappel: ${formatDate(v.next_due_at.split('T')[0])}`:''}}</div></div><button class="af-btn" onclick="event.stopPropagation();deleteVaccineAction('${v.id}')">🗑️</button></div>`).join('')}`;
+  container.innerHTML = renderPwaInstallSection() + `<div class="profile-card"><div style="display:flex;align-items:center;gap:16px;margin-bottom:16px"><div class="profile-avatar-xl">${child.photo_url?`<img src="${child.photo_url}">`:child.name[0].toUpperCase()}<div class="avatar-edit">✏️</div></div><div><h2 style="font-size:22px;font-weight:800">${child.name}</h2><p style="color:var(--text2);font-size:13px">${child.gender==='F'?'👧 Fille':'👦 Garçon'}</p><span style="display:inline-block;background:var(--sky-light);color:var(--sky-dark);font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;margin-top:4px">${computeAge(child.birthdate)}</span></div></div><div class="info-row"><span class="ir-label">Date de naissance</span><span class="ir-value">${formatDate(child.birthdate)}</span></div><div class="info-row"><span class="ir-label">Dernier poids</span><span class="ir-value">${lastWeight?lastWeight.value+' kg':'—'}</span></div><div class="info-row"><span class="ir-label">Dernière taille</span><span class="ir-value">${lastHeight?lastHeight.value+' cm':'—'}</span></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-secondary btn-sm" onclick="editChild('${child.id}')">✏️ Modifier</button><button class="btn btn-danger btn-sm" style="margin:0" onclick="confirmDeleteChild('${child.id}')">🗑️ Supprimer</button></div></div><div class="measure-cards"><div class="measure-card" onclick="openMeasureModal('weight')"><div class="mc-icon">⚖️</div><div class="mc-label">Poids</div><div class="mc-val">${lastWeight?lastWeight.value+'kg':'—'}</div></div><div class="measure-card" onclick="openMeasureModal('height')"><div class="mc-icon">📏</div><div class="mc-label">Taille</div><div class="mc-val">${lastHeight?lastHeight.value+'cm':'—'}</div></div><div class="measure-card" onclick="openMeasureModal('head')"><div class="mc-icon">🎯</div><div class="mc-label">P. crânien</div><div class="mc-val">—</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="section-title" style="margin:0">💉 Vaccins</div><button class="btn btn-primary btn-sm" onclick="openVaccineModal()">+ Vaccin</button></div>${vaccines.length===0?`<div class="empty-state"><div class="es-emoji">💉</div><h3>Aucun vaccin</h3></div>`:vaccines.map(v=>`<div class="vaccine-item" onclick="editVaccineModal('${v.id}','${v.name}','${v.administered_at.split('T')[0]}','${(v.next_due_at||'').split('T')[0]}','${(v.notes||'').replace(/'/g,'')}')" style="cursor:pointer"><div class="vax-status vax-done"></div><div style="flex:1"><div style="font-weight:700;font-size:14px">${v.name}</div><div style="font-size:12px;color:var(--text2)">${formatDate(v.administered_at.split('T')[0])}${v.next_due_at?` · Rappel: ${formatDate(v.next_due_at.split('T')[0])}`:''}}</div></div><button class="af-btn" onclick="event.stopPropagation();deleteVaccineAction('${v.id}')">🗑️</button></div>`).join('')}`;
 }
 
 // ===== CHILD CRUD =====
