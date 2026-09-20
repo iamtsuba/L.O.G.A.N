@@ -282,19 +282,35 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: flex-end; }
 .modal-overlay.open { display: flex; }
 .modal { background: white; border-radius: 24px 24px 0 0; width: 100%; max-width: 800px; margin: 0 auto; padding: 24px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+#modalEvent .modal { padding: 18px 20px 20px; max-height: 92vh; }
 @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
 .modal h2 { font-size: 18px; font-weight: 800; margin-bottom: 20px; text-align: center; }
+.modal-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
+.modal-header-row h2 { margin-bottom: 0; flex: 1; text-align: left; }
+.modal-close-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--coral-light); color: var(--coral);
+  border: none; font-size: 16px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.2s;
+}
+.modal-close-btn:hover { background: var(--coral); color: white; }
 .modal-centered { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
 .modal-emoji { font-size: 60px; margin-bottom: 4px; }
 .modal-centered p { color: var(--text2); font-size: 14px; max-width: 280px; line-height: 1.5; }
 
 /* Forms */
 .form-group { margin-bottom: 16px; }
+#modalEvent .form-group { margin-bottom: 12px; }
+#modalEvent .event-type-grid { margin-bottom: 12px; }
+#modalEvent .modal-handle { margin-bottom: 12px; }
 .form-label { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; }
 .form-input, .form-select, .form-textarea { width: 100%; padding: 11px 14px; border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text); background: white; transition: border-color 0.2s; outline: none; }
 .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--sky); box-shadow: 0 0 0 3px rgba(79,195,247,0.15); }
 .form-textarea { resize: vertical; min-height: 80px; }
+#modalEvent .form-input { padding: 9px 12px; }
+#modalEvent .form-textarea { min-height: 50px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .radio-opt { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 20px; border: 2px solid var(--border); cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
@@ -310,35 +326,35 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .btn-sm { width: auto; padding: 7px 16px; font-size: 13px; border-radius: 8px; }
 
 /* Event type selector */
-.event-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-.evt-type-btn { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 6px; border-radius: var(--radius-sm); border: 2px solid var(--border); cursor: pointer; background: white; transition: all 0.2s; font-family: 'Plus Jakarta Sans', sans-serif; }
-.evt-type-btn .et-icon { font-size: 22px; }
-.evt-type-btn .et-label { font-size: 10px; font-weight: 600; color: var(--text2); }
+.event-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
+.evt-type-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border-radius: var(--radius-sm); border: 2px solid var(--border); cursor: pointer; background: white; transition: all 0.2s; font-family: 'Plus Jakarta Sans', sans-serif; }
+.evt-type-btn .et-icon { font-size: 20px; }
+.evt-type-btn .et-label { font-size: 9px; font-weight: 600; color: var(--text2); line-height: 1.15; }
 .evt-type-btn.selected { border-color: var(--sky-dark); background: var(--sky-light); }
 .evt-type-btn.selected .et-label { color: var(--sky-dark); }
 
 /* Allaitement chrono */
-.breast-timers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.breast-timers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 .breast-timer-card {
-  border-radius: var(--radius); padding: 16px; text-align: center;
+  border-radius: var(--radius); padding: 12px; text-align: center;
   background: var(--surface2); border: 2px solid var(--border); transition: all 0.2s;
 }
 .breast-timer-card.active { background: var(--coral-light); border-color: var(--coral); }
-.bt-side { font-size: 12px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
-.bt-time { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
+.bt-side { font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 4px; }
+.bt-time { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
 .bt-btn {
-  margin-top: 8px; padding: 7px 16px; border-radius: 20px;
-  border: none; font-size: 13px; font-weight: 700;
+  margin-top: 6px; padding: 6px 14px; border-radius: 20px;
+  border: none; font-size: 12px; font-weight: 700;
   cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.2s;
 }
 .bt-btn-start { background: var(--coral); color: white; }
 .bt-btn-stop { background: white; color: var(--coral); border: 2px solid var(--coral); }
 .bt-btn-resume { background: var(--sky-light); color: var(--sky-dark); }
-.breast-total { text-align: center; font-size: 16px; font-weight: 700; color: var(--sky-dark); margin-bottom: 12px; }
+.breast-total { text-align: center; font-size: 14px; font-weight: 700; color: var(--sky-dark); margin-bottom: 10px; }
 
 /* Sleep timer */
-.sleep-timer-display { background: linear-gradient(135deg, #1A237E 0%, #283593 100%); border-radius: var(--radius); padding: 20px; text-align: center; color: white; margin-bottom: 16px; }
-.sleep-timer-time { font-size: 42px; font-weight: 800; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+.sleep-timer-display { background: linear-gradient(135deg, #1A237E 0%, #283593 100%); border-radius: var(--radius); padding: 14px; text-align: center; color: white; margin-bottom: 12px; }
+.sleep-timer-time { font-size: 34px; font-weight: 800; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
 .sleep-timer-label { font-size: 12px; opacity: 0.7; margin-top: 4px; }
 .sleep-controls { display: flex; gap: 8px; margin-top: 12px; }
 .sleep-btn-l, .sleep-btn-r { flex: 1; padding: 11px; border-radius: 24px; font-size: 14px; font-weight: 700; cursor: pointer; border: 2px solid rgba(255,255,255,0.3); font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.2s; }
@@ -373,7 +389,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.19.2343">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.20.1428">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -417,7 +433,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 <div class="modal-overlay" id="modalEvent">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2 id="modalEventTitle">Ajouter une activité</h2>
+    <div class="modal-header-row">
+      <h2 id="modalEventTitle" style="margin:0">Ajouter une activité</h2>
+      <button class="modal-close-btn" onclick="closeModal('modalEvent')" title="Annuler">✕</button>
+    </div>
     <div id="event-type-selector" class="event-type-grid"></div>
     <div id="event-form-container"></div>
   </div>
@@ -427,7 +446,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 <div class="modal-overlay" id="modalChild">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2 id="modalChildTitle">Ajouter un enfant</h2>
+    <div class="modal-header-row">
+      <h2 id="modalChildTitle" style="margin:0">Ajouter un enfant</h2>
+      <button class="modal-close-btn" onclick="closeModal('modalChild')" title="Annuler">✕</button>
+    </div>
     <div class="form-group"><label class="form-label">Prénom</label><input class="form-input" id="childName" placeholder="Ex: Emma"></div>
     <div class="form-group"><label class="form-label">Date de naissance</label><input class="form-input" type="date" id="childBirthdate"></div>
     <div class="form-group"><label class="form-label">Sexe</label>
@@ -447,7 +469,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 <div class="modal-overlay" id="modalMeasure">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2 id="modalMeasureTitle">Ajouter une mesure</h2>
+    <div class="modal-header-row">
+      <h2 id="modalMeasureTitle" style="margin:0">Ajouter une mesure</h2>
+      <button class="modal-close-btn" onclick="closeModal('modalMeasure')" title="Annuler">✕</button>
+    </div>
     <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="measureDate"></div>
     <div class="form-group"><label class="form-label" id="measureValueLabel">Valeur</label><input class="form-input" type="number" step="0.01" id="measureValue" placeholder="0"></div>
     <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="measureNotes" placeholder="Optionnel…"></textarea></div>
@@ -462,7 +487,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 <div class="modal-overlay" id="modalVaccine">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2>Vaccin</h2>
+    <div class="modal-header-row">
+      <h2 style="margin:0">Vaccin</h2>
+      <button class="modal-close-btn" onclick="closeModal('modalVaccine')" title="Annuler">✕</button>
+    </div>
     <div class="form-group"><label class="form-label">Nom du vaccin</label><input class="form-input" id="vaxName" placeholder="Ex: DTPolio"></div>
     <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="vaxDate"></div>
     <div class="form-group"><label class="form-label">Prochain rappel</label><input class="form-input" type="date" id="vaxNextDate"></div>
@@ -614,6 +642,7 @@ async function renderDashboard() {
   const lastCouche = todayEvts.find(e => e.type === 'couche');
   const lastSommeil = allSleepEvts[0];
   const lastRepas = todayEvts.find(e => e.type === 'repas');
+  const lastTireLait = todayEvts.find(e => e.type === 'tirelait');
 
   function qaCircleSub(evt, type) {
     if (!evt) return 'Aucun';
@@ -652,15 +681,10 @@ async function renderDashboard() {
         <span class="qa-circle-label">Médicament</span>
         <span class="qa-circle-sub">—</span>
       </button>
-      <button class="qa-circle-btn" onclick="openAddEventModal('rdv')">
-        <div class="qa-circle-icon" style="background:#CE93D8">🏥</div>
-        <span class="qa-circle-label">Rendez-vous</span>
-        <span class="qa-circle-sub">—</span>
-      </button>
-      <button class="qa-circle-btn" onclick="openAddEventModal('activite')">
-        <div class="qa-circle-icon" style="background:#80CBC4">🎮</div>
-        <span class="qa-circle-label">Activité</span>
-        <span class="qa-circle-sub">—</span>
+      <button class="qa-circle-btn" onclick="openAddEventModal('tirelait')">
+        <div class="qa-circle-icon" style="background:#9575CD">🫙</div>
+        <span class="qa-circle-label">Tire-lait</span>
+        <span class="qa-circle-sub">${qaCircleSub(lastTireLait)}</span>
       </button>
     </div>
 
@@ -1027,10 +1051,10 @@ async function deleteChild() { /* kept for modal button */ await confirmDeleteCh
 
 // ===== EVENT MODAL =====
 const EVENT_TYPES = [
-  {id:'allaitement',label:'Allaitement',icon:'🤱'},{id:'biberon',label:'Biberon',icon:'🍼'},
-  {id:'repas',label:'Repas',icon:'🥣'},{id:'couche',label:'Couche',icon:'🚼'},
-  {id:'sommeil',label:'Sommeil',icon:'😴'},{id:'medicament',label:'Médicament',icon:'💊'},
-  {id:'rdv',label:'Rendez-vous',icon:'🏥'},{id:'activite',label:'Activité',icon:'🎮'},{id:'note',label:'Note',icon:'📝'}
+  {id:'allaitement',label:'Allaitement',icon:'🤱'},{id:'tirelait',label:'Tire-lait',icon:'🫙'},
+  {id:'biberon',label:'Biberon',icon:'🍼'},{id:'repas',label:'Repas',icon:'🥣'},
+  {id:'couche',label:'Couche',icon:'🚼'},{id:'sommeil',label:'Sommeil',icon:'😴'},
+  {id:'medicament',label:'Médicament',icon:'💊'}
 ];
 
 function openAddEventModal(type) {
@@ -1115,10 +1139,21 @@ async function renderEventForm(type, editId) {
     }
   } else if (type==='medicament') {
     html += `<div class="form-group"><label class="form-label">Médicament</label><input class="form-input" id="evtMedName" value="${ex.notes||''}" placeholder="Ex: Doliprane 2.4%"></div><div class="form-group"><label class="form-label">Dose (ml/mg)</label><input class="form-input" type="number" id="evtQtyMl" value="${ex.quantity_ml||''}" placeholder="0"></div>`;
-  } else if (type==='rdv') {
-    html += `<div class="form-group"><label class="form-label">Praticien</label><input class="form-input" id="evtMedName" value="${ex.notes||''}" placeholder="Ex: Pédiatre Dr. Martin"></div>`;
+  } else if (type==='tirelait') {
+    // Parse existing L/R ml quantities from notes if editing (format "G:120ml / D:80ml")
+    let exL = '', exR = '';
+    if (ex.notes) {
+      const mL = ex.notes.match(/G:(\d+(?:\.\d+)?)ml/);
+      const mR = ex.notes.match(/D:(\d+(?:\.\d+)?)ml/);
+      if (mL) exL = mL[1];
+      if (mR) exR = mR[1];
+    }
+    html += `<div class="form-row">
+      <div class="form-group"><label class="form-label">👈 Gauche (ml)</label><input class="form-input" type="number" id="evtQtyMlL" value="${exL}" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">👉 Droite (ml)</label><input class="form-input" type="number" id="evtQtyMlR" value="${exR}" placeholder="0"></div>
+    </div>`;
   }
-  html += `<div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="evtNotes" placeholder="Remarques…">${type==='medicament'||type==='rdv'?'':(ex.notes||'')}</textarea></div>`;
+  html += `<div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="evtNotes" placeholder="Remarques…">${type==='medicament'?'':(ex.notes||'')}</textarea></div>`;
   html += `<button class="btn btn-primary" onclick="saveEvent('${type}')">${editId?'Mettre à jour':'Enregistrer'}</button>`;
   if (editId) html += `<button class="btn btn-danger" onclick="deleteEvent('${editId}')">Supprimer</button>`;
   document.getElementById('event-form-container').innerHTML = html;
@@ -1214,6 +1249,14 @@ async function saveEvent(type) {
     payload.notes = notesEl?.value ? notesEl.value + ' · ' + extra : extra;
     // Stop timers
     ['L','R'].forEach(s => { if(breastTimers[s].interval) clearInterval(breastTimers[s].interval); });
+  } else if (type === 'tirelait') {
+    const lMl = parseFloat(document.getElementById('evtQtyMlL')?.value) || 0;
+    const rMl = parseFloat(document.getElementById('evtQtyMlR')?.value) || 0;
+    payload.quantity_ml = lMl + rMl;
+    payload.breast_side = (lMl>0&&rMl>0)?'B':(lMl>0?'L':'R');
+    const notesEl = document.getElementById('evtNotes');
+    const extra = `G:${lMl}ml / D:${rMl}ml`;
+    payload.notes = notesEl?.value ? notesEl.value + ' · ' + extra : extra;
   } else {
     const durEl = document.getElementById('evtDuration');
     if (durEl) payload.duration_min = parseInt(durEl.value)||null;
@@ -1351,9 +1394,7 @@ function eventMeta(type) {
     couche:{icon:'🚼',color:'#E8F5E9',label:'Couche'},
     sommeil:{icon:'😴',color:'#EDE7F6',label:'Sommeil'},
     medicament:{icon:'💊',color:'#FCE4EC',label:'Médicament'},
-    rdv:{icon:'🏥',color:'#F3E5F5',label:'Rendez-vous'},
-    activite:{icon:'🎮',color:'#E8EAF6',label:'Activité'},
-    note:{icon:'📝',color:'#FFFDE7',label:'Note'},
+    tirelait:{icon:'🫙',color:'#EDE7F6',label:'Tire-lait'},
   };
   return map[type]||{icon:'✨',color:'#F0F7FF',label:type};
 }
@@ -1377,13 +1418,16 @@ function buildEventDetail(e) {
     if (e.duration_min) parts.push(`${e.duration_min} min`);
     if (e.notes && e.notes.includes('G:')) parts.push(e.notes.split('·')[1]?.trim()||'');
     else if (e.breast_side) parts.push(e.breast_side==='L'?'Gauche':e.breast_side==='R'?'Droite':'Les deux');
+  } else if (e.type==='tirelait') {
+    if (e.quantity_ml) parts.push(`${e.quantity_ml} ml total`);
+    if (e.notes && e.notes.includes('G:')) parts.push(e.notes.split('·').pop()?.trim()||'');
   }
   if (e.duration_min && e.type!=='allaitement') parts.push(`${e.duration_min} min`);
-  if (e.quantity_ml) parts.push(`${e.quantity_ml} ml`);
+  if (e.quantity_ml && e.type!=='tirelait') parts.push(`${e.quantity_ml} ml`);
   if (e.quantity_g) parts.push(`${e.quantity_g} g`);
   if (e.diaper_type) parts.push({wet:'💧 Urine',dirty:'💩 Selles',both:'🚽 Mixte'}[e.diaper_type]||e.diaper_type);
   if (e.ended_at) parts.push(fmtDurH(new Date(e.ended_at)-new Date(e.started_at)));
-  if (e.notes&&!e.notes.includes('G:')) parts.push(e.notes.substring(0,40));
+  if (e.notes && !e.notes.includes('G:')) parts.push(e.notes.substring(0,40));
   return parts.filter(Boolean).join(' · ');
 }
 
