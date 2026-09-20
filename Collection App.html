@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -23,6 +24,7 @@
       --accent2: #ffd166;
       --accent3: #06d6a0;
       --accent4: #ef476f;
+      --orange: #f5a623;
       --radius: 14px;
       --shadow: 0 4px 24px rgba(0,0,0,0.4);
     }
@@ -342,6 +344,7 @@
       cursor: pointer; transition: background 0.15s, border-color 0.15s;
     }
     .action-btn:hover { background: var(--border); border-color: var(--accent); }
+    .action-btn.accent { border-color: var(--accent); color: var(--accent); }
     .action-btn.green  { border-color: var(--accent3); color: var(--accent3); }
 
     /* ── CROPPER ── */
@@ -422,6 +425,10 @@ let currentPhotoB64        = null;
 let ocrWorker              = null;
 let selectedTypeId         = null;
 let searchNameManualEdited = false; // suivi si l'utilisateur a modifié manuellement le nom de recherche
+
+// Ajout rapide
+let qaPhotoB64 = null;
+let qaCount    = 0;
 
 // Cropper state
 let cropCallback       = null;
@@ -676,9 +683,9 @@ async function loadAllStats() {
       .eq('collection_id', c.id)
       .eq('user_id', currentUserId);
     if (!data) continue;
-    const included  = data.filter(p => !p.excluded);
+    const included  = data.filter(p => !isEffExcluded(p));
     const totalBuy  = included.reduce((s, p) => s + (p.buy_price || 0), 0);
-    const totalSell = included.filter(p => p.sell_price_ebay).reduce((s, p) => s + p.sell_price_ebay, 0);
+    const totalSell = included.reduce((s, p) => s + (p.sell_price_ebay || 0), 0);
     const eC = document.getElementById('cs-count-' + c.id);
     const eB = document.getElementById('cs-buy-'   + c.id);
     const eS = document.getElementById('cs-sell-'  + c.id);
@@ -697,16 +704,20 @@ async function openCollection(id) {
   renderProductsView();
 }
 
+// Un objet est exclu du calcul total si exclu manuellement OU s'il n'a pas de prix de revente
+function isEffExcluded(p) {
+  return !!p.excluded || !p.sell_price_ebay;
+}
+
 function renderProductsView() {
   currentView = 'products';
   const t = typeById(currentCollection.type_id);
   const label = currentCollection.type_id === 'custom' && currentCollection.custom_type
     ? currentCollection.custom_type : t.label;
 
-  const included  = products.filter(p => !p.excluded);
+  const included  = products.filter(p => !isEffExcluded(p));
   const totalBuy  = included.reduce((s, p) => s + (p.buy_price || 0), 0);
-  const withSell  = included.filter(p => p.sell_price_ebay);
-  const totalSell = withSell.reduce((s, p) => s + p.sell_price_ebay, 0);
+  const totalSell = included.reduce((s, p) => s + (p.sell_price_ebay || 0), 0);
   const profit    = totalSell - totalBuy;
   const pColor    = profit >= 0 ? 'var(--accent3)' : 'var(--accent4)';
   const excludedCount = products.length - included.length;
@@ -728,18 +739,20 @@ function renderProductsView() {
       </div>
       <div class="pnl-sep"></div>
       <div class="pnl-item">
-        <div class="pnl-value" style="color:var(--accent3)">${withSell.length > 0 ? fmt(totalSell) : '–'}</div>
+        <div class="pnl-value" style="color:var(--accent3)">${included.length > 0 ? fmt(totalSell) : '–'}</div>
         <div class="pnl-label">Revente est.</div>
       </div>
       <div class="pnl-sep"></div>
       <div class="pnl-item">
-        <div class="pnl-value" style="color:${pColor}">${withSell.length > 0 ? (profit >= 0 ? '+' : '') + fmt(profit) : '–'}</div>
+        <div class="pnl-value" style="color:${pColor}">${included.length > 0 ? (profit >= 0 ? '+' : '') + fmt(profit) : '–'}</div>
         <div class="pnl-label">P&amp;L</div>
       </div>
     </div>
 
     <div class="action-row">
-      <button class="action-btn green" onclick="exportToExcel()" style="flex:none;padding:10px 18px;margin-left:auto;">📊 Export Excel</button>
+      <button class="action-btn accent" onclick="openQuickAddModal()" style="flex:1;">⚡ Ajout rapide</button>
+      <button class="action-btn" onclick="exportToPDF()" style="flex:none;padding:10px 14px;">📄 PDF</button>
+      <button class="action-btn green" onclick="exportToExcel()" style="flex:none;padding:10px 14px;">📊 Excel</button>
     </div>
 
     ${products.length === 0 ? `<div class="empty-state"><div class="empty-icon">🎁</div><div class="empty-text">Aucun produit.<br>Ajoutez votre premier item !</div></div>` : ''}
@@ -758,10 +771,18 @@ function productCard(p) {
   const sellBadge = p.sell_price_ebay
     ? `<span class="pbadge pbadge-sell">${fmt(p.sell_price_ebay)} eBay</span>`
     : `<span class="pbadge pbadge-nosell">Pas évalué</span>`;
-  const dotColor = p.excluded ? 'var(--accent4)' : 'var(--accent3)';
-  const dotTitle = p.excluded ? 'Exclu du calcul total' : 'Inclus dans le calcul total';
+
+  let dotColor, dotTitle;
+  if (p.excluded) {
+    dotColor = 'var(--accent4)'; dotTitle = 'Exclu manuellement du calcul total';
+  } else if (!p.sell_price_ebay) {
+    dotColor = 'var(--orange)'; dotTitle = 'Pas de prix de revente — exclu automatiquement du calcul total';
+  } else {
+    dotColor = 'var(--accent3)'; dotTitle = 'Inclus dans le calcul total';
+  }
+
   return `
-    <div class="product-card${p.excluded ? ' product-excluded' : ''}">
+    <div class="product-card${isEffExcluded(p) ? ' product-excluded' : ''}">
       <span class="status-dot" style="background:${dotColor}" title="${dotTitle}"></span>
       ${img}
       <div class="product-info">
@@ -995,22 +1016,21 @@ function exportToExcel() {
     'P&L estimé (€)':   p.sell_price_ebay
                           ? parseFloat((p.sell_price_ebay - (p.buy_price||0)).toFixed(2))
                           : '',
-    'Exclu du total':    p.excluded ? 'Oui' : 'Non',
+    'Exclu du total':    p.excluded ? 'Oui (manuel)' : (!p.sell_price_ebay ? 'Oui (pas de prix)' : 'Non'),
     'Photo':             p.photo ? 'Oui' : 'Non',
     'Ajouté le':         p.created_at ? p.created_at.slice(0,10) : '',
   }));
 
-  // Ligne totaux (hors objets exclus)
-  const included  = products.filter(p => !p.excluded);
+  // Ligne totaux (hors objets exclus, manuellement ou faute de prix de revente)
+  const included  = products.filter(p => !isEffExcluded(p));
   const totalBuy  = included.reduce((s, p) => s + (p.buy_price||0), 0);
-  const withSell  = included.filter(p => p.sell_price_ebay);
-  const totalSell = withSell.reduce((s, p) => s + p.sell_price_ebay, 0);
+  const totalSell = included.reduce((s, p) => s + (p.sell_price_ebay||0), 0);
   rows.push({
     'Nom': 'TOTAL (hors exclus)',
     'Nom recherche': '',
     'Prix achat (€)': parseFloat(totalBuy.toFixed(2)),
-    'Prix revente eBay (€)': withSell.length ? parseFloat(totalSell.toFixed(2)) : '',
-    'P&L estimé (€)': withSell.length ? parseFloat((totalSell - totalBuy).toFixed(2)) : '',
+    'Prix revente eBay (€)': included.length ? parseFloat(totalSell.toFixed(2)) : '',
+    'P&L estimé (€)': included.length ? parseFloat((totalSell - totalBuy).toFixed(2)) : '',
     'Exclu du total': '',
     'Photo': '',
     'Ajouté le': '',
@@ -1020,7 +1040,7 @@ function exportToExcel() {
 
   // Largeurs colonnes
   ws['!cols'] = [
-    { wch: 30 }, { wch: 30 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 12 }
+    { wch: 30 }, { wch: 30 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 8 }, { wch: 12 }
   ];
 
   const wb = XLSX.utils.book_new();
@@ -1032,6 +1052,163 @@ function exportToExcel() {
     ? currentCollection.custom_type : t.label;
 
   XLSX.writeFile(wb, `${currentCollection.name} — ${label}.xlsx`);
+}
+
+// ════════════════════════════════════════════════════════════
+// EXPORT PDF — catalogue grille (photo + nom), objets non exclus manuellement
+// ════════════════════════════════════════════════════════════
+function exportToPDF() {
+  const included = products.filter(p => !p.excluded);
+  if (!included.length) { alert('Aucun objet à exporter (collection vide ou tous les objets sont exclus).'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = 210, pageH = 297, margin = 12, gap = 6, cols = 3;
+  const cellW = (pageW - margin * 2 - gap * (cols - 1)) / cols;
+  const imgH  = cellW;
+  const nameH = 10;
+  const rowH  = imgH + nameH + gap;
+
+  const t = typeById(currentCollection.type_id);
+  const label = currentCollection.type_id === 'custom' && currentCollection.custom_type
+    ? currentCollection.custom_type : t.label;
+
+  let y = margin;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text(currentCollection.name, margin, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(130);
+  doc.text(`${label} - ${included.length} objet(s)`, margin, y + 6);
+  doc.setTextColor(0);
+  y += 14;
+
+  let col = 0;
+  for (const p of included) {
+    if (col === 0 && y + rowH > pageH - margin) {
+      doc.addPage();
+      y = margin;
+    }
+    const cellX = margin + col * (cellW + gap);
+
+    doc.setDrawColor(225);
+    doc.setFillColor(246, 246, 248);
+    doc.roundedRect(cellX, y, cellW, imgH, 2, 2, 'FD');
+
+    if (p.photo) {
+      try {
+        const fmt = /image\/png/.test(p.photo) ? 'PNG' : 'JPEG';
+        doc.addImage(p.photo, fmt, cellX, y, cellW, imgH, undefined, 'FAST');
+      } catch (_) { /* image invalide, on laisse le cadre vide */ }
+    }
+
+    doc.setFontSize(8.3);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30);
+    const lines = doc.splitTextToSize(p.name, cellW);
+    doc.text(lines.slice(0, 2), cellX + cellW / 2, y + imgH + 4, { align: 'center' });
+    doc.setTextColor(0);
+    doc.setFont('helvetica', 'normal');
+
+    col++;
+    if (col >= cols) { col = 0; y += rowH; }
+  }
+
+  doc.save(`${currentCollection.name} - Catalogue.pdf`);
+}
+
+// ════════════════════════════════════════════════════════════
+// AJOUT RAPIDE — wizard photo + nom + prix, en boucle
+// ════════════════════════════════════════════════════════════
+function openQuickAddModal() {
+  qaPhotoB64 = null;
+  qaCount = 0;
+  renderQuickAddModal();
+}
+
+function renderQuickAddModal() {
+  let ol = document.getElementById('modal-qa');
+  if (!ol) {
+    ol = document.createElement('div');
+    ol.className = 'modal-overlay';
+    ol.id = 'modal-qa';
+    document.body.appendChild(ol);
+    ol.addEventListener('click', e => { if (e.target === ol) closeModal('modal-qa'); });
+  }
+  ol.innerHTML = `
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-top">
+        <div class="modal-title">⚡ Ajout rapide${qaCount > 0 ? ` <span style="color:var(--accent3);font-size:0.85rem;font-family:'Nunito',sans-serif;">(${qaCount} ajouté${qaCount > 1 ? 's' : ''})</span>` : ''}</div>
+        <div class="modal-close" onclick="closeModal('modal-qa')">✕</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Photo</label>
+        <div class="photo-area" id="qa-photo-area">
+          ${qaPhotoB64
+            ? `<img class="photo-preview" src="${qaPhotoB64}" alt="">`
+            : `<div style="font-size:2rem;color:var(--muted)">📷</div><div style="font-size:0.78rem;color:var(--muted)">Appuyez pour ajouter</div>`}
+          <input type="file" id="qa-file-cam" accept="image/*" capture="environment" style="display:none" onchange="handleQaPhoto(event)">
+          <input type="file" id="qa-file-gal" accept="image/*" style="display:none" onchange="handleQaPhoto(event)">
+        </div>
+        <div class="photo-btns">
+          <button class="photo-btn" onclick="document.getElementById('qa-file-cam').click()">📷 Caméra</button>
+          <button class="photo-btn" onclick="document.getElementById('qa-file-gal').click()">🖼 Galerie</button>
+          ${qaPhotoB64 ? `<button class="photo-btn" style="flex:none;padding:8px 12px;" onclick="qaPhotoB64=null;renderQuickAddModal()">🗑</button>` : ''}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nom du produit</label>
+        <input class="form-input" id="qa-name" placeholder="Nom affiché…">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Prix d'achat (€)</label>
+        <input class="form-input" type="number" id="qa-buy" placeholder="0.00" min="0" step="0.01">
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" style="flex:1;" onclick="submitQuickAdd(false)">Suivant ➜</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="submitQuickAdd(true)">Terminer ✓</button>
+      </div>
+    </div>`;
+  setTimeout(() => document.getElementById('qa-name')?.focus(), 50);
+}
+
+function handleQaPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    showCropper(ev.target.result, result => {
+      qaPhotoB64 = result;
+      renderQuickAddModal();
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitQuickAdd(finish) {
+  const name = document.getElementById('qa-name').value.trim();
+  const buy_price = parseFloat(document.getElementById('qa-buy').value) || 0;
+  if (!name) { alert('Entrez un nom.'); return; }
+  const payload = { name, search_name: name, buy_price, sell_price_ebay: null, excluded: false };
+  if (qaPhotoB64) payload.photo = qaPhotoB64;
+  try {
+    await saveProduct(currentCollection.id, payload);
+    qaCount++;
+    if (finish) {
+      closeModal('modal-qa');
+      await loadProducts(currentCollection.id);
+      renderProductsView();
+    } else {
+      qaPhotoB64 = null;
+      renderQuickAddModal();
+    }
+  } catch (e) { alert('Erreur : ' + e.message); }
 }
 
 // ── Photo ──
