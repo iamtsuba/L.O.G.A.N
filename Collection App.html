@@ -159,6 +159,11 @@
       transition: border-color 0.2s;
     }
     .product-card:hover { border-color: var(--accent); }
+    .product-card.product-excluded { opacity: 0.6; }
+    .status-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      flex-shrink: 0; box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
+    }
     .product-thumb {
       width: 58px; height: 58px; border-radius: 8px;
       object-fit: cover; flex-shrink: 0;
@@ -667,16 +672,17 @@ async function loadAllStats() {
   for (const c of collections) {
     const { data } = await db
       .from('collectapp_products')
-      .select('buy_price, sell_price_ebay')
+      .select('buy_price, sell_price_ebay, excluded')
       .eq('collection_id', c.id)
       .eq('user_id', currentUserId);
     if (!data) continue;
-    const totalBuy  = data.reduce((s, p) => s + (p.buy_price || 0), 0);
-    const totalSell = data.filter(p => p.sell_price_ebay).reduce((s, p) => s + p.sell_price_ebay, 0);
+    const included  = data.filter(p => !p.excluded);
+    const totalBuy  = included.reduce((s, p) => s + (p.buy_price || 0), 0);
+    const totalSell = included.filter(p => p.sell_price_ebay).reduce((s, p) => s + p.sell_price_ebay, 0);
     const eC = document.getElementById('cs-count-' + c.id);
     const eB = document.getElementById('cs-buy-'   + c.id);
     const eS = document.getElementById('cs-sell-'  + c.id);
-    if (eC) eC.textContent = data.length;
+    if (eC) eC.textContent = included.length;
     if (eB) eB.textContent = fmt(totalBuy);
     if (eS) eS.textContent = totalSell > 0 ? fmt(totalSell) : '–';
   }
@@ -697,20 +703,22 @@ function renderProductsView() {
   const label = currentCollection.type_id === 'custom' && currentCollection.custom_type
     ? currentCollection.custom_type : t.label;
 
-  const totalBuy  = products.reduce((s, p) => s + (p.buy_price || 0), 0);
-  const withSell  = products.filter(p => p.sell_price_ebay);
+  const included  = products.filter(p => !p.excluded);
+  const totalBuy  = included.reduce((s, p) => s + (p.buy_price || 0), 0);
+  const withSell  = included.filter(p => p.sell_price_ebay);
   const totalSell = withSell.reduce((s, p) => s + p.sell_price_ebay, 0);
   const profit    = totalSell - totalBuy;
   const pColor    = profit >= 0 ? 'var(--accent3)' : 'var(--accent4)';
+  const excludedCount = products.length - included.length;
 
   const html = `
     <button class="back-btn" onclick="goBack()">← Retour</button>
     <div class="view-title">${esc(currentCollection.name)}</div>
-    <div class="view-subtitle">${t.emoji} ${esc(label)} · ${products.length} item${products.length !== 1 ? 's' : ''}</div>
+    <div class="view-subtitle">${t.emoji} ${esc(label)} · ${products.length} item${products.length !== 1 ? 's' : ''}${excludedCount > 0 ? ` · ${excludedCount} exclu(s) du calcul` : ''}</div>
 
     <div class="pnl-banner">
       <div class="pnl-item">
-        <div class="pnl-value" style="color:var(--accent)">${products.length}</div>
+        <div class="pnl-value" style="color:var(--accent)">${included.length}</div>
         <div class="pnl-label">Items</div>
       </div>
       <div class="pnl-sep"></div>
@@ -750,8 +758,11 @@ function productCard(p) {
   const sellBadge = p.sell_price_ebay
     ? `<span class="pbadge pbadge-sell">${fmt(p.sell_price_ebay)} eBay</span>`
     : `<span class="pbadge pbadge-nosell">Pas évalué</span>`;
+  const dotColor = p.excluded ? 'var(--accent4)' : 'var(--accent3)';
+  const dotTitle = p.excluded ? 'Exclu du calcul total' : 'Inclus dans le calcul total';
   return `
-    <div class="product-card">
+    <div class="product-card${p.excluded ? ' product-excluded' : ''}">
+      <span class="status-dot" style="background:${dotColor}" title="${dotTitle}"></span>
       ${img}
       <div class="product-info">
         <div class="product-name">${esc(p.name)}</div>
@@ -935,6 +946,15 @@ function openProductModal(pre) {
         </div>
       </div>
 
+      <!-- Exclusion du calcul total -->
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;">
+          <input type="checkbox" id="input-excluded" ${pre?.excluded ? 'checked' : ''}
+                 style="width:19px;height:19px;accent-color:var(--accent4);flex-shrink:0;">
+          <span style="font-size:0.85rem;">Exclure cet objet du calcul total de la collection</span>
+        </label>
+      </div>
+
       <button class="btn btn-primary" onclick="submitProduct()">${editingProductId ? 'Enregistrer' : 'Ajouter le produit'}</button>
       ${editingProductId ? `<button class="btn btn-danger" onclick="deleteFromEdit()">Supprimer ce produit</button>` : ''}
     </div>`;
@@ -975,20 +995,23 @@ function exportToExcel() {
     'P&L estimé (€)':   p.sell_price_ebay
                           ? parseFloat((p.sell_price_ebay - (p.buy_price||0)).toFixed(2))
                           : '',
+    'Exclu du total':    p.excluded ? 'Oui' : 'Non',
     'Photo':             p.photo ? 'Oui' : 'Non',
     'Ajouté le':         p.created_at ? p.created_at.slice(0,10) : '',
   }));
 
-  // Ligne totaux
-  const totalBuy  = products.reduce((s, p) => s + (p.buy_price||0), 0);
-  const withSell  = products.filter(p => p.sell_price_ebay);
+  // Ligne totaux (hors objets exclus)
+  const included  = products.filter(p => !p.excluded);
+  const totalBuy  = included.reduce((s, p) => s + (p.buy_price||0), 0);
+  const withSell  = included.filter(p => p.sell_price_ebay);
   const totalSell = withSell.reduce((s, p) => s + p.sell_price_ebay, 0);
   rows.push({
-    'Nom': 'TOTAL',
+    'Nom': 'TOTAL (hors exclus)',
     'Nom recherche': '',
     'Prix achat (€)': parseFloat(totalBuy.toFixed(2)),
     'Prix revente eBay (€)': withSell.length ? parseFloat(totalSell.toFixed(2)) : '',
     'P&L estimé (€)': withSell.length ? parseFloat((totalSell - totalBuy).toFixed(2)) : '',
+    'Exclu du total': '',
     'Photo': '',
     'Ajouté le': '',
   });
@@ -997,7 +1020,7 @@ function exportToExcel() {
 
   // Largeurs colonnes
   ws['!cols'] = [
-    { wch: 30 }, { wch: 30 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 8 }, { wch: 12 }
+    { wch: 30 }, { wch: 30 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 12 }
   ];
 
   const wb = XLSX.utils.book_new();
@@ -1191,8 +1214,9 @@ async function submitProduct() {
   const search_name   = document.getElementById('input-sname').value.trim() || null;
   const buy_price     = parseFloat(document.getElementById('input-buy').value)  || 0;
   const sell_price_ebay = parseFloat(document.getElementById('input-sell').value) || null;
+  const excluded      = document.getElementById('input-excluded').checked;
   if (!name) { alert('Entrez un nom de produit.'); return; }
-  const payload = { name, search_name, buy_price, sell_price_ebay };
+  const payload = { name, search_name, buy_price, sell_price_ebay, excluded };
   if (currentPhotoB64 !== null && currentPhotoB64 !== undefined) payload.photo = currentPhotoB64;
   try {
     if (editingProductId) {
