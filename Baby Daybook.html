@@ -232,13 +232,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .chrono-events-area { flex: 1; position: relative; min-height: 48px; padding-top: 2px; z-index: 2; }
 
 /* Vertical hour grid lines behind every row — soft, one per hour (0-23).
-   `.chrono-grid-lines` is a grid item of `.chrono-grid` (display:grid,
-   template-columns: auto 1fr). Spanning every row but only the 2nd column
-   (the events area, not the day-label column) makes it overlay exactly the
-   zone the hour marks/icons/bars sit in, without needing a manual left offset.
-   Its z-index is deliberately the lowest of the grid so bars and icons
-   (z-index 10/11 below) always paint above it. */
-.chrono-grid-lines { grid-column: 2 / 3; grid-row: 1 / -1; position: relative; pointer-events: none; z-index: 1; }
+   Anchored directly on `.chrono-grid` (position:relative) as a plain
+   absolutely-positioned overlay spanning the full grid height, offset by
+   the day-label column's width (42px) so it lines up with the hour marks. */
+.chrono-grid-lines { position: absolute; top: 20px; bottom: 0; left: 42px; right: 0; pointer-events: none; z-index: 0; }
 .chrono-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #EDF3F8; }
 
 /* Event icons in chrono, spread over 2 rows to avoid overlap. z-index kept
@@ -409,7 +406,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.21.1116">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.21.1132">L.O.G.A.N</a>
       </div>
     </div>
   </div>
