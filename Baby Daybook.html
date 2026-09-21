@@ -139,21 +139,21 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   min-width: 100%;
   padding-bottom: 6px;
 }
-.tl-grid-lines { position: absolute; top: 22px; bottom: 6px; left: 0; right: 0; pointer-events: none; }
+.tl-grid-lines { position: absolute; top: 22px; bottom: 6px; left: 0; right: 0; pointer-events: none; z-index: 1; }
 .tl-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #EDF3F8; }
-.tl-hours-row { position: relative; height: 22px; }
+.tl-hours-row { position: relative; height: 22px; z-index: 2; }
 .tl-hour-mark { position: absolute; font-size: 9px; color: var(--text3); font-weight: 600; transform: translateX(-50%); top: 4px; }
-.tl-events-row { position: relative; height: 42px; }
+.tl-events-row { position: relative; height: 42px; z-index: 2; }
 .tl-event-dot {
   position: absolute; font-size: 14px; transform: translateX(-50%);
-  cursor: pointer; line-height: 1;
+  cursor: pointer; line-height: 1; z-index: 2;
 }
-.tl-bar-row { position: relative; height: 20px; margin-top: 2px; }
+.tl-bar-row { position: relative; height: 20px; margin-top: 2px; z-index: 2; }
 .tl-bar {
   position: absolute; height: 16px; border-radius: 8px;
   top: 0; display: flex; align-items: center; justify-content: center;
   overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-  cursor: pointer;
+  cursor: pointer; z-index: 2;
 }
 .tl-bar-sleep { background: linear-gradient(135deg, #A5D6A7 0%, #81C784 100%); }
 .tl-bar-feed { background: linear-gradient(135deg, #F48FB1 0%, #EC407A 100%); }
@@ -226,24 +226,31 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
 .chrono-day-row { display: flex; border-bottom: 1px solid var(--border); min-height: 48px; position: relative; z-index: 1; }
 .chrono-day-row:last-child { border-bottom: none; }
-.chrono-day-label { width: 42px; flex-shrink: 0; padding: 3px 4px; display: flex; flex-direction: column; justify-content: center; }
+.chrono-day-label { width: 42px; flex-shrink: 0; padding: 3px 4px; display: flex; flex-direction: column; justify-content: center; position: relative; z-index: 2; background: inherit; }
 .cdl-dow { font-size: 8px; font-weight: 700; color: var(--text2); }
 .cdl-day { font-size: 11px; font-weight: 800; color: var(--text); }
-.chrono-events-area { flex: 1; position: relative; min-height: 48px; padding-top: 2px; }
+.chrono-events-area { flex: 1; position: relative; min-height: 48px; padding-top: 2px; z-index: 2; }
 
-/* Vertical hour grid lines behind every row — soft, one per hour (0-23) */
-.chrono-grid-lines { position: absolute; top: 20px; bottom: 0; left: 42px; right: 0; pointer-events: none; z-index: 0; }
+/* Vertical hour grid lines behind every row — soft, one per hour (0-23).
+   `.chrono-grid-lines` is a grid item of `.chrono-grid` (display:grid,
+   template-columns: auto 1fr). Spanning every row but only the 2nd column
+   (the events area, not the day-label column) makes it overlay exactly the
+   zone the hour marks/icons/bars sit in, without needing a manual left offset.
+   Its z-index is deliberately the lowest of the grid so bars and icons
+   (z-index 10/11 below) always paint above it. */
+.chrono-grid-lines { grid-column: 2 / 3; grid-row: 1 / -1; position: relative; pointer-events: none; z-index: 1; }
 .chrono-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #EDF3F8; }
 
-/* Event icons in chrono, spread over 2 rows to avoid overlap */
-.chrono-evt-icon { position: absolute; font-size: 11px; transform: translateX(-50%); cursor: pointer; z-index: 2; }
+/* Event icons in chrono, spread over 2 rows to avoid overlap. z-index kept
+   well above the grid lines (and above the bars) so nothing ever hides them. */
+.chrono-evt-icon { position: absolute; font-size: 11px; transform: translateX(-50%); cursor: pointer; z-index: 11; }
 
 /* Sleep / feed bars in chrono, each with a text duration label — both sit on
    the same row since a child is never sleeping and feeding at once. */
 .chrono-bar {
   position: absolute; height: 14px; border-radius: 7px; top: 2px;
   display: flex; align-items: center; justify-content: center;
-  overflow: hidden; cursor: pointer;
+  overflow: hidden; cursor: pointer; z-index: 10;
 }
 .chrono-bar-sleep { background: #81C784; }
 .chrono-bar-feed { background: #EC407A; }
@@ -402,7 +409,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.21.1043">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.21.1116">L.O.G.A.N</a>
       </div>
     </div>
   </div>
