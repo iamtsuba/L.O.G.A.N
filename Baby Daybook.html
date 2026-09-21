@@ -140,7 +140,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   padding-bottom: 6px;
 }
 .tl-grid-lines { position: absolute; top: 22px; bottom: 6px; left: 0; right: 0; pointer-events: none; }
-.tl-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.tl-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #EDF3F8; }
 .tl-hours-row { position: relative; height: 22px; }
 .tl-hour-mark { position: absolute; font-size: 9px; color: var(--text3); font-weight: 600; transform: translateX(-50%); top: 4px; }
 .tl-events-row { position: relative; height: 42px; }
@@ -222,25 +222,26 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .chrono-hours-header {
   flex: 1; display: flex; position: relative; height: 20px;
 }
-.ch-hour-mark { position: absolute; font-size: 8px; color: var(--text3); font-weight: 600; transform: translateX(-50%); top: 4px; }
+.ch-hour-mark { position: absolute; font-size: 7px; color: var(--text3); font-weight: 600; transform: translateX(-50%); top: 4px; }
 
-.chrono-day-row { display: flex; border-bottom: 1px solid var(--border); min-height: 54px; position: relative; z-index: 1; }
+.chrono-day-row { display: flex; border-bottom: 1px solid var(--border); min-height: 48px; position: relative; z-index: 1; }
 .chrono-day-row:last-child { border-bottom: none; }
 .chrono-day-label { width: 42px; flex-shrink: 0; padding: 3px 4px; display: flex; flex-direction: column; justify-content: center; }
 .cdl-dow { font-size: 8px; font-weight: 700; color: var(--text2); }
 .cdl-day { font-size: 11px; font-weight: 800; color: var(--text); }
-.chrono-events-area { flex: 1; position: relative; min-height: 54px; padding-top: 2px; }
+.chrono-events-area { flex: 1; position: relative; min-height: 48px; padding-top: 2px; }
 
-/* Vertical hour grid lines behind every row */
+/* Vertical hour grid lines behind every row — soft, one per hour (0-23) */
 .chrono-grid-lines { position: absolute; top: 20px; bottom: 0; left: 42px; right: 0; pointer-events: none; z-index: 0; }
-.chrono-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); opacity: 0.6; }
+.chrono-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #EDF3F8; }
 
 /* Event icons in chrono, spread over 2 rows to avoid overlap */
-.chrono-evt-icon { position: absolute; font-size: 11px; transform: translateX(-50%); cursor: pointer; }
+.chrono-evt-icon { position: absolute; font-size: 11px; transform: translateX(-50%); cursor: pointer; z-index: 2; }
 
-/* Sleep / feed bars in chrono, each with a text duration label like the dashboard timeline */
+/* Sleep / feed bars in chrono, each with a text duration label — both sit on
+   the same row since a child is never sleeping and feeding at once. */
 .chrono-bar {
-  position: absolute; height: 12px; border-radius: 6px;
+  position: absolute; height: 14px; border-radius: 7px; top: 2px;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; cursor: pointer;
 }
@@ -401,7 +402,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="topbar-right">
         <span class="topbar-email" id="topbarEmail"></span>
-        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.21.0706">L.O.G.A.N</a>
+        <a class="btn-logan" href="https://iamtsuba.github.io/L.O.G.A.N" title="v26.9.21.1043">L.O.G.A.N</a>
       </div>
     </div>
   </div>
@@ -886,28 +887,32 @@ function changeDashDate(delta) {
   renderDashboard();
 }
 
-// Assigns each event a row index (0 or 1) so that icons close in time don't
-// overlap: events are sorted by time, then placed on row 0 unless it already
-// has a neighbor within `minGapFrac` of the timeline width, in which case
-// they go to row 1 (alternating back to row 0 once space frees up again).
+// Assigns each event a row index so that icons close in time never overlap:
+// events are sorted by time, then placed on the first row whose last item is
+// far enough away (>= minGapFrac); if every existing row is too crowded, a
+// new row is added. This guarantees no two icons ever land close enough to
+// visually collide, regardless of how many events cluster at the same time.
 function assignTimelineRows(items, minGapFrac) {
   const sorted = [...items].sort((a, b) => a.frac - b.frac);
-  const lastFracByRow = [-Infinity, -Infinity];
+  const lastFracByRow = [];
   return sorted.map(item => {
-    let row = 0;
-    if (item.frac - lastFracByRow[0] < minGapFrac) row = 1;
+    let row = lastFracByRow.findIndex(lastFrac => item.frac - lastFrac >= minGapFrac);
+    if (row === -1) { row = lastFracByRow.length; lastFracByRow.push(-Infinity); }
     lastFracByRow[row] = item.frac;
     return { ...item, row };
   });
 }
 
 function renderMiniTimeline(events, sleepEvents, displayDay) {
-  const hours = [2,4,6,8,10,12,14,16,18,20,22];
-  const hoursHTML = hours.map(h => {
+  // Text labels every 2h to avoid crowding, but a soft grid line every hour.
+  const labelHours = [2,4,6,8,10,12,14,16,18,20,22];
+  const hoursHTML = labelHours.map(h => {
     const pct = (h/24)*100;
     return `<span class="tl-hour-mark" style="left:${pct}%">${h}</span>`;
   }).join('');
-  const gridLinesHTML = hours.map(h => `<div class="tl-grid-line" style="left:${(h/24)*100}%"></div>`).join('');
+  const gridLinesHTML = Array.from({length: 24}, (_, h) =>
+    `<div class="tl-grid-line" style="left:${(h/24)*100}%"></div>`
+  ).join('');
 
   // Sleep bars: split every sleep event by calendar day (Paris) and keep only
   // the segment(s) that fall on `displayDay`, so a sleep spanning midnight
@@ -945,12 +950,15 @@ function renderMiniTimeline(events, sleepEvents, displayDay) {
   });
 
   // Event icons (everything except sleep and allaitement, which have their
-  // own bar rows above), spread across 2 rows so close icons don't overlap.
+  // own bar rows above), spread across as many rows as needed so close icons
+  // never overlap.
   const dotMap = {allaitement:'🤱', biberon:'🍼', repas:'🥣', couche:'🚼', medicament:'💊', rdv:'🏥', activite:'🎮', note:'📝', tirelait:'🫙'};
   const dotItems = events
     .filter(e => e.type !== 'sommeil' && e.type !== 'allaitement')
     .map(e => ({ frac: timeToFrac(e.started_at), e }));
-  const dotItemsRowed = assignTimelineRows(dotItems, 0.035);
+  const dotItemsRowed = assignTimelineRows(dotItems, 0.045);
+  const maxDotRow = dotItemsRowed.length ? Math.max(...dotItemsRowed.map(d => d.row)) : 0;
+  const eventsRowHeight = Math.max(24, (maxDotRow + 1) * 20 + 2);
   const dotsHTML = dotItemsRowed.map(({ frac, e, row }) =>
     `<span class="tl-event-dot" style="left:${frac*100}%;top:${row*20+2}px" title="${eventMeta(e.type).label} · ${formatTime(e.started_at)}">${eventIcon(e)}</span>`
   ).join('');
@@ -965,7 +973,7 @@ function renderMiniTimeline(events, sleepEvents, displayDay) {
     <div class="mini-timeline">
       <div class="tl-hours-row">${hoursHTML}</div>
       <div class="tl-grid-lines">${gridLinesHTML}</div>
-      <div class="tl-events-row">${dotsHTML}</div>
+      <div class="tl-events-row" style="height:${eventsRowHeight}px">${dotsHTML}</div>
       <div class="tl-bar-row">${feedBarsHTML}</div>
       <div class="tl-bar-row">${sleepBarsHTML}</div>
       ${nowLineTall}
@@ -1086,10 +1094,12 @@ function chronoNav(delta) {
 }
 
 function renderChronoHeader() {
-  const hours = [2,4,6,8,10,12,14,16,18,20,22];
-  const marks = hours.map(h => {
+  // A tick every hour (0-23); only even hours get a text label to avoid
+  // crowding, but every hour still gets a matching soft vertical grid line.
+  const ticks = Array.from({length: 24}, (_, h) => h);
+  const marks = ticks.filter(h => h % 2 === 0).map(h => {
     const pct = (h/24)*100;
-    return `<span style="position:absolute;left:${pct}%;transform:translateX(-50%);font-size:8px;color:var(--text3);top:4px;font-weight:600">${h}</span>`;
+    return `<span style="position:absolute;left:${pct}%;transform:translateX(-50%);font-size:7px;color:var(--text3);top:4px;font-weight:600">${h}</span>`;
   }).join('');
 
   return `
@@ -1099,10 +1109,12 @@ function renderChronoHeader() {
 }
 
 // Renders the vertical hour grid lines that run behind every day row in the
-// Chronologie grid, aligned with the header's hour marks.
+// Chronologie grid, aligned with the header's hour marks. One soft line per
+// hour (24 total) so every hour is visible, not just even ones.
 function renderChronoGridLines() {
-  const hours = [2,4,6,8,10,12,14,16,18,20,22];
-  const lines = hours.map(h => `<div class="chrono-grid-line" style="left:${(h/24)*100}%"></div>`).join('');
+  const lines = Array.from({length: 24}, (_, h) =>
+    `<div class="chrono-grid-line" style="left:${(h/24)*100}%"></div>`
+  ).join('');
   return `<div class="chrono-grid-lines">${lines}</div>`;
 }
 
@@ -1114,9 +1126,9 @@ function renderChronoRow(date, allEvents, sleepEvents) {
   const dom = date.getDate();
   const monthLabel = date.toLocaleDateString('fr-FR', {month:'short'});
 
-  // Sleep bars: split each sleep event by calendar day so segments crossing
-  // midnight render correctly on every day they touch. Duration shown as text.
-  let sleepBarsHTML = '';
+  // Sleep and allaitement both render as a duration bar on the SAME row
+  // (a child is never asleep and feeding simultaneously, so no real overlap).
+  let barItems = [];
   (sleepEvents || []).filter(e => e.ended_at).forEach(e => {
     const segments = splitSleepByDay(e).filter(seg => seg.day === ds);
     segments.forEach(seg => {
@@ -1125,39 +1137,43 @@ function renderChronoRow(date, allEvents, sleepEvents) {
       if (en <= s) en = 1; // segment reaching midnight -> full width to day end
       const widthPct = Math.max((en-s)*100, 3);
       const durLabel = fmtDurH(seg.durationMs);
-      sleepBarsHTML += `<div class="chrono-bar chrono-bar-sleep" style="left:${s*100}%;width:${widthPct}%;top:2px" title="Sommeil (${durLabel})"><span class="chrono-bar-label">${durLabel}</span></div>`;
+      barItems.push({ startFrac: s, widthPct, cls: 'chrono-bar-sleep', label: durLabel, title: `Sommeil (${durLabel})` });
     });
   });
-
-  // Allaitement bar: short bar centered on the event time, width scaled from
-  // duration, with the total time shown as text (same treatment as sleep).
-  let feedBarsHTML = '';
   dayAllaitEvts.forEach(e => {
     const centerFrac = timeToFrac(e.started_at);
     const durFrac = Math.max(e.duration_min / (24 * 60), 0.02);
     const startFrac = Math.max(0, centerFrac - durFrac / 2);
-    const widthPct = Math.min(durFrac * 100, 100 - startFrac * 100);
+    const widthPct = Math.max(Math.min(durFrac * 100, 100 - startFrac * 100), 6);
     const durLabel = `${e.duration_min}min`;
-    feedBarsHTML += `<div class="chrono-bar chrono-bar-feed" style="left:${startFrac*100}%;width:${Math.max(widthPct,6)}%;top:16px" title="Allaitement ${formatTime(e.started_at)} (${durLabel})" onclick="editEvent('${e.id}','allaitement')"><span class="chrono-bar-label">${durLabel}</span></div>`;
+    barItems.push({ startFrac, widthPct, cls: 'chrono-bar-feed', label: durLabel, title: `Allaitement ${formatTime(e.started_at)} (${durLabel})`, onclick: `editEvent('${e.id}','allaitement')` });
   });
+  const barsHTML = barItems.map(b =>
+    `<div class="chrono-bar ${b.cls}" style="left:${b.startFrac*100}%;width:${b.widthPct}%" title="${b.title}"${b.onclick ? ` onclick="${b.onclick}"` : ''}><span class="chrono-bar-label">${b.label}</span></div>`
+  ).join('');
 
   // Event icons, spread across 2 rows so close-in-time icons don't overlap.
+  // Sits below the bar row (top offset accounts for the 14px-tall bars above).
   const dotItems = dayEvts.map(e => ({ frac: timeToFrac(e.started_at), e }));
-  const dotItemsRowed = assignTimelineRows(dotItems, 0.05);
+  const dotItemsRowed = assignTimelineRows(dotItems, 0.055);
   const dotsHTML = dotItemsRowed.map(({ frac, e, row }) =>
-    `<span class="chrono-evt-icon" style="left:${frac*100}%;top:${30+row*11}px" title="${formatTime(e.started_at)}">${eventIcon(e)}</span>`
+    `<span class="chrono-evt-icon" style="left:${frac*100}%;top:${20+row*13}px" title="${formatTime(e.started_at)}">${eventIcon(e)}</span>`
   ).join('');
+
+  const maxRow = dotItemsRowed.length ? Math.max(...dotItemsRowed.map(d => d.row)) : 0;
+  const neededHeight = 20 + (maxRow + 1) * 13 + 4; // bar row + icon rows + bottom padding
+  const rowMinHeight = Math.max(48, neededHeight);
 
   const showMonth = date.getDate() === 1;
 
   return `
-    <div class="chrono-day-label" style="background:var(--surface2);border-bottom:1px solid var(--border)">
+    <div class="chrono-day-label" style="background:var(--surface2);border-bottom:1px solid var(--border);min-height:${rowMinHeight}px">
       ${showMonth ? `<div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase">${monthLabel}</div>` : ''}
       <div class="cdl-dow">${dow}</div>
       <div class="cdl-day">${dom}</div>
     </div>
-    <div class="chrono-events-area" style="border-bottom:1px solid var(--border);background:white">
-      ${sleepBarsHTML}${feedBarsHTML}${dotsHTML}
+    <div class="chrono-events-area" style="border-bottom:1px solid var(--border);background:white;min-height:${rowMinHeight}px">
+      ${barsHTML}${dotsHTML}
     </div>
   `;
 }
