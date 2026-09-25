@@ -219,6 +219,11 @@ var DB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 var BALL_SVG = '<svg class="ball" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="44" fill="#E3350D" stroke="#14161B" stroke-width="5"/><path d="M6 50h88" stroke="#14161B" stroke-width="5"/><path d="M50 6a44 44 0 0 1 44 44H50z" fill="#E3350D"/><path d="M50 94a44 44 0 0 1-44-44h44z" fill="#F7F5EF"/><circle cx="50" cy="50" r="14" fill="#F7F5EF" stroke="#14161B" stroke-width="5"/><circle cx="50" cy="50" r="6" fill="#F7F5EF"/></svg>';
 
+var PLACEHOLDER_IMG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140"><rect width="100" height="140" fill="#262A33"/><circle cx="50" cy="58" r="24" fill="none" stroke="#454B59" stroke-width="6"/><path d="M26 58h48" stroke="#454B59" stroke-width="6"/><circle cx="50" cy="58" r="7" fill="#454B59"/></svg>');
+window.POKESHOP_PLACEHOLDER = PLACEHOLDER_IMG;
+
+var ADMIN_CODE = 'thomarie';
+
 var state = {
   user: null,
   view: 'home',        // home | collection | friends | cart | inbox
@@ -232,7 +237,8 @@ var state = {
   cart: [],
   inbox: [],
   sent: [],
-  inboxTab: 'received'
+  inboxTab: 'received',
+  isAdmin: (localStorage.getItem('pokeshop_admin')==='1')
 };
 
 function el(html){ var d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
@@ -378,6 +384,7 @@ function renderShell(){
       '<button class="navbtn" data-nav="friends"><span class="lbl">Amis</span></button>'+
       '<button class="navbtn" data-nav="cart"><span class="lbl">Panier</span><span class="badge" id="cart-badge" style="display:none;">0</span></button>'+
       '<button class="navbtn" data-nav="inbox"><span class="lbl">Messages</span><span class="badge" id="inbox-badge" style="display:none;">0</span></button>'+
+      '<button class="navbtn" id="admin-btn">Admin</button>'+
       '<span id="userchip"></span>'+
       '<button class="navbtn" id="logout-btn" title="Déconnexion">⏻</button>'+
     '</div>'+
@@ -387,7 +394,50 @@ function renderShell(){
   app.querySelectorAll('[data-nav]').forEach(function(b){
     b.onclick = function(){ navigate(b.getAttribute('data-nav')); };
   });
+  qs('admin-btn').onclick = function(){
+    if(state.isAdmin){
+      localStorage.removeItem('pokeshop_admin');
+      state.isAdmin = false;
+      updateAdminBtn();
+      navigate(state.view, state.currentCollectionId);
+    } else {
+      openAdminModal();
+    }
+  };
+  updateAdminBtn();
   updateBadges();
+}
+
+function updateAdminBtn(){
+  var btn = qs('admin-btn');
+  if(!btn) return;
+  btn.textContent = state.isAdmin ? 'Admin ✓' : 'Admin';
+  btn.style.color = state.isAdmin ? 'var(--gold)' : '';
+}
+
+function openAdminModal(){
+  openModal(
+    '<h3>Mode admin</h3>'+
+    '<p class="muted" style="margin-bottom:14px;">Entre le code admin pour gérer les collections et les cartes.</p>'+
+    '<div class="field"><label>Code admin</label><input id="m-admin-code" type="password" autocomplete="off"></div>'+
+    '<div id="admin-err" class="auth-error" style="display:none;">Code incorrect.</div>'+
+    '<button class="btn-primary" id="m-admin-save">Valider</button>'
+  );
+  function submit(){
+    var val = qs('m-admin-code').value||'';
+    if(val === ADMIN_CODE){
+      localStorage.setItem('pokeshop_admin','1');
+      state.isAdmin = true;
+      closeModal();
+      updateAdminBtn();
+      navigate(state.view, state.currentCollectionId);
+    } else {
+      qs('admin-err').style.display='block';
+    }
+  }
+  qs('m-admin-save').onclick = submit;
+  qs('m-admin-code').addEventListener('keydown', function(e){ if(e.key==='Enter') submit(); });
+  qs('m-admin-code').focus();
 }
 
 function updateBadges(){
@@ -416,8 +466,8 @@ async function navigate(view, arg){
 
 async function renderHome(){
   var main = qs('main');
-  main.innerHTML = '<div class="section-head"><h2>Tes collections</h2><button class="btn-gold" id="new-coll-btn">+ Nouvelle collection</button></div><div id="coll-list" class="coll-list"><p class="muted">Chargement…</p></div>';
-  qs('new-coll-btn').onclick = openNewCollectionModal;
+  main.innerHTML = '<div class="section-head"><h2>Tes collections</h2>'+(state.isAdmin ? '<button class="btn-gold" id="new-coll-btn">+ Nouvelle collection</button>' : '')+'</div><div id="coll-list" class="coll-list"><p class="muted">Chargement…</p></div>';
+  if(qs('new-coll-btn')) qs('new-coll-btn').onclick = openNewCollectionModal;
 
   var collections = await apiSelect('pokeshop_collections', 'select=*&order=created_at.asc');
   state.collections = collections;
@@ -477,7 +527,7 @@ async function renderCollection(collectionId){
   main.innerHTML =
     '<button class="backlink" id="back-home">← Toutes les collections</button>'+
     '<div class="section-head"><h2>'+esc(coll ? coll.name : '')+'</h2>'+
-      '<div style="display:flex;gap:8px;"><button class="btn-ghost" id="import-csv-btn">Importer CSV</button><button class="btn-gold" id="add-card-btn">+ Ajouter une carte</button></div>'+
+      (state.isAdmin ? '<div style="display:flex;gap:8px;"><button class="btn-ghost" id="import-csv-btn">Importer CSV</button><button class="btn-gold" id="add-card-btn">+ Ajouter une carte</button></div>' : '')+
     '</div>'+
     '<div class="legend">'+
       '<span><i style="background:var(--owned);"></i>Possédée</span>'+
@@ -487,8 +537,8 @@ async function renderCollection(collectionId){
     '<div id="card-grid" class="card-grid"><p class="muted">Chargement…</p></div>';
 
   qs('back-home').onclick = function(){ navigate('home'); };
-  qs('add-card-btn').onclick = function(){ openAddCardModal(collectionId); };
-  qs('import-csv-btn').onclick = function(){ openCsvImportModal(collectionId); };
+  if(qs('add-card-btn')) qs('add-card-btn').onclick = function(){ openAddCardModal(collectionId); };
+  if(qs('import-csv-btn')) qs('import-csv-btn').onclick = function(){ openCsvImportModal(collectionId); };
 
   var cards = await apiSelect('pokeshop_cards', 'collection_id=eq.'+collectionId+'&select=*&order=number.asc');
   state.currentCollectionCards = cards;
@@ -528,7 +578,7 @@ async function renderCollection(collectionId){
     var tile = el(
       '<div class="tile '+cls+'">'+
         (qty>1 ? '<span class="dupbadge">x'+qty+'</span>' : '')+
-        '<img src="'+esc(card.image_url||'')+'" alt="" loading="lazy" onerror="this.style.opacity=0.25;">'+
+        '<img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" alt="" loading="lazy" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
         '<div class="tnum">#'+esc(card.number)+'</div>'+
         '<div class="tname">'+esc(card.name)+'</div>'+
       '</div>'
@@ -609,7 +659,7 @@ async function openCardModal(card){
 
   openModal(
     '<h3 style="text-align:center;">'+esc(card.name)+' <span class="muted">#'+esc(card.number)+'</span></h3>'+
-    '<div class="card-preview"><img src="'+esc(card.image_url||'')+'" onerror="this.style.opacity=0.25;"></div>'+
+    '<div class="card-preview"><img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;"></div>'+
     '<p class="muted" style="text-align:center;">Ta quantité</p>'+
     '<div class="qty-row"><button id="qty-minus">−</button><span class="qtyval" id="qty-val">'+qty+'</span><button id="qty-plus">+</button></div>'+
     '<div id="price-field" style="'+(qty>1?'':'display:none;')+'">'+
@@ -756,7 +806,7 @@ async function renderCart(){
   state.cart.forEach(function(item, idx){
     var row = el(
       '<div class="cart-item">'+
-        '<img src="'+esc(item.cardImg||'')+'" onerror="this.style.opacity=0.25;">'+
+        '<img src="'+(item.cardImg?esc(item.cardImg):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
         '<div class="ci-main"><div class="cin">'+esc(item.cardName)+'</div><div class="cis">'+esc(item.collectionName)+' · vendeur : '+esc(item.sellerUsername)+'</div></div>'+
         '<div class="ciprice">'+item.price.toFixed(2)+' €</div>'+
         '<button class="cirm" data-idx="'+idx+'">×</button>'+
