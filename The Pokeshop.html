@@ -657,6 +657,8 @@ function openDeleteAllCardsModal(collectionId, collName){
     renderCollection(collectionId);
   };
 }
+
+async function ensureFriends(){
   var rows = await apiSelect('pokeshop_friends',
     'or=(user_id.eq.'+state.user.id+',friend_id.eq.'+state.user.id+')&status=eq.accepted&select=*');
   state.friendRows = rows;
