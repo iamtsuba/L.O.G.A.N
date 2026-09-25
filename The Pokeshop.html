@@ -658,6 +658,25 @@ function openDeleteAllCardsModal(collectionId, collName){
   };
 }
 
+function openEditCardModal(card){
+  openModal(
+    '<h3>Modifier la carte</h3>'+
+    '<div class="field"><label>Numéro</label><input id="e-card-num" value="'+esc(card.number)+'"></div>'+
+    '<div class="field"><label>Nom</label><input id="e-card-name" value="'+esc(card.name)+'"></div>'+
+    '<div class="field"><label>Image (lien URL)</label><input id="e-card-img" value="'+esc(card.image_url||'')+'" placeholder="https://..."></div>'+
+    '<button class="btn-primary" id="e-card-save">Enregistrer</button>'
+  );
+  qs('e-card-save').onclick = async function(){
+    var number = (qs('e-card-num').value||'').trim();
+    var name = (qs('e-card-name').value||'').trim();
+    var img = (qs('e-card-img').value||'').trim();
+    if(!number || !name) return;
+    await apiUpdate('pokeshop_cards', 'id=eq.'+card.id, { number: number, name: name, image_url: img });
+    closeModal();
+    renderCollection(state.currentCollectionId);
+  };
+}
+
 async function ensureFriends(){
   var rows = await apiSelect('pokeshop_friends',
     'or=(user_id.eq.'+state.user.id+',friend_id.eq.'+state.user.id+')&status=eq.accepted&select=*');
@@ -702,10 +721,30 @@ function openCsvImportModal(collectionId){
     Papa.parse(file, {
       header:true, skipEmptyLines:true,
       complete: function(res){
-        parsed = res.data.filter(function(r){ return r.number && r.name; }).map(function(r){
-          return { collection_id: collectionId, number: String(r.number).trim(), name: String(r.name).trim(), image_url: (r.image_url||'').trim() };
-        });
-        qs('csv-status').textContent = parsed.length + ' cartes détectées.';
+        var fields = res.meta.fields || [];
+        function findField(candidates){
+          for(var i=0;i<fields.length;i++){
+            var norm = fields[i].toLowerCase().replace(/[\s_-]/g,'');
+            if(candidates.indexOf(norm)!==-1) return fields[i];
+          }
+          return null;
+        }
+        var fNum = findField(['number','no','num','numero','cardnumber']);
+        var fName = findField(['name','nom','cardname']);
+        var fImg = findField(['imageurl','image','img','imgurl','url','picture','photo','lien']);
+        parsed = res.data.map(function(r){
+          return {
+            collection_id: collectionId,
+            number: fNum ? String(r[fNum]||'').trim() : '',
+            name: fName ? String(r[fName]||'').trim() : '',
+            image_url: fImg ? String(r[fImg]||'').trim() : ''
+          };
+        }).filter(function(r){ return r.number && r.name; });
+        var withImg = parsed.filter(function(r){ return r.image_url; }).length;
+        var statusHtml = parsed.length + ' cartes détectées, ' + withImg + ' avec image.';
+        if(!fImg) statusHtml += '<br><span style="color:var(--missing);">Colonne image non reconnue dans le CSV — les cartes seront importées sans image.</span>';
+        else if(withImg < parsed.length) statusHtml += '<br><span style="color:var(--friend);">'+(parsed.length-withImg)+' carte(s) sans lien image dans le fichier.</span>';
+        qs('csv-status').innerHTML = statusHtml;
         qs('csv-save').disabled = !parsed.length;
       }
     });
@@ -741,6 +780,7 @@ async function openCardModal(card){
   openModal(
     '<h3 style="text-align:center;">'+esc(card.name)+' <span class="muted">#'+esc(card.number)+'</span></h3>'+
     '<div class="card-preview"><img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;"></div>'+
+    (state.isAdmin ? '<button class="btn-ghost" id="edit-card-btn" style="width:100%;margin-bottom:14px;font-size:12px;">✎ Modifier nom / numéro / image</button>' : '')+
     variantRows+
     '<button class="btn-primary" id="qty-save">Enregistrer</button>'+
     '<div class="friendlist">'+
@@ -752,6 +792,8 @@ async function openCardModal(card){
       }).join('') : '<p class="muted">Aucun ami n\'a de doublon de cette carte.</p>')+
     '</div>'
   );
+
+  if(qs('edit-card-btn')) qs('edit-card-btn').onclick = function(){ openEditCardModal(card); };
 
   function refresh(v){
     qs('qty-val-'+v).textContent = qtyState[v];
