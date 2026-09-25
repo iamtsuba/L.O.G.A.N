@@ -106,6 +106,8 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .btn-gold:hover{filter:brightness(1.08);}
 .btn-ghost{background:var(--panel-raised);color:var(--text);padding:9px 14px;border-radius:9px;font-size:13px;}
 .btn-ghost:hover{background:var(--line);}
+.btn-danger{background:var(--missing-bg);color:var(--missing);border:1.5px solid var(--missing);padding:9px 14px;border-radius:9px;font-size:13px;}
+.btn-danger:hover{background:var(--missing);color:#fff;}
 
 .coll-list{display:flex;flex-direction:column;gap:10px;}
 .coll-row{
@@ -271,7 +273,8 @@ var state = {
   inbox: [],
   sent: [],
   inboxTab: 'received',
-  isAdmin: (localStorage.getItem('pokeshop_admin')==='1')
+  isAdmin: (localStorage.getItem('pokeshop_admin')==='1'),
+  friendPendingCount: 0
 };
 
 function el(html){ var d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
@@ -420,7 +423,7 @@ function renderShell(){
     '<main id="main"></main>'+
     '<nav id="bottomnav">'+
       '<button class="tabbtn" data-nav="home"><span class="ticon">'+ICON_COLL+'</span><span class="tlabel">Collections</span></button>'+
-      '<button class="tabbtn" data-nav="friends"><span class="ticon">'+ICON_FRIENDS+'</span><span class="tlabel">Amis</span></button>'+
+      '<button class="tabbtn" data-nav="friends"><span class="ticon">'+ICON_FRIENDS+'<span class="tbadge" id="friends-badge" style="display:none;">0</span></span><span class="tlabel">Amis</span></button>'+
       '<button class="tabbtn" data-nav="cart"><span class="ticon">'+ICON_CART+'<span class="tbadge" id="cart-badge" style="display:none;">0</span></span><span class="tlabel">Panier</span></button>'+
       '<button class="tabbtn" data-nav="inbox"><span class="ticon">'+ICON_MAIL+'<span class="tbadge" id="inbox-badge" style="display:none;">0</span></span><span class="tlabel">Messages</span></button>'+
     '</nav>';
@@ -482,9 +485,19 @@ function updateBadges(){
     var unread = state.inbox.filter(function(m){ return !m.read; }).length;
     if(unread){ ib.style.display='flex'; ib.textContent = unread; } else ib.style.display='none';
   }
+  var fb = qs('friends-badge');
+  if(fb){ if(state.friendPendingCount){ fb.style.display='flex'; fb.textContent = state.friendPendingCount; } else fb.style.display='none'; }
   document.querySelectorAll('.tabbtn[data-nav]').forEach(function(b){
     b.classList.toggle('active', b.getAttribute('data-nav')===state.view);
   });
+}
+
+async function refreshFriendPending(){
+  try{
+    var rows = await apiSelect('pokeshop_friends', 'friend_id=eq.'+state.user.id+'&status=eq.pending&select=id');
+    state.friendPendingCount = rows.length;
+    updateBadges();
+  }catch(e){}
 }
 
 async function navigate(view, arg){
@@ -562,7 +575,7 @@ async function renderCollection(collectionId){
   main.innerHTML =
     '<button class="backlink" id="back-home">← Toutes les collections</button>'+
     '<div class="section-head"><h2>'+esc(coll ? coll.name : '')+'</h2>'+
-      (state.isAdmin ? '<div style="display:flex;gap:8px;"><button class="btn-ghost" id="import-csv-btn">Importer CSV</button><button class="btn-gold" id="add-card-btn">+ Ajouter une carte</button></div>' : '')+
+      (state.isAdmin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost" id="import-csv-btn">Importer CSV</button><button class="btn-gold" id="add-card-btn">+ Ajouter une carte</button><button class="btn-danger" id="delete-all-btn">Vider la collection</button></div>' : '')+
     '</div>'+
     '<div class="legend">'+
       '<span><i style="background:var(--owned);"></i>Possédée</span>'+
@@ -574,6 +587,7 @@ async function renderCollection(collectionId){
   qs('back-home').onclick = function(){ navigate('home'); };
   if(qs('add-card-btn')) qs('add-card-btn').onclick = function(){ openAddCardModal(collectionId); };
   if(qs('import-csv-btn')) qs('import-csv-btn').onclick = function(){ openCsvImportModal(collectionId); };
+  if(qs('delete-all-btn')) qs('delete-all-btn').onclick = function(){ openDeleteAllCardsModal(collectionId, coll ? coll.name : ''); };
 
   var cards = await apiSelect('pokeshop_cards', 'collection_id=eq.'+collectionId+'&select=*&order=number.asc');
   state.currentCollectionCards = cards;
@@ -628,7 +642,21 @@ async function renderCollection(collectionId){
   });
 }
 
-async function ensureFriends(){
+function openDeleteAllCardsModal(collectionId, collName){
+  var count = state.currentCollectionCards.length;
+  openModal(
+    '<h3>Vider "'+esc(collName)+'"</h3>'+
+    '<p class="muted" style="margin-bottom:18px;">Ceci supprime définitivement les <b>'+count+' cartes</b> de cette collection, ainsi que les possessions de tous les dresseurs liées à ces cartes. Cette action est irréversible.</p>'+
+    '<button class="btn-danger" style="width:100%;padding:12px;" id="confirm-delete-all">Oui, tout supprimer</button>'
+  );
+  qs('confirm-delete-all').onclick = async function(){
+    qs('confirm-delete-all').disabled = true;
+    qs('confirm-delete-all').textContent = 'Suppression…';
+    await apiDelete('pokeshop_cards', 'collection_id=eq.'+collectionId);
+    closeModal();
+    renderCollection(collectionId);
+  };
+}
   var rows = await apiSelect('pokeshop_friends',
     'or=(user_id.eq.'+state.user.id+',friend_id.eq.'+state.user.id+')&status=eq.accepted&select=*');
   state.friendRows = rows;
@@ -780,6 +808,8 @@ async function renderFriends(){
   var incoming = allRows.filter(function(r){ return r.friend_id===state.user.id && r.status==='pending'; });
   var outgoing = allRows.filter(function(r){ return r.user_id===state.user.id && r.status==='pending'; });
   var accepted = allRows.filter(function(r){ return r.status==='accepted'; });
+  state.friendPendingCount = incoming.length;
+  updateBadges();
 
   var main = qs('main');
   main.innerHTML =
@@ -971,6 +1001,7 @@ async function boot(){
     var inb = await apiSelect('pokeshop_messages', 'to_user_id=eq.'+state.user.id+'&read=eq.false&select=id');
     state.inbox = inb.map(function(r){ return {read:false}; });
   }catch(e){}
+  refreshFriendPending();
   updateBadges();
   navigate('home');
 }
