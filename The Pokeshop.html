@@ -632,20 +632,15 @@ async function renderCollection(collectionId){
     var totalQty = VARIANTS.reduce(function(s,v){ return s + (mine[v.key] ? mine[v.key].quantity : 0); }, 0);
     var hasFriendDup = !!(friendDup[card.id] && friendDup[card.id].length);
     var cls = totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing');
-    var chips = VARIANTS.map(function(v){
-      var row = mine[v.key];
-      var qty = row ? row.quantity : 0;
-      return '<span class="vchip'+(qty>0?' owned':'')+'">'+v.key+(qty>1?' ×'+qty:'')+'</span>';
-    }).join('');
     var nRow = mine['N'];
     var nQty = nRow ? nRow.quantity : 0;
     var quickDisabled = nQty>1;
     var tile = el(
-      '<div class="tile '+cls+'">'+
+      '<div class="tile '+cls+'" data-card-id="'+card.id+'">'+
         '<img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" alt="" loading="lazy" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
         '<div class="tnum">#'+esc(card.number)+'</div>'+
         '<div class="tname">'+esc(card.name)+'</div>'+
-        '<div class="tile-variants">'+chips+'</div>'+
+        '<div class="tile-variants">'+variantChips(mine)+'</div>'+
         '<button class="quick-add"'+(quickDisabled?' disabled':'')+'>+1 commune</button>'+
       '</div>'
     );
@@ -654,6 +649,14 @@ async function renderCollection(collectionId){
     tile.onclick = function(){ openCardModal(card); };
     grid.appendChild(tile);
   });
+}
+
+function variantChips(mine){
+  return VARIANTS.map(function(v){
+    var row = mine[v.key];
+    var qty = row ? row.quantity : 0;
+    return '<span class="vchip'+(qty>0?' owned':'')+'">'+v.key+(qty>1?' ×'+qty:'')+'</span>';
+  }).join('');
 }
 
 function openDeleteAllCardsModal(collectionId, collName){
@@ -692,15 +695,27 @@ function openEditCardModal(card){
 }
 
 async function quickAddNormal(card){
-  var mine = state.userCardMap[card.id] || {};
+  var tileEl = document.querySelector('.tile[data-card-id="'+card.id+'"]');
+  var quickBtn = tileEl ? tileEl.querySelector('.quick-add') : null;
+  if(quickBtn) quickBtn.disabled = true;
+  var mine = state.userCardMap[card.id] = state.userCardMap[card.id] || {};
   var existing = mine['N'];
   var newQty = (existing ? existing.quantity : 0) + 1;
   if(existing){
     await apiUpdate('pokeshop_user_cards', 'id=eq.'+existing.id, { quantity: newQty });
+    existing.quantity = newQty;
   } else {
-    await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, variant:'N', quantity: newQty, price: null }]);
+    var inserted = await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, variant:'N', quantity: newQty, price: null }]);
+    var newId = inserted && inserted[0] ? inserted[0].id : null;
+    mine['N'] = { id: newId, variant:'N', quantity: newQty, price: null };
   }
-  renderCollection(state.currentCollectionId);
+  if(!tileEl) return;
+  var totalQty = VARIANTS.reduce(function(s,v){ return s + (mine[v.key] ? mine[v.key].quantity : 0); }, 0);
+  var hasFriendDup = !!(state.friendDupMap[card.id] && state.friendDupMap[card.id].length);
+  tileEl.className = 'tile ' + (totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing'));
+  var chipsEl = tileEl.querySelector('.tile-variants');
+  if(chipsEl) chipsEl.innerHTML = variantChips(mine);
+  if(quickBtn) quickBtn.disabled = mine['N'].quantity>1;
 }
 
 async function ensureFriends(){
