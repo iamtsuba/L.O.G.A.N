@@ -147,10 +147,9 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .tile img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:7px;background:var(--panel-raised);margin-bottom:6px;}
 .tile .tnum{font-size:10px;color:var(--text-dim);}
 .tile .tname{font-size:11.5px;color:var(--text);line-height:1.25;margin-top:1px;}
-.tile .dupbadge{
-  position:absolute;top:4px;right:4px;background:var(--ink);color:var(--gold);font-size:10px;
-  border-radius:20px;padding:1px 6px;font-weight:700;
-}
+.tile-variants{display:flex;gap:3px;margin-top:5px;}
+.vchip{font-size:8.5px;padding:2px 5px;border-radius:5px;background:var(--panel-raised);color:var(--text-dim);font-weight:700;letter-spacing:.3px;}
+.vchip.owned{background:var(--owned);color:#0c1f14;}
 
 /* ---- modal ---- */
 #modal-layer{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:18px;}
@@ -167,6 +166,12 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .qty-row button{width:38px;height:38px;border-radius:10px;background:var(--panel-raised);color:var(--paper);font-size:18px;}
 .qty-row button:hover{background:var(--line);}
 .qty-row .qtyval{font-size:22px;font-weight:700;min-width:34px;text-align:center;}
+.variant-block{border-top:1px solid var(--line);padding-top:12px;margin-top:12px;}
+.variant-block:first-of-type{border-top:none;margin-top:6px;padding-top:0;}
+.variant-block .variant-head{font-size:13px;color:var(--paper);font-weight:700;text-align:center;}
+.variant-block .qty-row{margin:10px 0;}
+.variant-block .qty-row button{width:32px;height:32px;font-size:16px;}
+.variant-block .qtyval{font-size:18px;}
 .card-preview{width:120px;margin:0 auto 12px;display:block;}
 .card-preview img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:10px;background:var(--panel-raised);}
 .friendlist{border-top:1px solid var(--line);margin-top:16px;padding-top:14px;}
@@ -239,6 +244,13 @@ var PLACEHOLDER_IMG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="ht
 window.POKESHOP_PLACEHOLDER = PLACEHOLDER_IMG;
 
 var ADMIN_CODE = 'thomarie';
+
+var VARIANTS = [
+  { key:'N', label:'Normal' },
+  { key:'F', label:'Foil' },
+  { key:'P', label:'Pokeball' }
+];
+function variantLabel(k){ var v = VARIANTS.find(function(v){return v.key===k;}); return v ? v.label : k; }
 
 var ICON_COLL = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg>';
 var ICON_FRIENDS = '<svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="9" r="2.4" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="2"/><path d="M15 14.5c2.5.3 4.5 2.4 4.5 5" stroke="currentColor" stroke-width="2"/></svg>';
@@ -566,8 +578,8 @@ async function renderCollection(collectionId){
   var cards = await apiSelect('pokeshop_cards', 'collection_id=eq.'+collectionId+'&select=*&order=number.asc');
   state.currentCollectionCards = cards;
 
-  var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=card_id,quantity,price');
-  var myMap = {}; myRows.forEach(function(r){ myMap[r.card_id] = r; });
+  var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=card_id,variant,quantity,price');
+  var myMap = {}; myRows.forEach(function(r){ (myMap[r.card_id] = myMap[r.card_id]||{})[r.variant] = r; });
   state.userCardMap = myMap;
 
   await ensureFriends();
@@ -581,7 +593,7 @@ async function renderCollection(collectionId){
       dupRows.forEach(function(r){
         var f = state.friends.find(function(ff){ return ff.id===r.user_id; });
         if(!f) return;
-        (friendDup[r.card_id] = friendDup[r.card_id]||[]).push({ friend_id: r.user_id, username: f.username, price: r.price, quantity: r.quantity });
+        (friendDup[r.card_id] = friendDup[r.card_id]||[]).push({ friend_id: r.user_id, username: f.username, variant: r.variant, price: r.price, quantity: r.quantity });
       });
     }
   }
@@ -594,16 +606,21 @@ async function renderCollection(collectionId){
   }
   grid.innerHTML = '';
   cards.forEach(function(card){
-    var mine = myMap[card.id];
-    var qty = mine ? mine.quantity : 0;
+    var mine = myMap[card.id] || {};
+    var totalQty = VARIANTS.reduce(function(s,v){ return s + (mine[v.key] ? mine[v.key].quantity : 0); }, 0);
     var hasFriendDup = !!(friendDup[card.id] && friendDup[card.id].length);
-    var cls = qty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing');
+    var cls = totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing');
+    var chips = VARIANTS.map(function(v){
+      var row = mine[v.key];
+      var qty = row ? row.quantity : 0;
+      return '<span class="vchip'+(qty>0?' owned':'')+'">'+v.key+(qty>1?' ×'+qty:'')+'</span>';
+    }).join('');
     var tile = el(
       '<div class="tile '+cls+'">'+
-        (qty>1 ? '<span class="dupbadge">x'+qty+'</span>' : '')+
         '<img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" alt="" loading="lazy" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
         '<div class="tnum">#'+esc(card.number)+'</div>'+
         '<div class="tname">'+esc(card.name)+'</div>'+
+        '<div class="tile-variants">'+chips+'</div>'+
       '</div>'
     );
     tile.onclick = function(){ openCardModal(card); };
@@ -676,45 +693,60 @@ function openCsvImportModal(collectionId){
 }
 
 async function openCardModal(card){
-  var mine = state.userCardMap[card.id] || { quantity:0, price:null };
+  var mineAll = state.userCardMap[card.id] || {};
   var dupFriends = state.friendDupMap[card.id] || [];
-  var qty = mine.quantity||0;
+
+  var qtyState = {};
+  VARIANTS.forEach(function(v){ qtyState[v.key] = mineAll[v.key] ? mineAll[v.key].quantity : 0; });
+
+  var variantRows = VARIANTS.map(function(v){
+    var row = mineAll[v.key] || { quantity:0, price:null };
+    return '<div class="variant-block">'+
+      '<div class="variant-head">'+v.label+'</div>'+
+      '<div class="qty-row"><button data-vminus="'+v.key+'">−</button><span class="qtyval" id="qty-val-'+v.key+'">'+row.quantity+'</span><button data-vplus="'+v.key+'">+</button></div>'+
+      '<div class="field price-field-'+v.key+'" style="'+(row.quantity>1?'':'display:none;')+'"><label>Prix par doublon ('+v.label+')</label><input type="number" min="0" step="0.5" id="m-price-'+v.key+'" value="'+(row.price!=null?row.price:'')+'" placeholder="2.50"></div>'+
+    '</div>';
+  }).join('');
 
   openModal(
     '<h3 style="text-align:center;">'+esc(card.name)+' <span class="muted">#'+esc(card.number)+'</span></h3>'+
     '<div class="card-preview"><img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;"></div>'+
-    '<p class="muted" style="text-align:center;">Ta quantité</p>'+
-    '<div class="qty-row"><button id="qty-minus">−</button><span class="qtyval" id="qty-val">'+qty+'</span><button id="qty-plus">+</button></div>'+
-    '<div id="price-field" style="'+(qty>1?'':'display:none;')+'">'+
-      '<div class="field"><label>Prix de revente (par doublon)</label><input id="m-dup-price" type="number" min="0" step="0.5" value="'+(mine.price!=null?mine.price:'')+'" placeholder="2.50"></div>'+
-    '</div>'+
+    variantRows+
     '<button class="btn-primary" id="qty-save">Enregistrer</button>'+
     '<div class="friendlist">'+
       '<h4>Chez tes amis (doublons)</h4>'+
       (dupFriends.length ? dupFriends.map(function(f){
-        return '<div class="frow"><span class="fname">'+esc(f.username)+' <span class="muted">(x'+f.quantity+')</span></span>'+
+        return '<div class="frow"><span class="fname">'+esc(f.username)+' <span class="muted">'+variantLabel(f.variant)+' (x'+f.quantity+')</span></span>'+
           '<span class="fprice">'+(f.price!=null ? f.price+' €' : 'prix ?')+'</span>'+
-          '<button data-fid="'+f.friend_id+'" data-price="'+(f.price!=null?f.price:0)+'" class="add-cart-btn" '+(f.price==null?'disabled':'')+'>Panier</button></div>';
+          '<button data-fid="'+f.friend_id+'" data-variant="'+f.variant+'" data-price="'+(f.price!=null?f.price:0)+'" class="add-cart-btn" '+(f.price==null?'disabled':'')+'>Panier</button></div>';
       }).join('') : '<p class="muted">Aucun ami n\'a de doublon de cette carte.</p>')+
     '</div>'
   );
 
-  var qtyVal = qty;
-  function refreshQty(){
-    qs('qty-val').textContent = qtyVal;
-    qs('price-field').style.display = qtyVal>1 ? '' : 'none';
+  function refresh(v){
+    qs('qty-val-'+v).textContent = qtyState[v];
+    var pf = document.querySelector('.price-field-'+v);
+    if(pf) pf.style.display = qtyState[v]>1 ? '' : 'none';
   }
-  qs('qty-minus').onclick = function(){ if(qtyVal>0){ qtyVal--; refreshQty(); } };
-  qs('qty-plus').onclick = function(){ qtyVal++; refreshQty(); };
+  document.querySelectorAll('[data-vminus]').forEach(function(btn){
+    btn.onclick = function(){ var v=btn.getAttribute('data-vminus'); if(qtyState[v]>0){ qtyState[v]--; refresh(v); } };
+  });
+  document.querySelectorAll('[data-vplus]').forEach(function(btn){
+    btn.onclick = function(){ var v=btn.getAttribute('data-vplus'); qtyState[v]++; refresh(v); };
+  });
 
   qs('qty-save').onclick = async function(){
-    var priceInput = qs('m-dup-price');
-    var price = priceInput && qtyVal>1 && priceInput.value!=='' ? parseFloat(priceInput.value) : null;
-    var existing = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&card_id=eq.'+card.id+'&select=id');
-    if(existing.length){
-      await apiUpdate('pokeshop_user_cards', 'id=eq.'+existing[0].id, { quantity: qtyVal, price: price });
-    } else if(qtyVal>0) {
-      await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, quantity: qtyVal, price: price }]);
+    var existing = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&card_id=eq.'+card.id+'&select=id,variant');
+    for(var i=0;i<VARIANTS.length;i++){
+      var v = VARIANTS[i].key;
+      var priceInput = qs('m-price-'+v);
+      var price = priceInput && qtyState[v]>1 && priceInput.value!=='' ? parseFloat(priceInput.value) : null;
+      var row = existing.find(function(r){ return r.variant===v; });
+      if(row){
+        await apiUpdate('pokeshop_user_cards', 'id=eq.'+row.id, { quantity: qtyState[v], price: price });
+      } else if(qtyState[v]>0) {
+        await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, variant: v, quantity: qtyState[v], price: price }]);
+      }
     }
     closeModal();
     renderCollection(state.currentCollectionId);
@@ -723,9 +755,10 @@ async function openCardModal(card){
   document.querySelectorAll('.add-cart-btn').forEach(function(btn){
     btn.onclick = function(){
       var fid = btn.getAttribute('data-fid');
+      var variant = btn.getAttribute('data-variant');
       var price = parseFloat(btn.getAttribute('data-price'))||0;
-      var friend = dupFriends.find(function(f){ return f.friend_id===fid; });
-      addToCart({ cardId: card.id, cardName: card.name, cardImg: card.image_url, collectionName: (state.collections.find(function(c){return c.id===state.currentCollectionId;})||{}).name||'', sellerId: fid, sellerUsername: friend?friend.username:'', price: price });
+      var friend = dupFriends.find(function(f){ return f.friend_id===fid && f.variant===variant; });
+      addToCart({ cardId: card.id, cardName: card.name, cardImg: card.image_url, collectionName: (state.collections.find(function(c){return c.id===state.currentCollectionId;})||{}).name||'', sellerId: fid, sellerUsername: friend?friend.username:'', price: price, variant: variant });
       btn.textContent = 'Ajouté ✓'; btn.disabled = true;
     };
   });
@@ -811,7 +844,7 @@ async function renderFriends(){
 /* ============ CART ============ */
 
 function addToCart(item){
-  var dup = state.cart.find(function(c){ return c.cardId===item.cardId && c.sellerId===item.sellerId; });
+  var dup = state.cart.find(function(c){ return c.cardId===item.cardId && c.sellerId===item.sellerId && c.variant===item.variant; });
   if(dup) return;
   state.cart.push(item);
   saveCart();
@@ -830,7 +863,7 @@ async function renderCart(){
     var row = el(
       '<div class="cart-item">'+
         '<img src="'+(item.cardImg?esc(item.cardImg):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
-        '<div class="ci-main"><div class="cin">'+esc(item.cardName)+'</div><div class="cis">'+esc(item.collectionName)+' · vendeur : '+esc(item.sellerUsername)+'</div></div>'+
+        '<div class="ci-main"><div class="cin">'+esc(item.cardName)+' <span class="muted">('+variantLabel(item.variant)+')</span></div><div class="cis">'+esc(item.collectionName)+' · vendeur : '+esc(item.sellerUsername)+'</div></div>'+
         '<div class="ciprice">'+item.price.toFixed(2)+' €</div>'+
         '<button class="cirm" data-idx="'+idx+'">×</button>'+
       '</div>'
@@ -860,7 +893,7 @@ async function checkout(){
     return {
       from_user_id: state.user.id,
       to_user_id: sellerId,
-      items: items.map(function(i){ return { card_name:i.cardName, collection:i.collectionName, price:i.price }; }),
+      items: items.map(function(i){ return { card_name:i.cardName, collection:i.collectionName, variant:i.variant, price:i.price }; }),
       total: total,
       read: false
     };
@@ -902,7 +935,7 @@ async function renderInbox(){
   data.forEach(function(m){
     var otherName = state.inboxTab==='received' ? (usersMap[m.from_user_id]||'—') : (usersMap[m.to_user_id]||'—');
     var date = new Date(m.created_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
-    var itemsHtml = (m.items||[]).map(function(it){ return esc(it.card_name)+' ('+esc(it.collection)+') — '+it.price.toFixed(2)+' €'; }).join('<br>');
+    var itemsHtml = (m.items||[]).map(function(it){ return esc(it.card_name)+(it.variant?' ('+variantLabel(it.variant)+')':'')+' — '+it.price.toFixed(2)+' €'; }).join('<br>');
     var card = el(
       '<div class="order-card">'+
         '<div class="ohead"><span class="ofrom">'+(state.inboxTab==='received' && !m.read ? '<span class="unread-dot"></span>' : '')+(state.inboxTab==='received'?'De ':'À ')+esc(otherName)+'</span><span class="odate">'+date+'</span></div>'+
