@@ -505,6 +505,7 @@ async function navigate(view, arg){
   if(view==='home') await renderHome();
   else if(view==='collection') await renderCollection(arg);
   else if(view==='friends') await renderFriends();
+  else if(view==='friend-detail') await renderFriendDetail(arg);
   else if(view==='cart') await renderCart();
   else if(view==='inbox') await renderInbox();
   updateBadges();
@@ -909,16 +910,114 @@ async function renderFriends(){
   else{
     accepted.forEach(function(r){
       var otherId = r.user_id===state.user.id ? r.friend_id : r.user_id;
-      var row = el('<div class="frow2"><div class="favatar">'+esc((usersMap[otherId]||'?')[0]).toUpperCase()+'</div><div class="fmain"><div class="fu">'+esc(usersMap[otherId]||'—')+'</div></div></div>');
+      var row = el('<div class="frow2" style="cursor:pointer;"><div class="favatar">'+esc((usersMap[otherId]||'?')[0]).toUpperCase()+'</div><div class="fmain"><div class="fu">'+esc(usersMap[otherId]||'—')+'</div><div class="fs">voir les échanges possibles</div></div></div>');
+      row.onclick = function(){ navigate('friend-detail', otherId); };
       fl.appendChild(row);
     });
   }
 }
 
+/* ============ FRIEND DETAIL (trade view) ============ */
+
+async function renderFriendDetail(friendId){
+  var main = qs('main');
+  main.innerHTML = '<button class="backlink" id="back-friends">← Amis</button><div class="section-head"><h2 id="fd-title">…</h2></div>'+
+    '<div class="tabs"><button class="tab active" data-ftab="theirs">Ses doublons</button><button class="tab" data-ftab="mine">Tes doublons</button></div>'+
+    '<div id="friend-detail-list"><p class="muted">Chargement…</p></div>';
+  qs('back-friends').onclick = function(){ navigate('friends'); };
+
+  await ensureFriends();
+  var friend = state.friends.find(function(f){ return f.id===friendId; });
+  if(!friend){
+    var res = await apiSelect('pokeshop_users', 'id=eq.'+friendId+'&select=id,username');
+    friend = res[0] || { id: friendId, username: '—' };
+  }
+  qs('fd-title').textContent = friend.username;
+
+  var collections = await apiSelect('pokeshop_collections', 'select=*&order=created_at.asc');
+  var collMap = {}; collections.forEach(function(c){ collMap[c.id]=c.name; });
+  var cards = await apiSelect('pokeshop_cards', 'select=*&order=number.asc');
+
+  var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=card_id,variant,quantity,price');
+  var myMap = {}; myRows.forEach(function(r){ (myMap[r.card_id]=myMap[r.card_id]||{})[r.variant]=r; });
+
+  var theirRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+friendId+'&select=card_id,variant,quantity,price');
+  var theirMap = {}; theirRows.forEach(function(r){ (theirMap[r.card_id]=theirMap[r.card_id]||{})[r.variant]=r; });
+
+  var theirsForMe = [], mineForThem = [];
+  cards.forEach(function(card){
+    VARIANTS.forEach(function(v){
+      var theirRow = theirMap[card.id] && theirMap[card.id][v.key];
+      var myRow = myMap[card.id] && myMap[card.id][v.key];
+      var myQty = myRow ? myRow.quantity : 0;
+      var theirQty = theirRow ? theirRow.quantity : 0;
+      if(theirRow && theirRow.quantity>1 && myQty===0){
+        theirsForMe.push({ card:card, variant:v.key, price: theirRow.price, quantity: theirRow.quantity, collectionName: collMap[card.collection_id]||'—' });
+      }
+      if(myRow && myRow.quantity>1 && theirQty===0){
+        mineForThem.push({ card:card, variant:v.key, price: myRow.price, quantity: myRow.quantity, collectionName: collMap[card.collection_id]||'—' });
+      }
+    });
+  });
+
+  state.friendDetailData = { friend: friend, theirsForMe: theirsForMe, mineForThem: mineForThem };
+  renderFriendDetailTab('theirs');
+
+  main.querySelectorAll('[data-ftab]').forEach(function(b){
+    b.onclick = function(){
+      main.querySelectorAll('[data-ftab]').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      renderFriendDetailTab(b.getAttribute('data-ftab'));
+    };
+  });
+}
+
+function renderFriendDetailTab(tab){
+  var data = state.friendDetailData;
+  var list = tab==='theirs' ? data.theirsForMe : data.mineForThem;
+  var box = qs('friend-detail-list');
+  if(!list.length){
+    box.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);">Rien ici</h3><p>'+
+      (tab==='theirs' ? 'Aucun doublon chez '+esc(data.friend.username)+' qui te manque.' : 'Aucun de tes doublons ne lui manque.')+
+      '</p></div>';
+    return;
+  }
+  var groups = {};
+  list.forEach(function(item){ (groups[item.collectionName]=groups[item.collectionName]||[]).push(item); });
+  var html = '';
+  Object.keys(groups).forEach(function(collName){
+    html += '<h3 style="font-size:14px;color:var(--paper);margin:18px 0 8px;">'+esc(collName)+'</h3>';
+    groups[collName].forEach(function(item){
+      var key = item.card.id+'|'+item.variant;
+      var disabled = item.price==null;
+      html += '<div class="frow">'+
+        '<span class="fname">'+esc(item.card.name)+' <span class="muted">#'+esc(item.card.number)+' · '+variantLabel(item.variant)+' (x'+item.quantity+')</span></span>'+
+        '<span class="fprice">'+(item.price!=null ? item.price.toFixed(2)+' €' : 'prix ?')+'</span>'+
+        '<button class="fd-add" data-key="'+key+'" '+(disabled?'disabled':'')+'>Panier</button>'+
+      '</div>';
+    });
+  });
+  box.innerHTML = html;
+  box.querySelectorAll('.fd-add').forEach(function(btn){
+    btn.onclick = function(){
+      var key = btn.getAttribute('data-key');
+      var item = list.find(function(i){ return (i.card.id+'|'+i.variant)===key; });
+      if(!item) return;
+      var direction = tab==='theirs' ? 'buy' : 'sell';
+      addToCart({
+        cardId: item.card.id, cardName: item.card.name, cardImg: item.card.image_url,
+        collectionName: item.collectionName, sellerId: data.friend.id, sellerUsername: data.friend.username,
+        price: item.price, variant: item.variant, direction: direction
+      });
+      btn.textContent = 'Ajouté ✓'; btn.disabled = true;
+    };
+  });
+}
+
 /* ============ CART ============ */
 
 function addToCart(item){
-  var dup = state.cart.find(function(c){ return c.cardId===item.cardId && c.sellerId===item.sellerId && c.variant===item.variant; });
+  var dup = state.cart.find(function(c){ return c.cardId===item.cardId && c.sellerId===item.sellerId && c.variant===item.variant && c.direction===item.direction; });
   if(dup) return;
   state.cart.push(item);
   saveCart();
@@ -930,25 +1029,39 @@ async function renderCart(){
   main.innerHTML = '<div class="section-head"><h2>Panier</h2></div><div id="cart-items"></div>';
   var box = qs('cart-items');
   if(!state.cart.length){
-    box.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);">Panier vide</h3><p>Ajoute des cartes en visitant les collections d\'un ami.</p></div>';
+    box.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);">Panier vide</h3><p>Ajoute des cartes en visitant les collections d\'un ami, ou la fiche d\'un ami pour proposer un échange.</p></div>';
     return;
   }
+  var groups = {};
   state.cart.forEach(function(item, idx){
-    var row = el(
-      '<div class="cart-item">'+
-        '<img src="'+(item.cardImg?esc(item.cardImg):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
-        '<div class="ci-main"><div class="cin">'+esc(item.cardName)+' <span class="muted">('+variantLabel(item.variant)+')</span></div><div class="cis">'+esc(item.collectionName)+' · vendeur : '+esc(item.sellerUsername)+'</div></div>'+
-        '<div class="ciprice">'+item.price.toFixed(2)+' €</div>'+
-        '<button class="cirm" data-idx="'+idx+'">×</button>'+
-      '</div>'
-    );
-    box.appendChild(row);
+    item._idx = idx;
+    (groups[item.sellerId] = groups[item.sellerId] || { username: item.sellerUsername, items: [] }).items.push(item);
   });
+  var html = '';
+  var grandNet = 0;
+  Object.keys(groups).forEach(function(sid){
+    var g = groups[sid];
+    var buyTotal=0, sellTotal=0;
+    html += '<h3 style="font-size:14px;color:var(--paper);margin:18px 0 8px;">'+esc(g.username)+'</h3>';
+    g.items.forEach(function(item){
+      var dir = item.direction||'buy';
+      if(dir==='buy') buyTotal += item.price; else sellTotal += item.price;
+      html += '<div class="cart-item">'+
+        '<img src="'+(item.cardImg?esc(item.cardImg):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
+        '<div class="ci-main"><div class="cin">'+esc(item.cardName)+' <span class="muted">('+variantLabel(item.variant)+')</span></div><div class="cis">'+esc(item.collectionName)+' · '+(dir==='buy'?'tu achètes':'tu proposes en échange')+'</div></div>'+
+        '<div class="ciprice" style="color:'+(dir==='buy'?'var(--gold)':'var(--owned)')+';">'+(dir==='buy'?'+':'−')+item.price.toFixed(2)+' €</div>'+
+        '<button class="cirm" data-idx="'+item._idx+'">×</button>'+
+      '</div>';
+    });
+    var net = buyTotal - sellTotal;
+    grandNet += net;
+    html += '<div class="cart-total" style="margin-top:2px;"><span>Solde avec '+esc(g.username)+'</span><span>'+(net>0?'tu dois ':net<0?'il/elle doit ':'')+Math.abs(net).toFixed(2)+' €'+(net===0?' (équilibré)':'')+'</span></div>';
+  });
+  box.innerHTML = html;
   box.querySelectorAll('.cirm').forEach(function(btn){
     btn.onclick = function(){ state.cart.splice(parseInt(btn.getAttribute('data-idx')),1); saveCart(); renderCart(); updateBadges(); };
   });
-  var total = state.cart.reduce(function(s,i){ return s+i.price; },0);
-  var totalRow = el('<div class="cart-total"><span>Total</span><span>'+total.toFixed(2)+' €</span></div>');
+  var totalRow = el('<div class="cart-total" style="border-top:2px solid var(--line);margin-top:16px;padding-top:16px;"><span>Total net</span><span>'+(grandNet>0?'tu dois ':grandNet<0?'on te doit ':'')+Math.abs(grandNet).toFixed(2)+' €'+(grandNet===0?' (équilibré)':'')+'</span></div>');
   box.appendChild(totalRow);
   var sendBtn = el('<button class="btn-primary" id="checkout-btn">Envoyer les commandes</button>');
   box.appendChild(sendBtn);
@@ -963,12 +1076,14 @@ async function checkout(){
   });
   var rows = Object.keys(bySeller).map(function(sellerId){
     var items = bySeller[sellerId];
-    var total = items.reduce(function(s,i){return s+i.price;},0);
+    var buyTotal = items.filter(function(i){return (i.direction||'buy')==='buy';}).reduce(function(s,i){return s+i.price;},0);
+    var sellTotal = items.filter(function(i){return i.direction==='sell';}).reduce(function(s,i){return s+i.price;},0);
+    var net = buyTotal - sellTotal;
     return {
       from_user_id: state.user.id,
       to_user_id: sellerId,
-      items: items.map(function(i){ return { card_name:i.cardName, collection:i.collectionName, variant:i.variant, price:i.price }; }),
-      total: total,
+      items: items.map(function(i){ return { card_name:i.cardName, collection:i.collectionName, variant:i.variant, price:i.price, direction: i.direction||'buy' }; }),
+      total: net,
       read: false
     };
   });
@@ -1009,12 +1124,28 @@ async function renderInbox(){
   data.forEach(function(m){
     var otherName = state.inboxTab==='received' ? (usersMap[m.from_user_id]||'—') : (usersMap[m.to_user_id]||'—');
     var date = new Date(m.created_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
-    var itemsHtml = (m.items||[]).map(function(it){ return esc(it.card_name)+(it.variant?' ('+variantLabel(it.variant)+')':'')+' — '+it.price.toFixed(2)+' €'; }).join('<br>');
+    var items = m.items||[];
+    var byColl = {};
+    items.forEach(function(it){ (byColl[it.collection||'—']=byColl[it.collection||'—']||[]).push(it); });
+    var itemsHtml = Object.keys(byColl).map(function(cn){
+      var rows = byColl[cn].map(function(it){
+        var dir = it.direction||'buy';
+        var tag = dir==='buy' ? 'achète' : 'échange';
+        return esc(it.card_name)+(it.variant?' ('+variantLabel(it.variant)+')':'')+' — '+tag+' — '+it.price.toFixed(2)+' €';
+      }).join('<br>');
+      return '<b style="color:var(--paper);font-size:12px;">'+esc(cn)+'</b><br>'+rows;
+    }).join('<br><br>');
+    var net = m.total || 0;
+    var senderName = state.inboxTab==='received' ? otherName : 'Toi';
+    var recipientName = state.inboxTab==='received' ? 'toi' : otherName;
+    var balanceLine = net>0 ? (senderName+' doit '+net.toFixed(2)+' € à '+recipientName)
+                     : net<0 ? (recipientName.charAt(0).toUpperCase()+recipientName.slice(1)+' doit '+Math.abs(net).toFixed(2)+' € à '+senderName)
+                     : 'Échange équilibré';
     var card = el(
       '<div class="order-card">'+
         '<div class="ohead"><span class="ofrom">'+(state.inboxTab==='received' && !m.read ? '<span class="unread-dot"></span>' : '')+(state.inboxTab==='received'?'De ':'À ')+esc(otherName)+'</span><span class="odate">'+date+'</span></div>'+
         '<div class="oitems">'+itemsHtml+'</div>'+
-        '<div class="ototal">Total : '+m.total.toFixed(2)+' €</div>'+
+        '<div class="ototal">'+esc(balanceLine)+'</div>'+
         (state.inboxTab==='received' && !m.read ? '<button class="btn-ghost" style="margin-top:10px;font-size:11.5px;padding:6px 10px;" data-read="'+m.id+'">Marquer comme lu</button>' : '')+
       '</div>'
     );
