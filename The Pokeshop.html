@@ -223,6 +223,15 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .tabs{display:flex;gap:6px;margin-bottom:18px;}
 .tab{background:var(--panel);color:var(--text-dim);padding:8px 14px;border-radius:9px;font-size:13px;}
 .tab.active{background:var(--gold);color:var(--ink);}
+.status-badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px;}
+.status-pending{background:var(--panel-raised);color:var(--text-dim);}
+.status-negotiating{background:var(--friend-bg);color:var(--friend);}
+.status-refused{background:var(--missing-bg);color:var(--missing);}
+.status-accepted{background:var(--owned-bg);color:var(--owned);}
+.status-completed{background:var(--gold);color:var(--ink);}
+.status-cancelled{background:var(--panel-raised);color:var(--text-dim);}
+.deal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.deal-actions button{flex:1;min-width:100px;padding:9px 6px;font-size:12px;}
 
 /* ---- csv/import modal helpers ---- */
 textarea{width:100%;padding:10px;border-radius:9px;border:1.5px solid var(--line);background:var(--ink);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;}
@@ -610,12 +619,17 @@ async function renderCollection(collectionId){
     var friendIds = state.friends.map(function(f){ return f.id; });
     var cardIds = cards.map(function(c){ return c.id; });
     if(cardIds.length){
+      var lockedMap = await getLockedMap();
       var dupRows = await apiSelect('pokeshop_user_cards',
         'user_id=in.('+friendIds.join(',')+')&card_id=in.('+cardIds.join(',')+')&quantity=gt.1&select=*');
       dupRows.forEach(function(r){
         var f = state.friends.find(function(ff){ return ff.id===r.user_id; });
         if(!f) return;
-        (friendDup[r.card_id] = friendDup[r.card_id]||[]).push({ friend_id: r.user_id, username: f.username, variant: r.variant, price: r.price, quantity: r.quantity });
+        var locked = lockedMap[r.user_id+'|'+r.card_id+'|'+r.variant] || 0;
+        var effQty = r.quantity - locked;
+        if(effQty>1){
+          (friendDup[r.card_id] = friendDup[r.card_id]||[]).push({ friend_id: r.user_id, username: f.username, variant: r.variant, price: r.price, quantity: effQty });
+        }
       });
     }
   }
@@ -716,6 +730,20 @@ async function quickAddNormal(card){
   var chipsEl = tileEl.querySelector('.tile-variants');
   if(chipsEl) chipsEl.innerHTML = variantChips(mine);
   if(quickBtn) quickBtn.disabled = mine['N'].quantity>1;
+}
+
+async function getLockedMap(){
+  var msgs = await apiSelect('pokeshop_messages', 'status=eq.accepted&select=from_user_id,to_user_id,items');
+  var map = {};
+  msgs.forEach(function(m){
+    (m.items||[]).forEach(function(it){
+      if(!it.card_id) return;
+      var ownerId = it.direction==='sell' ? m.from_user_id : m.to_user_id;
+      var key = ownerId+'|'+it.card_id+'|'+it.variant;
+      map[key] = (map[key]||0)+1;
+    });
+  });
+  return map;
 }
 
 async function ensureFriends(){
@@ -984,6 +1012,7 @@ async function renderFriendDetail(friendId){
   var theirRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+friendId+'&select=card_id,variant,quantity,price');
   var theirMap = {}; theirRows.forEach(function(r){ (theirMap[r.card_id]=theirMap[r.card_id]||{})[r.variant]=r; });
 
+  var lockedMap = await getLockedMap();
   var theirsForMe = [], mineForThem = [];
   cards.forEach(function(card){
     VARIANTS.forEach(function(v){
@@ -991,11 +1020,15 @@ async function renderFriendDetail(friendId){
       var myRow = myMap[card.id] && myMap[card.id][v.key];
       var myQty = myRow ? myRow.quantity : 0;
       var theirQty = theirRow ? theirRow.quantity : 0;
-      if(theirRow && theirRow.quantity>1 && myQty===0){
-        theirsForMe.push({ card:card, variant:v.key, price: theirRow.price, quantity: theirRow.quantity, collectionName: collMap[card.collection_id]||'—' });
+      var theirLocked = lockedMap[friendId+'|'+card.id+'|'+v.key] || 0;
+      var myLocked = lockedMap[state.user.id+'|'+card.id+'|'+v.key] || 0;
+      var theirEff = theirQty - theirLocked;
+      var myEff = myQty - myLocked;
+      if(theirRow && theirEff>1 && myQty===0){
+        theirsForMe.push({ card:card, variant:v.key, price: theirRow.price, quantity: theirEff, collectionName: collMap[card.collection_id]||'—' });
       }
-      if(myRow && myRow.quantity>1 && theirQty===0){
-        mineForThem.push({ card:card, variant:v.key, price: myRow.price, quantity: myRow.quantity, collectionName: collMap[card.collection_id]||'—' });
+      if(myRow && myEff>1 && theirQty===0){
+        mineForThem.push({ card:card, variant:v.key, price: myRow.price, quantity: myEff, collectionName: collMap[card.collection_id]||'—' });
       }
     });
   });
@@ -1103,6 +1136,8 @@ async function renderCart(){
   });
   var totalRow = el('<div class="cart-total" style="border-top:2px solid var(--line);margin-top:16px;padding-top:16px;"><span>Total net</span><span>'+(grandNet>0?'tu dois ':grandNet<0?'on te doit ':'')+Math.abs(grandNet).toFixed(2)+' €'+(grandNet===0?' (équilibré)':'')+'</span></div>');
   box.appendChild(totalRow);
+  var discountRow = el('<div class="field" style="margin-top:14px;"><label>Demander une ristourne (%) — optionnel</label><input id="cart-discount" type="number" step="1" value="0" placeholder="ex : 10"></div>');
+  box.appendChild(discountRow);
   var sendBtn = el('<button class="btn-primary" id="checkout-btn">Envoyer les commandes</button>');
   box.appendChild(sendBtn);
   qs('checkout-btn').onclick = checkout;
@@ -1110,6 +1145,7 @@ async function renderCart(){
 
 async function checkout(){
   if(!state.cart.length) return;
+  var discountPct = parseFloat(qs('cart-discount') ? qs('cart-discount').value : 0) || 0;
   var bySeller = {};
   state.cart.forEach(function(item){
     (bySeller[item.sellerId] = bySeller[item.sellerId]||[]).push(item);
@@ -1122,8 +1158,11 @@ async function checkout(){
     return {
       from_user_id: state.user.id,
       to_user_id: sellerId,
-      items: items.map(function(i){ return { card_name:i.cardName, collection:i.collectionName, variant:i.variant, price:i.price, direction: i.direction||'buy' }; }),
+      items: items.map(function(i){ return { card_id:i.cardId, card_name:i.cardName, collection:i.collectionName, variant:i.variant, price:i.price, direction: i.direction||'buy' }; }),
       total: net,
+      status: 'pending',
+      discount_percent: discountPct,
+      last_actor_id: state.user.id,
       read: false
     };
   });
@@ -1175,17 +1214,45 @@ async function renderInbox(){
       }).join('<br>');
       return '<b style="color:var(--paper);font-size:12px;">'+esc(cn)+'</b><br>'+rows;
     }).join('<br><br>');
-    var net = m.total || 0;
+
+    var status = m.status || 'pending';
+    var discount = m.discount_percent || 0;
+    var baseNet = m.total || 0;
+    var net = baseNet - (baseNet*discount/100);
     var senderName = state.inboxTab==='received' ? otherName : 'Toi';
     var recipientName = state.inboxTab==='received' ? 'toi' : otherName;
     var balanceLine = net>0 ? (senderName+' doit '+net.toFixed(2)+' € à '+recipientName)
                      : net<0 ? (recipientName.charAt(0).toUpperCase()+recipientName.slice(1)+' doit '+Math.abs(net).toFixed(2)+' € à '+senderName)
                      : 'Échange équilibré';
+    var discountLine = discount ? '<div class="muted" style="margin-top:2px;">Base '+baseNet.toFixed(2)+' € · ristourne '+discount+'%</div>' : '';
+
+    var statusHtml = '<span class="status-badge status-'+status+'">'+STATUS_LABELS[status]+'</span>';
+    var isMine = m.from_user_id===state.user.id;
+    var itsMyTurn = (m.last_actor_id!==state.user.id);
+
+    var actionsHtml = '';
+    if((status==='pending' || status==='negotiating') && itsMyTurn){
+      actionsHtml = '<div class="deal-actions"><button class="btn-danger" data-refuse="'+m.id+'">Refuser</button><button class="btn-ghost" data-negotiate="'+m.id+'">Négocier</button><button class="btn-gold" data-accept="'+m.id+'">Accepter le pokédeal</button></div>';
+    } else if((status==='pending' || status==='negotiating') && !itsMyTurn){
+      actionsHtml = '<p class="muted" style="margin-top:8px;">En attente de la réponse de '+esc(otherName)+'…</p>';
+    } else if(status==='refused'){
+      actionsHtml = '<p class="muted" style="margin-top:8px;">Refusé'+(m.refusal_reason?' — "'+esc(m.refusal_reason)+'"':'')+'</p>';
+    } else if(status==='accepted'){
+      actionsHtml = '<div class="deal-actions"><button class="btn-danger" data-cancel="'+m.id+'">Annuler le pokédeal</button><button class="btn-gold" data-validate="'+m.id+'">Valider le pokédeal</button></div>';
+    } else if(status==='completed'){
+      actionsHtml = '<p class="muted" style="margin-top:8px;">Échange finalisé, les cartes ont été transférées.</p>';
+    } else if(status==='cancelled'){
+      actionsHtml = '<p class="muted" style="margin-top:8px;">Pokédeal annulé.</p>';
+    }
+
     var card = el(
       '<div class="order-card">'+
         '<div class="ohead"><span class="ofrom">'+(state.inboxTab==='received' && !m.read ? '<span class="unread-dot"></span>' : '')+(state.inboxTab==='received'?'De ':'À ')+esc(otherName)+'</span><span class="odate">'+date+'</span></div>'+
-        '<div class="oitems">'+itemsHtml+'</div>'+
+        statusHtml+
+        '<div class="oitems" style="margin-top:8px;">'+itemsHtml+'</div>'+
+        discountLine+
         '<div class="ototal">'+esc(balanceLine)+'</div>'+
+        actionsHtml+
         (state.inboxTab==='received' && !m.read ? '<button class="btn-ghost" style="margin-top:10px;font-size:11.5px;padding:6px 10px;" data-read="'+m.id+'">Marquer comme lu</button>' : '')+
       '</div>'
     );
@@ -1194,6 +1261,75 @@ async function renderInbox(){
   list.querySelectorAll('[data-read]').forEach(function(btn){
     btn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+btn.getAttribute('data-read'), { read:true }); renderInbox(); };
   });
+  list.querySelectorAll('[data-accept]').forEach(function(btn){
+    btn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+btn.getAttribute('data-accept'), { status:'accepted', last_actor_id: state.user.id }); renderInbox(); };
+  });
+  list.querySelectorAll('[data-refuse]').forEach(function(btn){
+    btn.onclick = function(){ openRefuseModal(btn.getAttribute('data-refuse')); };
+  });
+  list.querySelectorAll('[data-negotiate]').forEach(function(btn){
+    btn.onclick = function(){
+      var msg = data.find(function(x){ return x.id===btn.getAttribute('data-negotiate'); });
+      openNegotiateModal(msg);
+    };
+  });
+  list.querySelectorAll('[data-cancel]').forEach(function(btn){
+    btn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+btn.getAttribute('data-cancel'), { status:'cancelled', last_actor_id: state.user.id }); renderInbox(); };
+  });
+  list.querySelectorAll('[data-validate]').forEach(function(btn){
+    btn.onclick = function(){
+      var msg = data.find(function(x){ return x.id===btn.getAttribute('data-validate'); });
+      validateDeal(msg);
+    };
+  });
+}
+
+var STATUS_LABELS = { pending:'En attente', negotiating:'Négociation en cours', refused:'Refusé', accepted:'Accepté', completed:'Terminé', cancelled:'Annulé' };
+
+function openRefuseModal(msgId){
+  openModal(
+    '<h3>Refuser le pokédeal</h3>'+
+    '<div class="field"><label>Message (optionnel)</label><input id="m-refuse-reason" placeholder="Pourquoi ?"></div>'+
+    '<button class="btn-danger" style="width:100%;padding:12px;" id="m-refuse-save">Refuser</button>'
+  );
+  qs('m-refuse-save').onclick = async function(){
+    var reason = (qs('m-refuse-reason').value||'').trim();
+    await apiUpdate('pokeshop_messages', 'id=eq.'+msgId, { status:'refused', refusal_reason: reason, last_actor_id: state.user.id });
+    closeModal();
+    renderInbox();
+  };
+}
+
+function openNegotiateModal(msg){
+  openModal(
+    '<h3>Négocier</h3>'+
+    '<p class="muted" style="margin-bottom:14px;">Choisis un pourcentage à appliquer sur le total (positif = remise, négatif = supplément).</p>'+
+    '<div class="field"><label>Pourcentage (%)</label><input id="m-negotiate-pct" type="number" step="1" value="'+(msg.discount_percent||0)+'"></div>'+
+    '<button class="btn-primary" id="m-negotiate-save">Envoyer la proposition</button>'
+  );
+  qs('m-negotiate-save').onclick = async function(){
+    var pct = parseFloat(qs('m-negotiate-pct').value)||0;
+    await apiUpdate('pokeshop_messages', 'id=eq.'+msg.id, { status:'negotiating', discount_percent: pct, last_actor_id: state.user.id });
+    closeModal();
+    renderInbox();
+  };
+}
+
+async function validateDeal(msg){
+  var items = msg.items || [];
+  for(var i=0;i<items.length;i++){
+    var it = items[i];
+    if(!it.card_id) continue;
+    var ownerId = it.direction==='sell' ? msg.from_user_id : msg.to_user_id;
+    var receiverId = it.direction==='sell' ? msg.to_user_id : msg.from_user_id;
+    var ownerRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+ownerId+'&card_id=eq.'+it.card_id+'&variant=eq.'+it.variant+'&select=*');
+    if(ownerRows[0]) await apiUpdate('pokeshop_user_cards', 'id=eq.'+ownerRows[0].id, { quantity: Math.max(0, ownerRows[0].quantity-1) });
+    var receiverRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+receiverId+'&card_id=eq.'+it.card_id+'&variant=eq.'+it.variant+'&select=*');
+    if(receiverRows[0]) await apiUpdate('pokeshop_user_cards', 'id=eq.'+receiverRows[0].id, { quantity: receiverRows[0].quantity+1 });
+    else await apiInsert('pokeshop_user_cards', [{ user_id: receiverId, card_id: it.card_id, variant: it.variant, quantity: 1, price: null }]);
+  }
+  await apiUpdate('pokeshop_messages', 'id=eq.'+msg.id, { status:'completed' });
+  renderInbox();
 }
 
 /* ============ MODAL ============ */
