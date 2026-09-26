@@ -1358,7 +1358,13 @@ async function renderInbox(){
 async function loadDealChat(dealId){
   var container = qs('chat-'+dealId);
   if(!container) return;
-  var msgs = await apiSelect('pokeshop_deal_messages', 'deal_id=eq.'+dealId+'&select=*&order=created_at.asc');
+  var msgs;
+  try{
+    msgs = await apiSelect('pokeshop_deal_messages', 'deal_id=eq.'+dealId+'&select=*&order=created_at.asc');
+  }catch(e){
+    container.innerHTML = '<h4 style="font-size:12px;color:var(--paper);margin-bottom:6px;">Discussion</h4><p class="muted" style="color:var(--missing);font-size:11px;">Messagerie indisponible — la table pokeshop_deal_messages n\'existe pas encore dans Supabase.</p>';
+    return;
+  }
   var ids = Array.from(new Set(msgs.map(function(m){ return m.sender_id; })));
   var namesMap = {};
   if(ids.length){
@@ -1388,8 +1394,15 @@ async function sendDealChat(dealId){
   var val = inp.value.trim().slice(0,150);
   if(!val) return;
   inp.disabled = true;
-  await apiInsert('pokeshop_deal_messages', [{ deal_id: dealId, sender_id: state.user.id, content: val }]);
-  loadDealChat(dealId);
+  try{
+    await apiInsert('pokeshop_deal_messages', [{ deal_id: dealId, sender_id: state.user.id, content: val }]);
+    loadDealChat(dealId);
+  }catch(e){
+    inp.disabled = false;
+    var countEl = qs('chat-count-'+dealId);
+    if(countEl) countEl.innerHTML = '<span style="color:var(--missing);">Échec de l\'envoi — vérifie que la table pokeshop_deal_messages existe.</span>';
+    console.error('Deal chat send failed:', e);
+  }
 }
 
 var STATUS_LABELS = { pending:'En attente', negotiating:'Négociation en cours', refused:'Refusé', accepted:'Accepté', completed:'Terminé', cancelled:'Annulé' };
