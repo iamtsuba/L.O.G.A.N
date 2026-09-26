@@ -212,6 +212,8 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .cart-item .ci-main .cis{font-size:11.5px;color:var(--text-dim);}
 .cart-item .ciprice{font-size:14px;color:var(--gold);font-weight:700;}
 .cart-item .cirm{background:none;color:var(--missing);font-size:18px;padding:4px 8px;}
+.cart-item.unavailable{opacity:.7;border:1.5px solid var(--missing);}
+.btn-primary:disabled{background:var(--line);color:var(--text-dim);cursor:not-allowed;}
 .cart-total{display:flex;justify-content:space-between;align-items:center;margin:18px 0;font-size:15px;color:var(--paper);border-top:1px solid var(--line);padding-top:14px;}
 .order-card{background:var(--panel);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
 .order-card .ohead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
@@ -1099,12 +1101,30 @@ function addToCart(item){
 
 async function renderCart(){
   var main = qs('main');
-  main.innerHTML = '<div class="section-head"><h2>Panier</h2></div><div id="cart-items"></div>';
+  main.innerHTML = '<div class="section-head"><h2>Panier</h2></div><div id="cart-items"><p class="muted">Chargement…</p></div>';
   var box = qs('cart-items');
   if(!state.cart.length){
     box.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);">Panier vide</h3><p>Ajoute des cartes en visitant les collections d\'un ami, ou la fiche d\'un ami pour proposer un échange.</p></div>';
     return;
   }
+
+  var ownerIds = Array.from(new Set(state.cart.map(function(i){ return i.direction==='sell' ? state.user.id : i.sellerId; })));
+  var cardIds = Array.from(new Set(state.cart.map(function(i){ return i.cardId; })));
+  var ownRows = ownerIds.length && cardIds.length ? await apiSelect('pokeshop_user_cards', 'user_id=in.('+ownerIds.join(',')+')&card_id=in.('+cardIds.join(',')+')&select=user_id,card_id,variant,quantity') : [];
+  var qtyMap = {}; ownRows.forEach(function(r){ qtyMap[r.user_id+'|'+r.card_id+'|'+r.variant] = r.quantity; });
+  var lockedMap = await getLockedMap();
+
+  var anyUnavailable = false;
+  state.cart.forEach(function(item){
+    var ownerId = item.direction==='sell' ? state.user.id : item.sellerId;
+    var key = ownerId+'|'+item.cardId+'|'+item.variant;
+    var qty = qtyMap[key] || 0;
+    var locked = lockedMap[key] || 0;
+    var available = qty - 1 - locked;
+    item._unavailable = available < 0;
+    if(item._unavailable) anyUnavailable = true;
+  });
+
   var groups = {};
   state.cart.forEach(function(item, idx){
     item._idx = idx;
@@ -1118,11 +1138,12 @@ async function renderCart(){
     html += '<h3 style="font-size:14px;color:var(--paper);margin:18px 0 8px;">'+esc(g.username)+'</h3>';
     g.items.forEach(function(item){
       var dir = item.direction||'buy';
-      if(dir==='buy') buyTotal += item.price; else sellTotal += item.price;
-      html += '<div class="cart-item">'+
+      if(!item._unavailable){ if(dir==='buy') buyTotal += item.price; else sellTotal += item.price; }
+      html += '<div class="cart-item'+(item._unavailable?' unavailable':'')+'">'+
         '<img src="'+(item.cardImg?esc(item.cardImg):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
-        '<div class="ci-main"><div class="cin">'+esc(item.cardName)+' <span class="muted">('+variantLabel(item.variant)+')</span></div><div class="cis">'+esc(item.collectionName)+' · '+(dir==='buy'?'tu achètes':'tu proposes en échange')+'</div></div>'+
-        '<div class="ciprice" style="color:'+(dir==='buy'?'var(--gold)':'var(--owned)')+';">'+(dir==='buy'?'+':'−')+item.price.toFixed(2)+' €</div>'+
+        '<div class="ci-main"><div class="cin">'+esc(item.cardName)+' <span class="muted">('+variantLabel(item.variant)+')</span></div>'+
+          '<div class="cis">'+esc(item.collectionName)+' · '+(item._unavailable ? '<span style="color:var(--missing);font-weight:700;">Carte non disponible</span>' : (dir==='buy'?'tu achètes':'tu proposes en échange'))+'</div></div>'+
+        '<div class="ciprice" style="color:'+(item._unavailable?'var(--text-dim)':(dir==='buy'?'var(--gold)':'var(--owned)'))+';'+(item._unavailable?'text-decoration:line-through;':'')+'">'+(dir==='buy'?'+':'−')+item.price.toFixed(2)+' €</div>'+
         '<button class="cirm" data-idx="'+item._idx+'">×</button>'+
       '</div>';
     });
@@ -1136,11 +1157,14 @@ async function renderCart(){
   });
   var totalRow = el('<div class="cart-total" style="border-top:2px solid var(--line);margin-top:16px;padding-top:16px;"><span>Total net</span><span>'+(grandNet>0?'tu dois ':grandNet<0?'on te doit ':'')+Math.abs(grandNet).toFixed(2)+' €'+(grandNet===0?' (équilibré)':'')+'</span></div>');
   box.appendChild(totalRow);
-  var discountRow = el('<div class="field" style="margin-top:14px;"><label>Demander une ristourne (%) — optionnel</label><input id="cart-discount" type="number" step="1" value="0" placeholder="ex : 10"></div>');
+  if(anyUnavailable){
+    box.appendChild(el('<p class="muted" style="color:var(--missing);margin-top:10px;">Retire les cartes indisponibles pour pouvoir envoyer la commande.</p>'));
+  }
+  var discountRow = el('<div class="field" style="margin-top:14px;"><label>Demander une ristourne (%) — optionnel</label><input id="cart-discount" type="number" step="1" value="0" placeholder="ex : 10" '+(anyUnavailable?'disabled':'')+'></div>');
   box.appendChild(discountRow);
-  var sendBtn = el('<button class="btn-primary" id="checkout-btn">Envoyer les commandes</button>');
+  var sendBtn = el('<button class="btn-primary" id="checkout-btn"'+(anyUnavailable?' disabled':'')+'>Envoyer les commandes</button>');
   box.appendChild(sendBtn);
-  qs('checkout-btn').onclick = checkout;
+  if(!anyUnavailable) qs('checkout-btn').onclick = checkout;
 }
 
 async function checkout(){
