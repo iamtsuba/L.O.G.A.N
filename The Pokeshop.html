@@ -180,6 +180,8 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .variant-block .variant-head{font-size:13px;color:var(--paper);font-weight:700;text-align:center;}
 .variant-block .qty-row{margin:10px 0;}
 .variant-block .qty-row button{width:32px;height:32px;font-size:16px;}
+.force-sale-row{display:flex;align-items:center;justify-content:center;gap:7px;font-size:11.5px;color:var(--text-dim);margin-bottom:8px;}
+.force-sale-row input{width:15px;height:15px;accent-color:var(--gold);}
 .variant-block .qtyval{font-size:18px;}
 .card-preview{width:120px;margin:0 auto 12px;display:block;}
 .card-preview img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:10px;background:var(--panel-raised);}
@@ -271,6 +273,10 @@ var VARIANTS = [
   { key:'P', label:'Special' }
 ];
 var DEFAULT_PRICES = { N:0.02, F:0.10, P:5 };
+function sellableQty(row){
+  if(!row) return 0;
+  return row.for_sale ? row.quantity : Math.max(row.quantity-1, 0);
+}
 function variantLabel(k){ var v = VARIANTS.find(function(v){return v.key===k;}); return v ? v.label : k; }
 
 var ICON_COLL = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg>';
@@ -612,7 +618,7 @@ async function renderCollection(collectionId){
   var cards = await apiSelect('pokeshop_cards', 'collection_id=eq.'+collectionId+'&select=*&order=number.asc');
   state.currentCollectionCards = cards;
 
-  var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=id,card_id,variant,quantity,price');
+  var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=id,card_id,variant,quantity,price,for_sale');
   var myMap = {}; myRows.forEach(function(r){ (myMap[r.card_id] = myMap[r.card_id]||{})[r.variant] = r; });
   state.userCardMap = myMap;
 
@@ -624,13 +630,13 @@ async function renderCollection(collectionId){
     if(cardIds.length){
       var lockedMap = await getLockedMap();
       var dupRows = await apiSelect('pokeshop_user_cards',
-        'user_id=in.('+friendIds.join(',')+')&card_id=in.('+cardIds.join(',')+')&quantity=gt.1&select=*');
+        'user_id=in.('+friendIds.join(',')+')&card_id=in.('+cardIds.join(',')+')&or=(quantity.gt.1,for_sale.eq.true)&select=*');
       dupRows.forEach(function(r){
         var f = state.friends.find(function(ff){ return ff.id===r.user_id; });
         if(!f) return;
         var locked = lockedMap[r.user_id+'|'+r.card_id+'|'+r.variant] || 0;
-        var effQty = r.quantity - locked;
-        if(effQty>1){
+        var effQty = sellableQty(r) - locked;
+        if(effQty>0){
           (friendDup[r.card_id] = friendDup[r.card_id]||[]).push({ friend_id: r.user_id, username: f.username, variant: r.variant, price: r.price, quantity: effQty });
         }
       });
@@ -835,15 +841,20 @@ async function openCardModal(card){
   var mineAll = state.userCardMap[card.id] || {};
   var dupFriends = state.friendDupMap[card.id] || [];
 
-  var qtyState = {};
-  VARIANTS.forEach(function(v){ qtyState[v.key] = mineAll[v.key] ? mineAll[v.key].quantity : 0; });
+  var qtyState = {}, forceState = {};
+  VARIANTS.forEach(function(v){
+    qtyState[v.key] = mineAll[v.key] ? mineAll[v.key].quantity : 0;
+    forceState[v.key] = mineAll[v.key] ? !!mineAll[v.key].for_sale : false;
+  });
 
   var variantRows = VARIANTS.map(function(v){
-    var row = mineAll[v.key] || { quantity:0, price:null };
+    var row = mineAll[v.key] || { quantity:0, price:null, for_sale:false };
+    var priceVisible = row.quantity>1 || (row.quantity>=1 && row.for_sale);
     return '<div class="variant-block">'+
       '<div class="variant-head">'+v.label+'</div>'+
       '<div class="qty-row"><button data-vminus="'+v.key+'">−</button><span class="qtyval" id="qty-val-'+v.key+'">'+row.quantity+'</span><button data-vplus="'+v.key+'">+</button></div>'+
-      '<div class="field price-field-'+v.key+'" style="'+(row.quantity>1?'':'display:none;')+'"><label>Prix par doublon ('+v.label+')</label><input type="number" min="0" step="0.5" id="m-price-'+v.key+'" value="'+(row.price!=null?row.price:'')+'" placeholder="2.50"></div>'+
+      '<label class="force-sale-row" id="force-row-'+v.key+'" style="'+(row.quantity>=1?'':'display:none;')+'"><input type="checkbox" id="m-force-'+v.key+'" '+(row.for_sale?'checked':'')+'> Forcer la mise en vente (même sans doublon)</label>'+
+      '<div class="field price-field-'+v.key+'" style="'+(priceVisible?'':'display:none;')+'"><label>Prix par exemplaire en vente ('+v.label+')</label><input type="number" min="0" step="0.5" id="m-price-'+v.key+'" value="'+(row.price!=null?row.price:'')+'" placeholder="2.50"></div>'+
     '</div>';
   }).join('');
 
@@ -867,29 +878,38 @@ async function openCardModal(card){
 
   function refresh(v){
     qs('qty-val-'+v).textContent = qtyState[v];
+    var fr = qs('force-row-'+v);
+    if(fr) fr.style.display = qtyState[v]>=1 ? '' : 'none';
     var pf = document.querySelector('.price-field-'+v);
-    if(pf) pf.style.display = qtyState[v]>1 ? '' : 'none';
+    var priceVisible = qtyState[v]>1 || (qtyState[v]>=1 && forceState[v]);
+    if(pf) pf.style.display = priceVisible ? '' : 'none';
     var priceInput = qs('m-price-'+v);
-    if(priceInput && qtyState[v]>1 && priceInput.value===''){ priceInput.value = DEFAULT_PRICES[v]; }
+    if(priceInput && priceVisible && priceInput.value===''){ priceInput.value = DEFAULT_PRICES[v]; }
   }
   document.querySelectorAll('[data-vminus]').forEach(function(btn){
-    btn.onclick = function(){ var v=btn.getAttribute('data-vminus'); if(qtyState[v]>0){ qtyState[v]--; refresh(v); } };
+    btn.onclick = function(){ var v=btn.getAttribute('data-vminus'); if(qtyState[v]>0){ qtyState[v]--; if(qtyState[v]===0) forceState[v]=false; refresh(v); } };
   });
   document.querySelectorAll('[data-vplus]').forEach(function(btn){
     btn.onclick = function(){ var v=btn.getAttribute('data-vplus'); qtyState[v]++; refresh(v); };
+  });
+  VARIANTS.forEach(function(v){
+    var cb = qs('m-force-'+v.key);
+    if(cb) cb.onchange = function(){ forceState[v.key] = cb.checked; refresh(v.key); };
   });
 
   qs('qty-save').onclick = async function(){
     var existing = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&card_id=eq.'+card.id+'&select=id,variant');
     for(var i=0;i<VARIANTS.length;i++){
       var v = VARIANTS[i].key;
+      var priceVisible = qtyState[v]>1 || (qtyState[v]>=1 && forceState[v]);
       var priceInput = qs('m-price-'+v);
-      var price = priceInput && qtyState[v]>1 && priceInput.value!=='' ? parseFloat(priceInput.value) : null;
+      var price = priceInput && priceVisible && priceInput.value!=='' ? parseFloat(priceInput.value) : null;
+      var forSale = qtyState[v]>=1 ? forceState[v] : false;
       var row = existing.find(function(r){ return r.variant===v; });
       if(row){
-        await apiUpdate('pokeshop_user_cards', 'id=eq.'+row.id, { quantity: qtyState[v], price: price });
+        await apiUpdate('pokeshop_user_cards', 'id=eq.'+row.id, { quantity: qtyState[v], price: price, for_sale: forSale });
       } else if(qtyState[v]>0) {
-        await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, variant: v, quantity: qtyState[v], price: price }]);
+        await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, variant: v, quantity: qtyState[v], price: price, for_sale: forSale }]);
       }
     }
     closeModal();
@@ -1009,10 +1029,10 @@ async function renderFriendDetail(friendId){
   var collMap = {}; collections.forEach(function(c){ collMap[c.id]=c.name; });
   var cards = await apiSelect('pokeshop_cards', 'select=*&order=number.asc');
 
-  var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=card_id,variant,quantity,price');
+  var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=card_id,variant,quantity,price,for_sale');
   var myMap = {}; myRows.forEach(function(r){ (myMap[r.card_id]=myMap[r.card_id]||{})[r.variant]=r; });
 
-  var theirRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+friendId+'&select=card_id,variant,quantity,price');
+  var theirRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+friendId+'&select=card_id,variant,quantity,price,for_sale');
   var theirMap = {}; theirRows.forEach(function(r){ (theirMap[r.card_id]=theirMap[r.card_id]||{})[r.variant]=r; });
 
   var lockedMap = await getLockedMap();
@@ -1025,12 +1045,12 @@ async function renderFriendDetail(friendId){
       var theirQty = theirRow ? theirRow.quantity : 0;
       var theirLocked = lockedMap[friendId+'|'+card.id+'|'+v.key] || 0;
       var myLocked = lockedMap[state.user.id+'|'+card.id+'|'+v.key] || 0;
-      var theirEff = theirQty - theirLocked;
-      var myEff = myQty - myLocked;
-      if(theirRow && theirEff>1 && myQty===0){
+      var theirEff = sellableQty(theirRow) - theirLocked;
+      var myEff = sellableQty(myRow) - myLocked;
+      if(theirRow && theirEff>0 && myQty===0){
         theirsForMe.push({ card:card, variant:v.key, price: theirRow.price, quantity: theirEff, collectionName: collMap[card.collection_id]||'—' });
       }
-      if(myRow && myEff>1 && theirQty===0){
+      if(myRow && myEff>0 && theirQty===0){
         mineForThem.push({ card:card, variant:v.key, price: myRow.price, quantity: myEff, collectionName: collMap[card.collection_id]||'—' });
       }
     });
