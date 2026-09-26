@@ -223,6 +223,25 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .order-card .ohead .odate{font-size:11.5px;color:var(--text-dim);}
 .order-card .oitems{font-size:12.5px;color:var(--text-dim);line-height:1.6;}
 .order-card .ototal{margin-top:8px;font-size:14px;color:var(--gold);font-weight:700;}
+.oi-collection{margin-bottom:12px;}
+.oi-collection:last-child{margin-bottom:0;}
+.oi-collection b{font-size:11px;color:var(--text-dim);display:block;margin-bottom:6px;font-weight:700;}
+.oi-grid{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;}
+.order-item{flex:0 0 auto;width:66px;text-align:center;}
+.order-item img{width:66px;aspect-ratio:5/7;object-fit:cover;border-radius:8px;background:var(--panel-raised);}
+.order-item .oi-name{font-size:10px;color:var(--text);line-height:1.2;margin-top:4px;}
+.order-item .oi-tag{font-size:9px;font-weight:700;margin-top:3px;padding:2px 5px;border-radius:5px;display:inline-block;}
+.tag-buy{background:var(--owned-bg);color:var(--owned);}
+.tag-sell{background:var(--friend-bg);color:var(--friend);}
+.deal-chat{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;}
+.chat-messages{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;margin-bottom:8px;}
+.chat-bubble{background:var(--panel-raised);border-radius:10px;padding:7px 10px;font-size:12.5px;max-width:82%;align-self:flex-start;}
+.chat-bubble.mine{background:var(--gold);color:var(--ink);align-self:flex-end;}
+.chat-bubble .cb-name{display:block;font-size:9.5px;opacity:.7;margin-bottom:2px;font-weight:700;}
+.chat-input-row{display:flex;gap:6px;}
+.chat-input-row input{flex:1;padding:9px 11px;border-radius:9px;border:1.5px solid var(--line);background:var(--ink);color:var(--text);font-size:12.5px;}
+.chat-input-row button{padding:9px 13px;background:var(--pokered);color:#fff;border-radius:9px;font-size:12px;}
+.chat-count{text-align:right;font-size:10px;color:var(--text-dim);margin-top:3px;}
 .unread-dot{width:8px;height:8px;border-radius:50%;background:var(--pokered);display:inline-block;margin-right:6px;}
 .tabs{display:flex;gap:6px;margin-bottom:18px;}
 .tab{background:var(--panel);color:var(--text-dim);padding:8px 14px;border-radius:9px;font-size:13px;}
@@ -1203,7 +1222,7 @@ async function checkout(){
     return {
       from_user_id: state.user.id,
       to_user_id: sellerId,
-      items: items.map(function(i){ return { card_id:i.cardId, card_name:i.cardName, collection:i.collectionName, variant:i.variant, price:i.price, direction: i.direction||'buy' }; }),
+      items: items.map(function(i){ return { card_id:i.cardId, card_name:i.cardName, image:i.cardImg, collection:i.collectionName, variant:i.variant, price:i.price, direction: i.direction||'buy' }; }),
       total: net,
       status: 'pending',
       discount_percent: discountPct,
@@ -1252,13 +1271,16 @@ async function renderInbox(){
     var byColl = {};
     items.forEach(function(it){ (byColl[it.collection||'—']=byColl[it.collection||'—']||[]).push(it); });
     var itemsHtml = Object.keys(byColl).map(function(cn){
-      var rows = byColl[cn].map(function(it){
+      var thumbs = byColl[cn].map(function(it){
         var dir = it.direction||'buy';
-        var tag = dir==='buy' ? 'achète' : 'échange';
-        return esc(it.card_name)+(it.variant?' ('+variantLabel(it.variant)+')':'')+' — '+tag+' — '+it.price.toFixed(2)+' €';
-      }).join('<br>');
-      return '<b style="color:var(--paper);font-size:12px;">'+esc(cn)+'</b><br>'+rows;
-    }).join('<br><br>');
+        return '<div class="order-item">'+
+          '<img src="'+(it.image?esc(it.image):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
+          '<div class="oi-name">'+esc(it.card_name)+' <span class="muted">('+variantLabel(it.variant)+')</span></div>'+
+          '<div class="oi-tag '+(dir==='buy'?'tag-buy':'tag-sell')+'">'+(dir==='buy'?'Achat':'Échange')+' · '+it.price.toFixed(2)+' €</div>'+
+        '</div>';
+      }).join('');
+      return '<div class="oi-collection"><b>'+esc(cn)+'</b><div class="oi-grid">'+thumbs+'</div></div>';
+    }).join('');
 
     var status = m.status || 'pending';
     var discount = m.discount_percent || 0;
@@ -1290,6 +1312,8 @@ async function renderInbox(){
       actionsHtml = '<p class="muted" style="margin-top:8px;">Pokédeal annulé.</p>';
     }
 
+    var chatHtml = (status==='accepted' || status==='completed') ? '<div class="deal-chat" id="chat-'+m.id+'"><p class="muted" style="font-size:11px;">Chargement des messages…</p></div>' : '';
+
     var card = el(
       '<div class="order-card">'+
         '<div class="ohead"><span class="ofrom">'+(state.inboxTab==='received' && !m.read ? '<span class="unread-dot"></span>' : '')+(state.inboxTab==='received'?'De ':'À ')+esc(otherName)+'</span><span class="odate">'+date+'</span></div>'+
@@ -1298,10 +1322,12 @@ async function renderInbox(){
         discountLine+
         '<div class="ototal">'+esc(balanceLine)+'</div>'+
         actionsHtml+
+        chatHtml+
         (state.inboxTab==='received' && !m.read ? '<button class="btn-ghost" style="margin-top:10px;font-size:11.5px;padding:6px 10px;" data-read="'+m.id+'">Marquer comme lu</button>' : '')+
       '</div>'
     );
     list.appendChild(card);
+    if(status==='accepted' || status==='completed') loadDealChat(m.id);
   });
   list.querySelectorAll('[data-read]').forEach(function(btn){
     btn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+btn.getAttribute('data-read'), { read:true }); renderInbox(); };
@@ -1327,6 +1353,43 @@ async function renderInbox(){
       validateDeal(msg);
     };
   });
+}
+
+async function loadDealChat(dealId){
+  var container = qs('chat-'+dealId);
+  if(!container) return;
+  var msgs = await apiSelect('pokeshop_deal_messages', 'deal_id=eq.'+dealId+'&select=*&order=created_at.asc');
+  var ids = Array.from(new Set(msgs.map(function(m){ return m.sender_id; })));
+  var namesMap = {};
+  if(ids.length){
+    var us = await apiSelect('pokeshop_users', 'id=in.('+ids.join(',')+')&select=id,username');
+    us.forEach(function(u){ namesMap[u.id]=u.username; });
+  }
+  container = qs('chat-'+dealId);
+  if(!container) return;
+  var bubbles = msgs.length ? msgs.map(function(cm){
+    var mine = cm.sender_id===state.user.id;
+    return '<div class="chat-bubble'+(mine?' mine':'')+'"><span class="cb-name">'+(mine?'Toi':esc(namesMap[cm.sender_id]||'—'))+'</span>'+esc(cm.content)+'</div>';
+  }).join('') : '<p class="muted" style="font-size:11px;">Aucun message. Dites-vous où et quand échanger !</p>';
+  container.innerHTML =
+    '<h4 style="font-size:12px;color:var(--paper);margin-bottom:8px;">Discussion</h4>'+
+    '<div class="chat-messages">'+bubbles+'</div>'+
+    '<div class="chat-input-row"><input type="text" maxlength="150" id="chat-input-'+dealId+'" placeholder="Message (150 caractères max)"><button id="chat-send-'+dealId+'">Envoyer</button></div>'+
+    '<div class="chat-count" id="chat-count-'+dealId+'">0/150</div>';
+  var inp = qs('chat-input-'+dealId);
+  inp.oninput = function(){ qs('chat-count-'+dealId).textContent = inp.value.length+'/150'; };
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') sendDealChat(dealId); });
+  qs('chat-send-'+dealId).onclick = function(){ sendDealChat(dealId); };
+}
+
+async function sendDealChat(dealId){
+  var inp = qs('chat-input-'+dealId);
+  if(!inp) return;
+  var val = inp.value.trim().slice(0,150);
+  if(!val) return;
+  inp.disabled = true;
+  await apiInsert('pokeshop_deal_messages', [{ deal_id: dealId, sender_id: state.user.id, content: val }]);
+  loadDealChat(dealId);
 }
 
 var STATUS_LABELS = { pending:'En attente', negotiating:'Négociation en cours', refused:'Refusé', accepted:'Accepté', completed:'Terminé', cancelled:'Annulé' };
