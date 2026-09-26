@@ -152,13 +152,12 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .tile-variants{display:flex;gap:3px;margin-top:5px;}
 .vchip{font-size:8.5px;padding:2px 5px;border-radius:5px;background:var(--panel-raised);color:var(--text-dim);font-weight:700;letter-spacing:.3px;}
 .vchip.owned{background:var(--owned);color:#0c1f14;}
+.quick-row{display:flex;gap:3px;margin-top:6px;}
 .quick-add{
-  margin-top:6px;width:100%;padding:5px 0;border-radius:7px;font-size:10px;font-weight:700;
+  flex:1;padding:5px 0;border-radius:6px;font-size:10px;font-weight:700;
   background:var(--panel-raised);color:var(--paper);
 }
 .quick-add:hover{background:var(--gold);color:var(--ink);}
-.quick-add:disabled{background:var(--panel);color:var(--text-dim);opacity:.5;}
-.quick-add:disabled:hover{background:var(--panel);color:var(--text-dim);}
 
 /* ---- modal ---- */
 #modal-layer{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:18px;}
@@ -268,8 +267,9 @@ var ADMIN_CODE = 'thomarie';
 var VARIANTS = [
   { key:'N', label:'Normal' },
   { key:'F', label:'Foil' },
-  { key:'P', label:'Pokeball' }
+  { key:'P', label:'Special' }
 ];
+var DEFAULT_PRICES = { N:0.02, F:0.10, P:5 };
 function variantLabel(k){ var v = VARIANTS.find(function(v){return v.key===k;}); return v ? v.label : k; }
 
 var ICON_COLL = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg>';
@@ -648,20 +648,19 @@ async function renderCollection(collectionId){
     var totalQty = VARIANTS.reduce(function(s,v){ return s + (mine[v.key] ? mine[v.key].quantity : 0); }, 0);
     var hasFriendDup = !!(friendDup[card.id] && friendDup[card.id].length);
     var cls = totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing');
-    var nRow = mine['N'];
-    var nQty = nRow ? nRow.quantity : 0;
-    var quickDisabled = nQty>1;
+    var quickBtns = VARIANTS.map(function(v){ return '<button class="quick-add" data-variant="'+v.key+'">+'+v.key+'</button>'; }).join('');
     var tile = el(
       '<div class="tile '+cls+'" data-card-id="'+card.id+'">'+
         '<img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" alt="" loading="lazy" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
         '<div class="tnum">#'+esc(card.number)+'</div>'+
         '<div class="tname">'+esc(card.name)+'</div>'+
         '<div class="tile-variants">'+variantChips(mine)+'</div>'+
-        '<button class="quick-add"'+(quickDisabled?' disabled':'')+'>+1 commune</button>'+
+        '<div class="quick-row">'+quickBtns+'</div>'+
       '</div>'
     );
-    var quickBtn = tile.querySelector('.quick-add');
-    quickBtn.onclick = function(e){ e.stopPropagation(); quickAddNormal(card); };
+    tile.querySelectorAll('.quick-add').forEach(function(btn){
+      btn.onclick = function(e){ e.stopPropagation(); quickAdd(card, btn.getAttribute('data-variant')); };
+    });
     tile.onclick = function(){ openCardModal(card); };
     grid.appendChild(tile);
   });
@@ -710,20 +709,20 @@ function openEditCardModal(card){
   };
 }
 
-async function quickAddNormal(card){
+async function quickAdd(card, variantKey){
   var tileEl = document.querySelector('.tile[data-card-id="'+card.id+'"]');
-  var quickBtn = tileEl ? tileEl.querySelector('.quick-add') : null;
-  if(quickBtn) quickBtn.disabled = true;
   var mine = state.userCardMap[card.id] = state.userCardMap[card.id] || {};
-  var existing = mine['N'];
+  var existing = mine[variantKey];
   var newQty = (existing ? existing.quantity : 0) + 1;
+  var newPrice = existing ? existing.price : null;
+  if(newQty>1 && newPrice==null) newPrice = DEFAULT_PRICES[variantKey];
   if(existing){
-    await apiUpdate('pokeshop_user_cards', 'id=eq.'+existing.id, { quantity: newQty });
-    existing.quantity = newQty;
+    await apiUpdate('pokeshop_user_cards', 'id=eq.'+existing.id, { quantity: newQty, price: newPrice });
+    existing.quantity = newQty; existing.price = newPrice;
   } else {
-    var inserted = await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, variant:'N', quantity: newQty, price: null }]);
+    var inserted = await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, variant:variantKey, quantity: newQty, price: newPrice }]);
     var newId = inserted && inserted[0] ? inserted[0].id : null;
-    mine['N'] = { id: newId, variant:'N', quantity: newQty, price: null };
+    mine[variantKey] = { id: newId, variant:variantKey, quantity: newQty, price: newPrice };
   }
   if(!tileEl) return;
   var totalQty = VARIANTS.reduce(function(s,v){ return s + (mine[v.key] ? mine[v.key].quantity : 0); }, 0);
@@ -731,7 +730,6 @@ async function quickAddNormal(card){
   tileEl.className = 'tile ' + (totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing'));
   var chipsEl = tileEl.querySelector('.tile-variants');
   if(chipsEl) chipsEl.innerHTML = variantChips(mine);
-  if(quickBtn) quickBtn.disabled = mine['N'].quantity>1;
 }
 
 async function getLockedMap(){
@@ -870,6 +868,8 @@ async function openCardModal(card){
     qs('qty-val-'+v).textContent = qtyState[v];
     var pf = document.querySelector('.price-field-'+v);
     if(pf) pf.style.display = qtyState[v]>1 ? '' : 'none';
+    var priceInput = qs('m-price-'+v);
+    if(priceInput && qtyState[v]>1 && priceInput.value===''){ priceInput.value = DEFAULT_PRICES[v]; }
   }
   document.querySelectorAll('[data-vminus]').forEach(function(btn){
     btn.onclick = function(){ var v=btn.getAttribute('data-vminus'); if(qtyState[v]>0){ qtyState[v]--; refresh(v); } };
