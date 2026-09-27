@@ -68,10 +68,10 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 }
 .tabbtn{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  background:none;border-radius:0;padding:9px 2px 8px;color:var(--text-dim);font-size:10.5px;font-weight:600;
+  background:none;border-radius:0;padding:8px 1px 7px;color:var(--text-dim);font-size:9.5px;font-weight:600;
 }
-.tabbtn .ticon{position:relative;width:23px;height:23px;}
-.tabbtn .ticon svg{width:23px;height:23px;display:block;}
+.tabbtn .ticon{position:relative;width:21px;height:21px;}
+.tabbtn .ticon svg{width:21px;height:21px;display:block;}
 .tabbtn.active{color:var(--gold);}
 .tabbtn:active{background:var(--panel-raised);}
 .tbadge{
@@ -205,6 +205,13 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .frow2 .fmain .fu{font-size:14px;color:var(--paper);}
 .frow2 .fmain .fs{font-size:11.5px;color:var(--text-dim);}
 .tag-pending{font-size:11px;color:var(--gold);background:var(--panel-raised);padding:3px 8px;border-radius:20px;}
+.city-suggestions{position:absolute;left:0;right:0;top:100%;background:var(--panel);border:1.5px solid var(--line);border-radius:9px;margin-top:4px;max-height:180px;overflow-y:auto;z-index:20;display:none;}
+.city-sugg-item{padding:9px 12px;font-size:13px;cursor:pointer;}
+.city-sugg-item:hover{background:var(--panel-raised);}
+.city-sugg-empty{padding:9px 12px;font-size:12px;color:var(--text-dim);}
+.proximity-gauge{margin-bottom:16px;}
+.proximity-gauge input[type=range]{width:100%;accent-color:var(--gold);}
+.prox-label{text-align:center;font-size:13px;color:var(--gold);font-weight:700;margin-top:6px;}
 
 /* ---- cart / inbox ---- */
 .cart-item{display:flex;align-items:center;gap:12px;background:var(--panel);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
@@ -242,6 +249,15 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .chat-input-row input{flex:1;padding:9px 11px;border-radius:9px;border:1.5px solid var(--line);background:var(--ink);color:var(--text);font-size:12.5px;}
 .chat-input-row button{padding:9px 13px;background:var(--pokered);color:#fff;border-radius:9px;font-size:12px;}
 .chat-count{text-align:right;font-size:10px;color:var(--text-dim);margin-top:3px;}
+#messages-layout{display:flex;gap:8px;align-items:flex-start;}
+.msg-list{width:78px;flex:0 0 78px;display:flex;flex-direction:column;gap:8px;max-height:75vh;overflow-y:auto;padding-right:2px;}
+.msg-list-item{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 3px;border-radius:10px;background:var(--panel);border:1.5px solid transparent;cursor:pointer;}
+.msg-list-item.active{border-color:var(--gold);background:var(--panel-raised);}
+.msg-list-item .mli-avatar{width:32px;height:32px;border-radius:50%;background:var(--panel-raised);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);font-size:12.5px;}
+.msg-list-item .mli-name{font-size:9px;color:var(--text-dim);text-align:center;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.msg-list-item .mli-dot{position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--pokered);}
+.msg-detail{flex:1;min-width:0;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:14px;max-height:75vh;overflow-y:auto;}
+.msg-detail-empty{color:var(--text-dim);font-size:13px;text-align:center;padding:40px 10px;}
 .unread-dot{width:8px;height:8px;border-radius:50%;background:var(--pokered);display:inline-block;margin-right:6px;}
 .tabs{display:flex;gap:6px;margin-bottom:18px;}
 .tab{background:var(--panel);color:var(--text-dim);padding:8px 14px;border-radius:9px;font-size:13px;}
@@ -302,6 +318,7 @@ var ICON_COLL = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="
 var ICON_FRIENDS = '<svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="9" r="2.4" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="2"/><path d="M15 14.5c2.5.3 4.5 2.4 4.5 5" stroke="currentColor" stroke-width="2"/></svg>';
 var ICON_CART = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 6h2l1.5 10.5a2 2 0 0 0 2 1.7h7a2 2 0 0 0 2-1.6L20 8H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="21" r="1.4" fill="currentColor"/><circle cx="17" cy="21" r="1.4" fill="currentColor"/></svg>';
 var ICON_MAIL = '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var ICON_PROFILE = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="currentColor" stroke-width="2"/></svg>';
 
 var state = {
   user: null,
@@ -318,12 +335,62 @@ var state = {
   sent: [],
   inboxTab: 'received',
   isAdmin: (localStorage.getItem('pokeshop_admin')==='1'),
-  friendPendingCount: 0
+  friendPendingCount: 0,
+  selectedDealId: null,
+  allDeals: [],
+  dealUsersMap: {}
 };
 
 function el(html){ var d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
 function qs(id){ return document.getElementById(id); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+function setupCityAutocomplete(inputEl, suggEl, onSelect){
+  var debounceTimer;
+  inputEl.addEventListener('input', function(){
+    clearTimeout(debounceTimer);
+    var q = inputEl.value.trim();
+    if(q.length<2){ suggEl.innerHTML=''; suggEl.style.display='none'; return; }
+    debounceTimer = setTimeout(async function(){
+      try{
+        var res = await fetch('https://geo.api.gouv.fr/communes?nom='+encodeURIComponent(q)+'&fields=nom,code,centre&boost=population&limit=8');
+        var data = await res.json();
+        if(!data.length){ suggEl.innerHTML='<div class="city-sugg-empty">Aucune ville trouvée</div>'; suggEl.style.display='block'; return; }
+        suggEl.innerHTML = data.map(function(c){
+          var lng = c.centre && c.centre.coordinates ? c.centre.coordinates[0] : '';
+          var lat = c.centre && c.centre.coordinates ? c.centre.coordinates[1] : '';
+          return '<div class="city-sugg-item" data-name="'+esc(c.nom)+'" data-lat="'+lat+'" data-lng="'+lng+'">'+esc(c.nom)+'</div>';
+        }).join('');
+        suggEl.style.display='block';
+        suggEl.querySelectorAll('.city-sugg-item').forEach(function(item){
+          item.onclick = function(){
+            var name = item.getAttribute('data-name');
+            var lat = parseFloat(item.getAttribute('data-lat'));
+            var lng = parseFloat(item.getAttribute('data-lng'));
+            inputEl.value = name;
+            suggEl.innerHTML=''; suggEl.style.display='none';
+            onSelect({ name:name, lat:lat, lng:lng });
+          };
+        });
+      }catch(e){
+        suggEl.innerHTML='<div class="city-sugg-empty">Erreur de recherche</div>';
+        suggEl.style.display='block';
+      }
+    }, 300);
+  });
+  document.addEventListener('click', function(e){
+    if(e.target!==inputEl && !suggEl.contains(e.target)) suggEl.style.display='none';
+  });
+}
+
+function haversineKm(lat1, lng1, lat2, lng2){
+  var R = 6371;
+  var dLat = (lat2-lat1)*Math.PI/180;
+  var dLng = (lng2-lng1)*Math.PI/180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  var c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R*c;
+}
 
 async function sha256(str){
   var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('pokeshop::'+str));
@@ -375,6 +442,8 @@ async function apiDelete(table, query){
 
 /* ============ AUTH ============ */
 
+var registerSelectedCity = null;
+
 function renderAuth(mode, error){
   mode = mode || 'login';
   var app = qs('app');
@@ -398,11 +467,14 @@ function renderAuth(mode, error){
   app.appendChild(wrap);
 
   var fields = qs('auth-fields');
+  registerSelectedCity = null;
   if(mode==='register'){
     fields.innerHTML =
       '<div class="field"><label>Pseudo</label><input id="f-username" autocomplete="username" placeholder="Sacha"></div>'+
       '<div class="field"><label>Email</label><input id="f-email" type="email" autocomplete="email" placeholder="toi@exemple.com"></div>'+
-      '<div class="field"><label>Mot de passe</label><input id="f-password" type="password" autocomplete="new-password" placeholder="••••••••"></div>';
+      '<div class="field"><label>Mot de passe</label><input id="f-password" type="password" autocomplete="new-password" placeholder="••••••••"></div>'+
+      '<div class="field" style="position:relative;"><label>Ville</label><input id="f-city" autocomplete="off" placeholder="Paris"><div class="city-suggestions" id="f-city-suggestions"></div></div>';
+    setupCityAutocomplete(qs('f-city'), qs('f-city-suggestions'), function(city){ registerSelectedCity = city; });
   } else {
     fields.innerHTML =
       '<div class="field"><label>Pseudo ou email</label><input id="f-identifier" autocomplete="username" placeholder="Sacha"></div>'+
@@ -422,14 +494,15 @@ async function doRegister(){
   var password = qs('f-password').value||'';
   if(!username || !email || !password){ renderAuth('register','Remplis tous les champs.'); return; }
   if(password.length < 4){ renderAuth('register','Mot de passe trop court (4 caractères min).'); return; }
+  if(!registerSelectedCity){ renderAuth('register','Choisis une ville dans la liste de suggestions.'); return; }
   try{
     var existing = await apiSelect('pokeshop_users', 'or=(username.eq.'+encodeURIComponent(username)+',email.eq.'+encodeURIComponent(email)+')&select=id');
     if(existing.length){ renderAuth('register','Ce pseudo ou cet email est déjà pris.'); return; }
     var hash = await sha256(password);
-    var rows = await apiInsert('pokeshop_users', [{ username: username, email: email, password_hash: hash }]);
+    var rows = await apiInsert('pokeshop_users', [{ username: username, email: email, password_hash: hash, city: registerSelectedCity.name, city_lat: registerSelectedCity.lat, city_lng: registerSelectedCity.lng, is_public: false }]);
     if(!rows || !rows.length){ renderAuth('register','Inscription impossible, réessaie.'); return; }
     var u = rows[0];
-    var sess = { id: u.id, username: u.username, email: u.email };
+    var sess = { id: u.id, username: u.username, email: u.email, city: u.city, city_lat: u.city_lat, city_lng: u.city_lng, is_public: u.is_public };
     saveSession(sess); state.user = sess;
     boot();
   }catch(e){ renderAuth('register','Erreur : '+e.message); }
@@ -445,7 +518,7 @@ async function doLogin(){
     var rows = await apiSelect('pokeshop_users', 'or=(username.ilike.'+encodeURIComponent(identifier)+',email.eq.'+idEnc+')&select=*');
     var u = rows.find(function(r){ return r.password_hash === hash; });
     if(!u){ renderAuth('login','Identifiants incorrects.'); return; }
-    var sess = { id: u.id, username: u.username, email: u.email };
+    var sess = { id: u.id, username: u.username, email: u.email, city: u.city, city_lat: u.city_lat, city_lng: u.city_lng, is_public: u.is_public };
     saveSession(sess); state.user = sess;
     boot();
   }catch(e){ renderAuth('login','Erreur : '+e.message); }
@@ -470,6 +543,7 @@ function renderShell(){
       '<button class="tabbtn" data-nav="friends"><span class="ticon">'+ICON_FRIENDS+'<span class="tbadge" id="friends-badge" style="display:none;">0</span></span><span class="tlabel">Amis</span></button>'+
       '<button class="tabbtn" data-nav="cart"><span class="ticon">'+ICON_CART+'<span class="tbadge" id="cart-badge" style="display:none;">0</span></span><span class="tlabel">Panier</span></button>'+
       '<button class="tabbtn" data-nav="inbox"><span class="ticon">'+ICON_MAIL+'<span class="tbadge" id="inbox-badge" style="display:none;">0</span></span><span class="tlabel">Messages</span></button>'+
+      '<button class="tabbtn" data-nav="profile"><span class="ticon">'+ICON_PROFILE+'</span><span class="tlabel">Profil</span></button>'+
     '</nav>';
   qs('userchip').textContent = state.user.username;
   qs('logout-btn').onclick = doLogout;
@@ -552,6 +626,7 @@ async function navigate(view, arg){
   else if(view==='friend-detail') await renderFriendDetail(arg);
   else if(view==='cart') await renderCart();
   else if(view==='inbox') await renderInbox();
+  else if(view==='profile') await renderProfile();
   updateBadges();
 }
 
@@ -949,6 +1024,35 @@ async function openCardModal(card){
 
 /* ============ FRIENDS ============ */
 
+/* ============ PROFILE ============ */
+
+var profileSelectedCity = null;
+
+async function renderProfile(){
+  var main = qs('main');
+  profileSelectedCity = state.user.city ? { name: state.user.city, lat: state.user.city_lat, lng: state.user.city_lng } : null;
+  main.innerHTML =
+    '<div class="section-head"><h2>Profil</h2></div>'+
+    '<div class="field"><label>Pseudo</label><input value="'+esc(state.user.username)+'" disabled></div>'+
+    '<div class="field"><label>Email</label><input value="'+esc(state.user.email)+'" disabled></div>'+
+    '<div class="field" style="position:relative;"><label>Ville</label><input id="p-city" autocomplete="off" value="'+esc(state.user.city||'')+'" placeholder="Paris"><div class="city-suggestions" id="p-city-suggestions"></div></div>'+
+    '<label class="force-sale-row" style="justify-content:flex-start;margin:14px 2px 18px;"><input type="checkbox" id="p-public" '+(state.user.is_public?'checked':'')+'> Profil ouvert (visible dans "À proximité" pour se faire des amis)</label>'+
+    '<button class="btn-primary" id="p-save">Enregistrer</button>'+
+    '<div id="p-status" class="muted" style="margin-top:10px;"></div>';
+
+  setupCityAutocomplete(qs('p-city'), qs('p-city-suggestions'), function(c){ profileSelectedCity = c; });
+
+  qs('p-save').onclick = async function(){
+    var isPublic = qs('p-public').checked;
+    var patch = { is_public: isPublic };
+    if(profileSelectedCity){ patch.city = profileSelectedCity.name; patch.city_lat = profileSelectedCity.lat; patch.city_lng = profileSelectedCity.lng; }
+    await apiUpdate('pokeshop_users', 'id=eq.'+state.user.id, patch);
+    Object.assign(state.user, patch);
+    saveSession(state.user);
+    qs('p-status').textContent = 'Profil mis à jour.';
+  };
+}
+
 async function renderFriends(){
   await ensureFriends();
   var pendingIncoming = state.friendRows.length; // recomputed below with full set
@@ -973,7 +1077,14 @@ async function renderFriends(){
     '<div id="friend-search-results"></div>'+
     (incoming.length ? '<h3 style="font-size:14px;color:var(--paper);margin:18px 0 8px;">Demandes reçues</h3><div id="incoming-list"></div>' : '')+
     (outgoing.length ? '<h3 style="font-size:14px;color:var(--paper);margin:18px 0 8px;">Demandes envoyées</h3><div id="outgoing-list"></div>' : '')+
-    '<h3 style="font-size:14px;color:var(--paper);margin:18px 0 8px;">Tes amis</h3><div id="friends-list"></div>';
+    '<h3 style="font-size:14px;color:var(--paper);margin:18px 0 8px;">Tes amis</h3><div id="friends-list"></div>'+
+    (state.user.is_public
+      ? (state.user.city_lat!=null && state.user.city_lng!=null
+          ? '<h3 style="font-size:14px;color:var(--paper);margin:22px 0 8px;">À proximité</h3>'+
+            '<div class="proximity-gauge"><input type="range" id="prox-range" min="0" max="3" step="1" value="1"><div class="prox-label" id="prox-label">10 km</div></div>'+
+            '<div id="prox-list"><p class="muted">Chargement…</p></div>'
+          : '<h3 style="font-size:14px;color:var(--paper);margin:22px 0 8px;">À proximité</h3><p class="muted">Renseigne ta ville dans l\'onglet Profil pour activer cette fonctionnalité.</p>')
+      : '');
 
   qs('friend-search-btn').onclick = async function(){
     var term = (qs('friend-search').value||'').trim();
@@ -1025,6 +1136,47 @@ async function renderFriends(){
       fl.appendChild(row);
     });
   }
+
+  var KM_STEPS = [5,10,50,100];
+  var proxRange = qs('prox-range');
+  if(proxRange){
+    proxRange.oninput = function(){
+      var km = KM_STEPS[parseInt(proxRange.value)];
+      qs('prox-label').textContent = km+' km';
+      loadProximityList(km, allRows);
+    };
+    loadProximityList(KM_STEPS[1], allRows);
+  }
+}
+
+async function loadProximityList(km, existingRows){
+  var box = qs('prox-list');
+  if(!box) return;
+  box.innerHTML = '<p class="muted">Chargement…</p>';
+  var rows = await apiSelect('pokeshop_users', 'is_public=eq.true&id=neq.'+state.user.id+'&select=id,username,city,city_lat,city_lng');
+  var withDist = rows.filter(function(r){ return r.city_lat!=null && r.city_lng!=null; }).map(function(r){
+    return { id:r.id, username:r.username, city:r.city, dist: haversineKm(state.user.city_lat, state.user.city_lng, r.city_lat, r.city_lng) };
+  }).filter(function(r){ return r.dist<=km; }).sort(function(a,b){ return a.dist-b.dist; });
+
+  var relatedStatus = {};
+  existingRows.forEach(function(r){ relatedStatus[r.user_id===state.user.id?r.friend_id:r.user_id] = r.status; });
+
+  if(!box) return;
+  if(!withDist.length){ box.innerHTML = '<p class="muted">Personne dans ce rayon pour l\'instant.</p>'; return; }
+  box.innerHTML = '';
+  withDist.forEach(function(p){
+    var status = relatedStatus[p.id];
+    var row = el('<div class="frow2"><div class="favatar">'+esc((p.username[0]||'?')).toUpperCase()+'</div><div class="fmain"><div class="fu">'+esc(p.username)+'</div><div class="fs">'+esc(p.city||'')+' · '+p.dist.toFixed(1)+' km</div></div>'+
+      (status ? '<span class="tag-pending">'+(status==='accepted'?'Déjà ami':'En attente')+'</span>' : '<button class="btn-gold" style="padding:7px 12px;font-size:12px;" data-preq="'+p.id+'">Ajouter</button>')+
+    '</div>');
+    box.appendChild(row);
+  });
+  box.querySelectorAll('[data-preq]').forEach(function(btn){
+    btn.onclick = async function(){
+      await apiInsert('pokeshop_friends', [{ user_id: state.user.id, friend_id: btn.getAttribute('data-preq'), status:'pending' }]);
+      renderFriends();
+    };
+  });
 }
 
 /* ============ FRIEND DETAIL (trade view) ============ */
@@ -1240,119 +1392,126 @@ async function checkout(){
 /* ============ INBOX ============ */
 
 async function renderInbox(){
-  var received = await apiSelect('pokeshop_messages', 'to_user_id=eq.'+state.user.id+'&select=*&order=created_at.desc');
-  var sent = await apiSelect('pokeshop_messages', 'from_user_id=eq.'+state.user.id+'&select=*&order=created_at.desc');
-  state.inbox = received; state.sent = sent;
+  var received = await apiSelect('pokeshop_messages', 'to_user_id=eq.'+state.user.id+'&select=*');
+  var sent = await apiSelect('pokeshop_messages', 'from_user_id=eq.'+state.user.id+'&select=*');
+  received.forEach(function(m){ m._received = true; });
+  sent.forEach(function(m){ m._received = false; });
+  var all = received.concat(sent);
+  all.sort(function(a,b){ return new Date(b.created_at) - new Date(a.created_at); });
+  state.inbox = received;
+  state.allDeals = all;
 
-  var otherIds = Array.from(new Set(received.map(function(m){return m.from_user_id;}).concat(sent.map(function(m){return m.to_user_id;}))));
+  var otherIds = Array.from(new Set(all.map(function(m){ return m._received ? m.from_user_id : m.to_user_id; })));
   var usersMap = {};
   if(otherIds.length){
     var users = await apiSelect('pokeshop_users', 'id=in.('+otherIds.join(',')+')&select=id,username');
     users.forEach(function(u){ usersMap[u.id]=u.username; });
   }
+  state.dealUsersMap = usersMap;
 
   var main = qs('main');
-  main.innerHTML =
-    '<div class="section-head"><h2>Messagerie</h2></div>'+
-    '<div class="tabs"><button class="tab '+(state.inboxTab==='received'?'active':'')+'" data-tab="received">Reçues</button><button class="tab '+(state.inboxTab==='sent'?'active':'')+'" data-tab="sent">Envoyées</button></div>'+
-    '<div id="inbox-list"></div>';
+  main.innerHTML = '<div class="section-head"><h2>Messagerie</h2></div>'+
+    (all.length
+      ? '<div id="messages-layout"><div class="msg-list" id="msg-list"></div><div class="msg-detail" id="msg-detail"><div class="msg-detail-empty">Sélectionne une commande à gauche.</div></div></div>'
+      : '<p class="muted">Rien ici pour l\'instant.</p>');
+  if(!all.length) return;
 
-  main.querySelectorAll('[data-tab]').forEach(function(b){
-    b.onclick = function(){ state.inboxTab = b.getAttribute('data-tab'); renderInbox(); };
+  var listEl = qs('msg-list');
+  all.forEach(function(m){
+    var otherName = usersMap[m._received ? m.from_user_id : m.to_user_id] || '—';
+    var unread = m._received && !m.read;
+    var item = el('<div class="msg-list-item" data-id="'+m.id+'">'+
+      (unread ? '<span class="mli-dot"></span>' : '')+
+      '<div class="mli-avatar">'+esc((otherName[0]||'?')).toUpperCase()+'</div>'+
+      '<div class="mli-name">'+esc(otherName)+'</div>'+
+    '</div>');
+    item.onclick = function(){ state.selectedDealId = m.id; renderDealDetail(); };
+    listEl.appendChild(item);
   });
 
-  var list = qs('inbox-list');
-  var data = state.inboxTab==='received' ? received : sent;
-  if(!data.length){ list.innerHTML = '<p class="muted">Rien ici pour l\'instant.</p>'; return; }
-  data.forEach(function(m){
-    var otherName = state.inboxTab==='received' ? (usersMap[m.from_user_id]||'—') : (usersMap[m.to_user_id]||'—');
-    var date = new Date(m.created_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
-    var items = m.items||[];
-    var byColl = {};
-    items.forEach(function(it){ (byColl[it.collection||'—']=byColl[it.collection||'—']||[]).push(it); });
-    var itemsHtml = Object.keys(byColl).map(function(cn){
-      var thumbs = byColl[cn].map(function(it){
-        var dir = it.direction||'buy';
-        return '<div class="order-item">'+
-          '<img src="'+(it.image?esc(it.image):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
-          '<div class="oi-name">'+esc(it.card_name)+' <span class="muted">('+variantLabel(it.variant)+')</span></div>'+
-          '<div class="oi-tag '+(dir==='buy'?'tag-buy':'tag-sell')+'">'+(dir==='buy'?'Achat':'Échange')+' · '+it.price.toFixed(2)+' €</div>'+
-        '</div>';
-      }).join('');
-      return '<div class="oi-collection"><b>'+esc(cn)+'</b><div class="oi-grid">'+thumbs+'</div></div>';
+  if(state.selectedDealId && all.find(function(m){ return m.id===state.selectedDealId; })){
+    renderDealDetail();
+  }
+}
+
+function renderDealDetail(){
+  var m = state.allDeals.find(function(x){ return x.id===state.selectedDealId; });
+  var box = qs('msg-detail');
+  if(!box) return;
+  document.querySelectorAll('.msg-list-item').forEach(function(it){ it.classList.toggle('active', it.getAttribute('data-id')===state.selectedDealId); });
+  if(!m){ box.innerHTML = '<div class="msg-detail-empty">Sélectionne une commande à gauche.</div>'; return; }
+
+  var otherName = state.dealUsersMap[m._received ? m.from_user_id : m.to_user_id] || '—';
+  var date = new Date(m.created_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
+  var items = m.items||[];
+  var byColl = {};
+  items.forEach(function(it){ (byColl[it.collection||'—']=byColl[it.collection||'—']||[]).push(it); });
+  var itemsHtml = Object.keys(byColl).map(function(cn){
+    var thumbs = byColl[cn].map(function(it){
+      var dir = it.direction||'buy';
+      return '<div class="order-item">'+
+        '<img src="'+(it.image?esc(it.image):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
+        '<div class="oi-name">'+esc(it.card_name)+' <span class="muted">('+variantLabel(it.variant)+')</span></div>'+
+        '<div class="oi-tag '+(dir==='buy'?'tag-buy':'tag-sell')+'">'+(dir==='buy'?'Achat':'Échange')+' · '+it.price.toFixed(2)+' €</div>'+
+      '</div>';
     }).join('');
+    return '<div class="oi-collection"><b>'+esc(cn)+'</b><div class="oi-grid">'+thumbs+'</div></div>';
+  }).join('');
 
-    var status = m.status || 'pending';
-    var discount = m.discount_percent || 0;
-    var baseNet = m.total || 0;
-    var net = baseNet - (baseNet*discount/100);
-    var senderName = state.inboxTab==='received' ? otherName : 'Toi';
-    var recipientName = state.inboxTab==='received' ? 'toi' : otherName;
-    var balanceLine = net>0 ? (senderName+' doit '+net.toFixed(2)+' € à '+recipientName)
-                     : net<0 ? (recipientName.charAt(0).toUpperCase()+recipientName.slice(1)+' doit '+Math.abs(net).toFixed(2)+' € à '+senderName)
-                     : 'Échange équilibré';
-    var discountLine = discount ? '<div class="muted" style="margin-top:2px;">Base '+baseNet.toFixed(2)+' € · ristourne '+discount+'%</div>' : '';
+  var status = m.status || 'pending';
+  var discount = m.discount_percent || 0;
+  var baseNet = m.total || 0;
+  var net = baseNet - (baseNet*discount/100);
+  var senderName = m._received ? otherName : 'Toi';
+  var recipientName = m._received ? 'toi' : otherName;
+  var balanceLine = net>0 ? (senderName+' doit '+net.toFixed(2)+' € à '+recipientName)
+                   : net<0 ? (recipientName.charAt(0).toUpperCase()+recipientName.slice(1)+' doit '+Math.abs(net).toFixed(2)+' € à '+senderName)
+                   : 'Échange équilibré';
+  var discountLine = discount ? '<div class="muted" style="margin-top:2px;">Base '+baseNet.toFixed(2)+' € · ristourne '+discount+'%</div>' : '';
+  var statusHtml = '<span class="status-badge status-'+status+'">'+STATUS_LABELS[status]+'</span>';
+  var itsMyTurn = (m.last_actor_id!==state.user.id);
 
-    var statusHtml = '<span class="status-badge status-'+status+'">'+STATUS_LABELS[status]+'</span>';
-    var isMine = m.from_user_id===state.user.id;
-    var itsMyTurn = (m.last_actor_id!==state.user.id);
+  var actionsHtml = '';
+  if((status==='pending' || status==='negotiating') && itsMyTurn){
+    actionsHtml = '<div class="deal-actions"><button class="btn-danger" data-refuse>Refuser</button><button class="btn-ghost" data-negotiate>Négocier</button><button class="btn-gold" data-accept>Accepter le pokédeal</button></div>';
+  } else if((status==='pending' || status==='negotiating') && !itsMyTurn){
+    actionsHtml = '<p class="muted" style="margin-top:8px;">En attente de la réponse de '+esc(otherName)+'…</p>';
+  } else if(status==='refused'){
+    actionsHtml = '<p class="muted" style="margin-top:8px;">Refusé'+(m.refusal_reason?' — "'+esc(m.refusal_reason)+'"':'')+'</p>';
+  } else if(status==='accepted'){
+    actionsHtml = '<div class="deal-actions"><button class="btn-danger" data-cancel>Annuler le pokédeal</button><button class="btn-gold" data-validate>Valider le pokédeal</button></div>';
+  } else if(status==='completed'){
+    actionsHtml = '<p class="muted" style="margin-top:8px;">Échange finalisé, les cartes ont été transférées.</p>';
+  } else if(status==='cancelled'){
+    actionsHtml = '<p class="muted" style="margin-top:8px;">Pokédeal annulé.</p>';
+  }
 
-    var actionsHtml = '';
-    if((status==='pending' || status==='negotiating') && itsMyTurn){
-      actionsHtml = '<div class="deal-actions"><button class="btn-danger" data-refuse="'+m.id+'">Refuser</button><button class="btn-ghost" data-negotiate="'+m.id+'">Négocier</button><button class="btn-gold" data-accept="'+m.id+'">Accepter le pokédeal</button></div>';
-    } else if((status==='pending' || status==='negotiating') && !itsMyTurn){
-      actionsHtml = '<p class="muted" style="margin-top:8px;">En attente de la réponse de '+esc(otherName)+'…</p>';
-    } else if(status==='refused'){
-      actionsHtml = '<p class="muted" style="margin-top:8px;">Refusé'+(m.refusal_reason?' — "'+esc(m.refusal_reason)+'"':'')+'</p>';
-    } else if(status==='accepted'){
-      actionsHtml = '<div class="deal-actions"><button class="btn-danger" data-cancel="'+m.id+'">Annuler le pokédeal</button><button class="btn-gold" data-validate="'+m.id+'">Valider le pokédeal</button></div>';
-    } else if(status==='completed'){
-      actionsHtml = '<p class="muted" style="margin-top:8px;">Échange finalisé, les cartes ont été transférées.</p>';
-    } else if(status==='cancelled'){
-      actionsHtml = '<p class="muted" style="margin-top:8px;">Pokédeal annulé.</p>';
-    }
+  var chatHtml = (status==='accepted' || status==='completed') ? '<div class="deal-chat" id="chat-'+m.id+'"><p class="muted" style="font-size:11px;">Chargement des messages…</p></div>' : '';
 
-    var chatHtml = (status==='accepted' || status==='completed') ? '<div class="deal-chat" id="chat-'+m.id+'"><p class="muted" style="font-size:11px;">Chargement des messages…</p></div>' : '';
+  box.innerHTML =
+    '<div class="ohead"><span class="ofrom">'+(m._received?'De ':'À ')+esc(otherName)+'</span><span class="odate">'+date+'</span></div>'+
+    statusHtml+
+    '<div class="oitems" style="margin-top:8px;">'+itemsHtml+'</div>'+
+    discountLine+
+    '<div class="ototal">'+esc(balanceLine)+'</div>'+
+    actionsHtml+
+    chatHtml+
+    (m._received && !m.read ? '<button class="btn-ghost" style="margin-top:10px;font-size:11.5px;padding:6px 10px;" data-read>Marquer comme lu</button>' : '');
 
-    var card = el(
-      '<div class="order-card">'+
-        '<div class="ohead"><span class="ofrom">'+(state.inboxTab==='received' && !m.read ? '<span class="unread-dot"></span>' : '')+(state.inboxTab==='received'?'De ':'À ')+esc(otherName)+'</span><span class="odate">'+date+'</span></div>'+
-        statusHtml+
-        '<div class="oitems" style="margin-top:8px;">'+itemsHtml+'</div>'+
-        discountLine+
-        '<div class="ototal">'+esc(balanceLine)+'</div>'+
-        actionsHtml+
-        chatHtml+
-        (state.inboxTab==='received' && !m.read ? '<button class="btn-ghost" style="margin-top:10px;font-size:11.5px;padding:6px 10px;" data-read="'+m.id+'">Marquer comme lu</button>' : '')+
-      '</div>'
-    );
-    list.appendChild(card);
-    if(status==='accepted' || status==='completed') loadDealChat(m.id);
-  });
-  list.querySelectorAll('[data-read]').forEach(function(btn){
-    btn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+btn.getAttribute('data-read'), { read:true }); renderInbox(); };
-  });
-  list.querySelectorAll('[data-accept]').forEach(function(btn){
-    btn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+btn.getAttribute('data-accept'), { status:'accepted', last_actor_id: state.user.id }); renderInbox(); };
-  });
-  list.querySelectorAll('[data-refuse]').forEach(function(btn){
-    btn.onclick = function(){ openRefuseModal(btn.getAttribute('data-refuse')); };
-  });
-  list.querySelectorAll('[data-negotiate]').forEach(function(btn){
-    btn.onclick = function(){
-      var msg = data.find(function(x){ return x.id===btn.getAttribute('data-negotiate'); });
-      openNegotiateModal(msg);
-    };
-  });
-  list.querySelectorAll('[data-cancel]').forEach(function(btn){
-    btn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+btn.getAttribute('data-cancel'), { status:'cancelled', last_actor_id: state.user.id }); renderInbox(); };
-  });
-  list.querySelectorAll('[data-validate]').forEach(function(btn){
-    btn.onclick = function(){
-      var msg = data.find(function(x){ return x.id===btn.getAttribute('data-validate'); });
-      validateDeal(msg);
-    };
-  });
+  var readBtn = box.querySelector('[data-read]');
+  if(readBtn) readBtn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+m.id, { read:true }); m.read=true; renderDealDetail(); updateBadges(); };
+  var acceptBtn = box.querySelector('[data-accept]');
+  if(acceptBtn) acceptBtn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+m.id, { status:'accepted', last_actor_id: state.user.id }); m.status='accepted'; m.last_actor_id=state.user.id; renderDealDetail(); };
+  var refuseBtn = box.querySelector('[data-refuse]');
+  if(refuseBtn) refuseBtn.onclick = function(){ openRefuseModal(m.id); };
+  var negotiateBtn = box.querySelector('[data-negotiate]');
+  if(negotiateBtn) negotiateBtn.onclick = function(){ openNegotiateModal(m); };
+  var cancelBtn = box.querySelector('[data-cancel]');
+  if(cancelBtn) cancelBtn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+m.id, { status:'cancelled', last_actor_id: state.user.id }); m.status='cancelled'; renderDealDetail(); };
+  var validateBtn = box.querySelector('[data-validate]');
+  if(validateBtn) validateBtn.onclick = function(){ validateDeal(m); };
+
+  if(status==='accepted' || status==='completed') loadDealChat(m.id);
 }
 
 async function loadDealChat(dealId){
