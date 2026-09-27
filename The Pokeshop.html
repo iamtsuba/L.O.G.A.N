@@ -1362,7 +1362,7 @@ async function loadDealChat(dealId){
   try{
     msgs = await apiSelect('pokeshop_deal_messages', 'deal_id=eq.'+dealId+'&select=*&order=created_at.asc');
   }catch(e){
-    container.innerHTML = '<h4 style="font-size:12px;color:var(--paper);margin-bottom:6px;">Discussion</h4><p class="muted" style="color:var(--missing);font-size:11px;">Messagerie indisponible — la table pokeshop_deal_messages n\'existe pas encore dans Supabase.</p>';
+    container.innerHTML = '<h4 style="font-size:12px;color:var(--paper);margin-bottom:6px;">Discussion</h4><p class="muted" style="color:var(--missing);font-size:11px;word-break:break-word;">Erreur : '+esc(e.message)+'</p>';
     return;
   }
   var ids = Array.from(new Set(msgs.map(function(m){ return m.sender_id; })));
@@ -1400,7 +1400,7 @@ async function sendDealChat(dealId){
   }catch(e){
     inp.disabled = false;
     var countEl = qs('chat-count-'+dealId);
-    if(countEl) countEl.innerHTML = '<span style="color:var(--missing);">Échec de l\'envoi — vérifie que la table pokeshop_deal_messages existe.</span>';
+    if(countEl) countEl.innerHTML = '<span style="color:var(--missing);word-break:break-word;">Erreur : '+esc(e.message)+'</span>';
     console.error('Deal chat send failed:', e);
   }
 }
