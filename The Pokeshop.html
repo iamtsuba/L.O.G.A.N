@@ -146,6 +146,7 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .tile.owned{background:var(--owned-bg);border-color:var(--owned);}
 .tile.missing{background:var(--missing-bg);border-color:var(--missing);}
 .tile.friend{background:var(--friend-bg);border-color:var(--friend);}
+.tile.complete-gold{box-shadow:0 0 0 2.5px var(--gold);}
 .tile img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:7px;background:var(--panel-raised);margin-bottom:6px;}
 .tile .tnum{font-size:10px;color:var(--text-dim);}
 .tile .tname{font-size:11.5px;color:var(--text);line-height:1.25;margin-top:1px;}
@@ -312,6 +313,9 @@ var VARIANTS = [
   { key:'P', label:'Special' }
 ];
 var DEFAULT_PRICES = { N:0.02, F:0.10, P:5 };
+var RARITY_VARIANTS = { 'Normal':['N'], 'Reverse':['N','F'], 'Holo':['P'] };
+var RARITIES = ['Normal','Reverse','Holo'];
+function relevantVariantKeys(rarity){ return RARITY_VARIANTS[rarity] || ['N']; }
 function sellableQty(row){
   if(!row) return 0;
   return row.for_sale ? row.quantity : Math.max(row.quantity-1, 0);
@@ -745,22 +749,24 @@ async function renderCollection(collectionId){
 
   var grid = qs('card-grid');
   if(!cards.length){
-    grid.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);margin-bottom:6px;">Aucune carte pour l\'instant</h3><p>Ajoute des cartes une par une ou importe un CSV (colonnes : number, name, image_url).</p></div>';
+    grid.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);margin-bottom:6px;">Aucune carte pour l\'instant</h3><p>Ajoute des cartes une par une ou importe un CSV (colonnes : number, name, image_url, rarity).</p></div>';
     return;
   }
   grid.innerHTML = '';
   cards.forEach(function(card){
     var mine = myMap[card.id] || {};
-    var totalQty = VARIANTS.reduce(function(s,v){ return s + (mine[v.key] ? mine[v.key].quantity : 0); }, 0);
+    var relevant = relevantVariantKeys(card.rarity);
+    var totalQty = relevant.reduce(function(s,k){ return s + (mine[k] ? mine[k].quantity : 0); }, 0);
+    var complete = relevant.every(function(k){ return mine[k] && mine[k].quantity>0; });
     var hasFriendDup = !!(friendDup[card.id] && friendDup[card.id].length);
     var cls = totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing');
-    var quickBtns = VARIANTS.map(function(v){ return '<button class="quick-add" data-variant="'+v.key+'">+'+v.key+'</button>'; }).join('');
+    var quickBtns = relevant.map(function(k){ return '<button class="quick-add" data-variant="'+k+'">+'+k+'</button>'; }).join('');
     var tile = el(
-      '<div class="tile '+cls+'" data-card-id="'+card.id+'">'+
+      '<div class="tile '+cls+(complete?' complete-gold':'')+'" data-card-id="'+card.id+'">'+
         '<img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" alt="" loading="lazy" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
         '<div class="tnum">#'+esc(card.number)+'</div>'+
         '<div class="tname">'+esc(card.name)+'</div>'+
-        '<div class="tile-variants">'+variantChips(mine)+'</div>'+
+        '<div class="tile-variants">'+variantChips(mine, relevant)+'</div>'+
         '<div class="quick-row">'+quickBtns+'</div>'+
       '</div>'
     );
@@ -772,11 +778,12 @@ async function renderCollection(collectionId){
   });
 }
 
-function variantChips(mine){
-  return VARIANTS.map(function(v){
-    var row = mine[v.key];
+function variantChips(mine, relevantKeys){
+  var keys = relevantKeys || VARIANTS.map(function(v){return v.key;});
+  return keys.map(function(k){
+    var row = mine[k];
     var qty = row ? row.quantity : 0;
-    return '<span class="vchip'+(qty>0?' owned':'')+'">'+v.key+(qty>1?' ×'+qty:'')+'</span>';
+    return '<span class="vchip'+(qty>0?' owned':'')+'">'+k+(qty>1?' ×'+qty:'')+'</span>';
   }).join('');
 }
 
@@ -801,15 +808,17 @@ function openEditCardModal(card){
     '<h3>Modifier la carte</h3>'+
     '<div class="field"><label>Numéro</label><input id="e-card-num" value="'+esc(card.number)+'"></div>'+
     '<div class="field"><label>Nom</label><input id="e-card-name" value="'+esc(card.name)+'"></div>'+
+    '<div class="field"><label>Rareté</label><select id="e-card-rarity">'+RARITIES.map(function(r){ return '<option value="'+r+'"'+((card.rarity||'Normal')===r?' selected':'')+'>'+r+'</option>'; }).join('')+'</select></div>'+
     '<div class="field"><label>Image (lien URL)</label><input id="e-card-img" value="'+esc(card.image_url||'')+'" placeholder="https://..."></div>'+
     '<button class="btn-primary" id="e-card-save">Enregistrer</button>'
   );
   qs('e-card-save').onclick = async function(){
     var number = (qs('e-card-num').value||'').trim();
     var name = (qs('e-card-name').value||'').trim();
+    var rarity = qs('e-card-rarity').value;
     var img = (qs('e-card-img').value||'').trim();
     if(!number || !name) return;
-    await apiUpdate('pokeshop_cards', 'id=eq.'+card.id, { number: number, name: name, image_url: img });
+    await apiUpdate('pokeshop_cards', 'id=eq.'+card.id, { number: number, name: name, image_url: img, rarity: rarity });
     closeModal();
     renderCollection(state.currentCollectionId);
   };
@@ -831,11 +840,13 @@ async function quickAdd(card, variantKey){
     mine[variantKey] = { id: newId, variant:variantKey, quantity: newQty, price: newPrice };
   }
   if(!tileEl) return;
-  var totalQty = VARIANTS.reduce(function(s,v){ return s + (mine[v.key] ? mine[v.key].quantity : 0); }, 0);
+  var relevant = relevantVariantKeys(card.rarity);
+  var totalQty = relevant.reduce(function(s,k){ return s + (mine[k] ? mine[k].quantity : 0); }, 0);
+  var complete = relevant.every(function(k){ return mine[k] && mine[k].quantity>0; });
   var hasFriendDup = !!(state.friendDupMap[card.id] && state.friendDupMap[card.id].length);
-  tileEl.className = 'tile ' + (totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing'));
+  tileEl.className = 'tile ' + (totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing')) + (complete?' complete-gold':'');
   var chipsEl = tileEl.querySelector('.tile-variants');
-  if(chipsEl) chipsEl.innerHTML = variantChips(mine);
+  if(chipsEl) chipsEl.innerHTML = variantChips(mine, relevant);
 }
 
 async function getLockedMap(){
@@ -867,15 +878,17 @@ function openAddCardModal(collectionId){
     '<h3>Ajouter une carte</h3>'+
     '<div class="field"><label>Numéro</label><input id="m-card-num" placeholder="025"></div>'+
     '<div class="field"><label>Nom</label><input id="m-card-name" placeholder="Pikachu"></div>'+
+    '<div class="field"><label>Rareté</label><select id="m-card-rarity">'+RARITIES.map(function(r){ return '<option value="'+r+'">'+r+'</option>'; }).join('')+'</select></div>'+
     '<div class="field"><label>Image (lien URL)</label><input id="m-card-img" placeholder="https://..."></div>'+
     '<button class="btn-primary" id="m-card-save">Ajouter</button>'
   );
   qs('m-card-save').onclick = async function(){
     var number = (qs('m-card-num').value||'').trim();
     var name = (qs('m-card-name').value||'').trim();
+    var rarity = qs('m-card-rarity').value;
     var img = (qs('m-card-img').value||'').trim();
     if(!number || !name) return;
-    await apiInsert('pokeshop_cards', [{ collection_id: collectionId, number: number, name: name, image_url: img }]);
+    await apiInsert('pokeshop_cards', [{ collection_id: collectionId, number: number, name: name, image_url: img, rarity: rarity }]);
     closeModal();
     renderCollection(collectionId);
   };
@@ -884,7 +897,7 @@ function openAddCardModal(collectionId){
 function openCsvImportModal(collectionId){
   openModal(
     '<h3>Importer un CSV</h3>'+
-    '<p class="muted" style="margin-bottom:12px;">Colonnes attendues : <b>number,name,image_url</b> (avec en-tête).</p>'+
+    '<p class="muted" style="margin-bottom:12px;">Colonnes attendues : <b>number,name,image_url,rarity</b> (avec en-tête). Rareté : Normal, Reverse ou Holo. Les cartes dont le numéro existe déjà dans cette collection sont mises à jour ; les autres sont ajoutées.</p>'+
     '<label class="filepick" id="csv-pick">Choisir un fichier CSV<input type="file" id="csv-file" accept=".csv" style="display:none;"></label>'+
     '<div id="csv-status" class="muted"></div>'+
     '<button class="btn-primary" id="csv-save" disabled>Importer</button>'
@@ -907,18 +920,23 @@ function openCsvImportModal(collectionId){
         var fNum = findField(['number','no','num','numero','cardnumber']);
         var fName = findField(['name','nom','cardname']);
         var fImg = findField(['imageurl','image','img','imgurl','url','picture','photo','lien']);
+        var fRarity = findField(['rarity','rarete','rareté','rare']);
         parsed = res.data.map(function(r){
+          var rawRarity = fRarity ? String(r[fRarity]||'').trim().toLowerCase() : '';
+          var rarity = RARITIES.find(function(rr){ return rr.toLowerCase()===rawRarity; }) || 'Normal';
           return {
             collection_id: collectionId,
             number: fNum ? String(r[fNum]||'').trim() : '',
             name: fName ? String(r[fName]||'').trim() : '',
-            image_url: fImg ? String(r[fImg]||'').trim() : ''
+            image_url: fImg ? String(r[fImg]||'').trim() : '',
+            rarity: rarity
           };
         }).filter(function(r){ return r.number && r.name; });
         var withImg = parsed.filter(function(r){ return r.image_url; }).length;
         var statusHtml = parsed.length + ' cartes détectées, ' + withImg + ' avec image.';
         if(!fImg) statusHtml += '<br><span style="color:var(--missing);">Colonne image non reconnue dans le CSV — les cartes seront importées sans image.</span>';
         else if(withImg < parsed.length) statusHtml += '<br><span style="color:var(--friend);">'+(parsed.length-withImg)+' carte(s) sans lien image dans le fichier.</span>';
+        if(!fRarity) statusHtml += '<br><span style="color:var(--friend);">Colonne rareté non reconnue — toutes les cartes seront en "Normal".</span>';
         qs('csv-status').innerHTML = statusHtml;
         qs('csv-save').disabled = !parsed.length;
       }
@@ -927,9 +945,21 @@ function openCsvImportModal(collectionId){
   qs('csv-save').onclick = async function(){
     if(!parsed || !parsed.length) return;
     qs('csv-save').disabled = true; qs('csv-save').textContent = 'Import en cours…';
+    var existingCards = await apiSelect('pokeshop_cards', 'collection_id=eq.'+collectionId+'&select=id,number');
+    var existingMap = {}; existingCards.forEach(function(c){ existingMap[c.number] = c.id; });
+    var toInsert = [];
+    for(var i=0;i<parsed.length;i++){
+      var row = parsed[i];
+      var existingId = existingMap[row.number];
+      if(existingId){
+        await apiUpdate('pokeshop_cards', 'id=eq.'+existingId, { name: row.name, image_url: row.image_url, rarity: row.rarity });
+      } else {
+        toInsert.push(row);
+      }
+    }
     var chunk = 200;
-    for(var i=0;i<parsed.length;i+=chunk){
-      await apiInsert('pokeshop_cards', parsed.slice(i,i+chunk));
+    for(var j=0;j<toInsert.length;j+=chunk){
+      await apiInsert('pokeshop_cards', toInsert.slice(j,j+chunk));
     }
     closeModal();
     renderCollection(collectionId);
@@ -939,14 +969,16 @@ function openCsvImportModal(collectionId){
 async function openCardModal(card){
   var mineAll = state.userCardMap[card.id] || {};
   var dupFriends = state.friendDupMap[card.id] || [];
+  var relevantKeys = relevantVariantKeys(card.rarity);
+  var relevantVariants = VARIANTS.filter(function(v){ return relevantKeys.indexOf(v.key)!==-1; });
 
   var qtyState = {}, forceState = {};
-  VARIANTS.forEach(function(v){
+  relevantVariants.forEach(function(v){
     qtyState[v.key] = mineAll[v.key] ? mineAll[v.key].quantity : 0;
     forceState[v.key] = mineAll[v.key] ? !!mineAll[v.key].for_sale : false;
   });
 
-  var variantRows = VARIANTS.map(function(v){
+  var variantRows = relevantVariants.map(function(v){
     var row = mineAll[v.key] || { quantity:0, price:null, for_sale:false };
     var priceVisible = row.quantity>1 || (row.quantity>=1 && row.for_sale);
     return '<div class="variant-block">'+
@@ -959,8 +991,9 @@ async function openCardModal(card){
 
   openModal(
     '<h3 style="text-align:center;">'+esc(card.name)+' <span class="muted">#'+esc(card.number)+'</span></h3>'+
+    '<p class="muted" style="text-align:center;margin-bottom:10px;">Rareté : '+esc(card.rarity||'Normal')+'</p>'+
     '<div class="card-preview"><img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;"></div>'+
-    (state.isAdmin ? '<button class="btn-ghost" id="edit-card-btn" style="width:100%;margin-bottom:14px;font-size:12px;">✎ Modifier nom / numéro / image</button>' : '')+
+    (state.isAdmin ? '<button class="btn-ghost" id="edit-card-btn" style="width:100%;margin-bottom:14px;font-size:12px;">✎ Modifier nom / numéro / image / rareté</button>' : '')+
     variantRows+
     '<button class="btn-primary" id="qty-save">Enregistrer</button>'+
     '<div class="friendlist">'+
@@ -991,15 +1024,15 @@ async function openCardModal(card){
   document.querySelectorAll('[data-vplus]').forEach(function(btn){
     btn.onclick = function(){ var v=btn.getAttribute('data-vplus'); qtyState[v]++; refresh(v); };
   });
-  VARIANTS.forEach(function(v){
+  relevantVariants.forEach(function(v){
     var cb = qs('m-force-'+v.key);
     if(cb) cb.onchange = function(){ forceState[v.key] = cb.checked; refresh(v.key); };
   });
 
   qs('qty-save').onclick = async function(){
     var existing = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&card_id=eq.'+card.id+'&select=id,variant');
-    for(var i=0;i<VARIANTS.length;i++){
-      var v = VARIANTS[i].key;
+    for(var i=0;i<relevantVariants.length;i++){
+      var v = relevantVariants[i].key;
       var priceVisible = qtyState[v]>1 || (qtyState[v]>=1 && forceState[v]);
       var priceInput = qs('m-price-'+v);
       var price = priceInput && priceVisible && priceInput.value!=='' ? parseFloat(priceInput.value) : null;
