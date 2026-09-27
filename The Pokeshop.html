@@ -703,7 +703,7 @@ async function renderCollection(collectionId){
   var main = qs('main');
   main.innerHTML =
     '<button class="backlink" id="back-home">← Toutes les collections</button>'+
-    '<div class="section-head"><h2>'+esc(coll ? coll.name : '')+'</h2>'+
+    '<div class="section-head"><h2>'+esc(coll ? coll.name : '')+(state.isAdmin ? ' <button class="btn-ghost" id="rename-coll-btn" style="font-size:11px;padding:4px 9px;vertical-align:middle;">✎ Renommer</button>' : '')+'</h2>'+
       (state.isAdmin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost" id="import-csv-btn">Importer CSV</button><button class="btn-gold" id="add-card-btn">+ Ajouter une carte</button><button class="btn-danger" id="delete-all-btn">Vider la collection</button></div>' : '')+
     '</div>'+
     '<div class="legend">'+
@@ -714,6 +714,7 @@ async function renderCollection(collectionId){
     '<div id="card-grid" class="card-grid"><p class="muted">Chargement…</p></div>';
 
   qs('back-home').onclick = function(){ navigate('home'); };
+  if(qs('rename-coll-btn')) qs('rename-coll-btn').onclick = function(){ openRenameCollectionModal(collectionId, coll ? coll.name : ''); };
   if(qs('add-card-btn')) qs('add-card-btn').onclick = function(){ openAddCardModal(collectionId); };
   if(qs('import-csv-btn')) qs('import-csv-btn').onclick = function(){ openCsvImportModal(collectionId); };
   if(qs('delete-all-btn')) qs('delete-all-btn').onclick = function(){ openDeleteAllCardsModal(collectionId, coll ? coll.name : ''); };
@@ -785,6 +786,22 @@ function variantChips(mine, relevantKeys){
     var qty = row ? row.quantity : 0;
     return '<span class="vchip'+(qty>0?' owned':'')+'">'+k+(qty>1?' ×'+qty:'')+'</span>';
   }).join('');
+}
+
+function openRenameCollectionModal(collectionId, currentName){
+  openModal(
+    '<h3>Renommer la collection</h3>'+
+    '<div class="field"><label>Nom</label><input id="m-rename-coll" value="'+esc(currentName)+'"></div>'+
+    '<button class="btn-primary" id="m-rename-save">Enregistrer</button>'
+  );
+  qs('m-rename-save').onclick = async function(){
+    var name = (qs('m-rename-coll').value||'').trim();
+    if(!name) return;
+    await apiUpdate('pokeshop_collections', 'id=eq.'+collectionId, { name: name });
+    closeModal();
+    renderCollection(collectionId);
+  };
+  qs('m-rename-coll').addEventListener('keydown', function(e){ if(e.key==='Enter') qs('m-rename-save').click(); });
 }
 
 function openDeleteAllCardsModal(collectionId, collName){
