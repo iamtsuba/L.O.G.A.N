@@ -726,6 +726,7 @@ async function renderCollection(collectionId){
   if(qs('delete-all-btn')) qs('delete-all-btn').onclick = function(){ openDeleteAllCardsModal(collectionId, coll ? coll.name : ''); };
 
   var cards = await apiSelect('pokeshop_cards', 'collection_id=eq.'+collectionId+'&select=*&order=number.asc');
+  cards.sort(compareCardNumbers);
   state.currentCollectionCards = cards;
 
   var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=id,card_id,variant,quantity,price,for_sale');
@@ -811,6 +812,13 @@ function openRenameCollectionModal(collectionId, currentName){
     if(state.view==='home') renderHome(); else renderCollection(collectionId);
   };
   qs('m-rename-coll').addEventListener('keydown', function(e){ if(e.key==='Enter') qs('m-rename-save').click(); });
+}
+
+function compareCardNumbers(a, b){
+  var na = String(a.number||'').trim(), nb = String(b.number||'').trim();
+  var da = /^\d/.test(na), db = /^\d/.test(nb);
+  if(da !== db) return da ? -1 : 1; // les numéros commençant par un chiffre d'abord, puis ceux à lettres
+  return na.localeCompare(nb, 'fr', { numeric:true, sensitivity:'base' });
 }
 
 function openDeleteCardModal(card){
