@@ -110,6 +110,21 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .btn-danger:hover{background:var(--missing);color:#fff;}
 
 .coll-list{display:flex;flex-direction:column;gap:10px;}
+.tile-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+.gtile{background:var(--panel);border:1.5px solid var(--line);border-radius:12px;padding:8px;cursor:pointer;position:relative;text-align:center;min-width:0;transition:transform .1s;}
+.gtile:hover{border-color:var(--gold);transform:translateY(-2px);}
+.gtile .gimg{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:9px;background:var(--panel-raised);display:block;margin-bottom:7px;}
+.gtile .gph{width:100%;aspect-ratio:1/1;border-radius:9px;background:var(--panel-raised);display:flex;align-items:center;justify-content:center;margin-bottom:7px;}
+.gtile .gph svg{width:46%;height:auto;opacity:.5;}
+.gtile .gname{font-size:12.5px;font-weight:700;color:var(--paper);line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
+.gtile .gsub{font-size:10.5px;color:var(--text-dim);margin-top:3px;}
+.gtile .gbar{height:5px;border-radius:4px;background:var(--panel-raised);overflow:hidden;margin-top:6px;}
+.gtile .gbar>div{height:100%;background:linear-gradient(90deg,var(--pokered),var(--gold));border-radius:4px;}
+.gtile .gedit{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;background:rgba(20,22,27,.85);color:var(--paper);border:1px solid var(--line);font-size:12px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;z-index:2;cursor:pointer;}
+.gtile .gedit:hover{background:var(--gold);color:var(--ink);}
+.photo-field{display:flex;gap:12px;align-items:center;}
+.photo-field img{width:64px;height:64px;object-fit:cover;border-radius:10px;background:var(--panel-raised);flex:0 0 auto;}
+.photo-field .pf-empty{width:64px;height:64px;border-radius:10px;background:var(--panel-raised);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim);}
 .coll-row{
   display:flex;align-items:center;gap:16px;background:var(--panel);border:1.5px solid var(--line);
   border-radius:14px;padding:14px 16px;cursor:pointer;transition:border-color .15s;
@@ -649,6 +664,59 @@ async function navigate(view, arg){
 
 /* ============ HOME ============ */
 
+var SQL_IMAGES = "alter table pokeshop_themes add column if not exists image text;\nalter table pokeshop_collections add column if not exists image text;";
+
+function resizeImageFile(file, maxSize){
+  return new Promise(function(resolve, reject){
+    var reader = new FileReader();
+    reader.onerror = function(){ reject(new Error('Lecture du fichier impossible')); };
+    reader.onload = function(){
+      var img = new Image();
+      img.onerror = function(){ reject(new Error('Image illisible')); };
+      img.onload = function(){
+        var side = Math.min(img.width, img.height);           // recadrage carré centré
+        var sx = (img.width - side)/2, sy = (img.height - side)/2;
+        var out = Math.min(maxSize, side);
+        var cv = document.createElement('canvas'); cv.width = out; cv.height = out;
+        cv.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, out, out);
+        resolve(cv.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function photoFieldHtml(id, cur){
+  return '<div class="field"><label>Photo</label><div class="photo-field">'+
+    (cur ? '<img id="'+id+'-prev" src="'+esc(cur)+'">' : '<div class="pf-empty" id="'+id+'-prev">Aucune</div>')+
+    '<div style="display:flex;flex-direction:column;gap:6px;min-width:0;"><input type="file" accept="image/*" id="'+id+'-file" style="font-size:12px;max-width:100%;">'+
+    '<button type="button" class="btn-ghost" id="'+id+'-clear" style="font-size:11px;padding:4px 8px;align-self:flex-start;">Retirer la photo</button></div></div></div>';
+}
+// ctl.value : undefined = inchangé, null = retirer, chaîne = nouvelle photo
+function bindPhotoField(id){
+  var ctl = { value: undefined };
+  function setPrev(url){
+    var old = qs(id+'-prev');
+    var node = url ? el('<img id="'+id+'-prev" src="'+url+'">') : el('<div class="pf-empty" id="'+id+'-prev">Aucune</div>');
+    old.parentNode.replaceChild(node, old);
+  }
+  qs(id+'-file').onchange = async function(){
+    var f = this.files && this.files[0];
+    if(!f) return;
+    try{ ctl.value = await resizeImageFile(f, 480); setPrev(ctl.value); }
+    catch(e){ alert('Photo : '+e.message); }
+  };
+  qs(id+'-clear').onclick = function(){ ctl.value = null; setPrev(null); qs(id+'-file').value = ''; };
+  return ctl;
+}
+function imageErrHint(e){
+  var m = (e && e.message) ? e.message : String(e);
+  return /image/i.test(m) ? m+'\n\nLa colonne "image" existe-t-elle ? Exécute dans Supabase :\n'+SQL_IMAGES : m;
+}
+function tileImgHtml(img){
+  return img ? '<img class="gimg" loading="lazy" src="'+esc(img)+'" alt="">' : '<div class="gph">'+BALL_SVG+'</div>';
+}
+
 var SQL_THEMES = "create table if not exists pokeshop_themes (id uuid primary key default gen_random_uuid(), name text not null, created_at timestamptz default now());\nalter table pokeshop_themes disable row level security;\nalter table pokeshop_collections add column if not exists theme_id uuid references pokeshop_themes(id) on delete set null;";
 
 async function loadThemes(){
@@ -675,21 +743,25 @@ async function renderHome(){
 
   // ----- Écran de choix du thème -----
   if(themeMode && !state.currentThemeId){
-    var html = '<div class="section-head"><h2>Thèmes</h2>'+(state.isAdmin ? '<button class="btn-gold" id="new-theme-btn">+ Nouveau thème</button>' : '')+'</div><div id="theme-list" class="coll-list"></div>';
+    var html = '<div class="section-head"><h2>Thèmes</h2>'+(state.isAdmin ? '<button class="btn-gold" id="new-theme-btn">+ Nouveau thème</button>' : '')+'</div><div id="theme-list" class="tile-grid"></div>';
     main.innerHTML = html;
     if(qs('new-theme-btn')) qs('new-theme-btn').onclick = openNewThemeModal;
     var tl = qs('theme-list');
     var entries = themes.map(function(t){
-      return { id:t.id, name:t.name, count: collections.filter(function(c){ return c.theme_id===t.id; }).length };
+      return { id:t.id, name:t.name, image:t.image, raw:t, count: collections.filter(function(c){ return c.theme_id===t.id; }).length };
     });
     if(noThemeColls.length) entries.push({ id:'none', name:'Sans thème', count: noThemeColls.length });
     entries.forEach(function(t, idx){
       var row = el(
-        '<div class="coll-row">'+
-          '<div class="cnum">'+(idx+1)+'</div>'+
-          '<div class="cinfo"><h3>'+esc(t.name)+'</h3><div class="csub">'+t.count+' collection'+(t.count>1?'s':'')+'</div></div>'+
+        '<div class="gtile">'+
+          (state.isAdmin && t.raw ? '<button class="gedit" title="Modifier le thème">✎</button>' : '')+
+          tileImgHtml(t.image)+
+          '<div class="gname">'+esc(t.name)+'</div>'+
+          '<div class="gsub">'+t.count+' collection'+(t.count>1?'s':'')+'</div>'+
         '</div>'
       );
+      var eb = row.querySelector('.gedit');
+      if(eb) eb.onclick = function(e){ e.stopPropagation(); openEditThemeModal(t.raw); };
       row.onclick = function(){ state.currentThemeId = t.id; renderHome(); };
       tl.appendChild(row);
     });
@@ -707,14 +779,14 @@ async function renderHome(){
       (state.isAdmin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+(!themeMode ? '<button class="btn-ghost" id="new-theme-btn">+ Nouveau thème</button>' : '')+'<button class="btn-gold" id="new-coll-btn">+ Nouvelle collection</button></div>' : '')+
     '</div>'+
     ((state.isAdmin && !state.themesAvailable) ? '<div class="notice warn" style="background:#3a2f12;border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text);">Les thèmes ne sont pas encore activés : exécute ce SQL dans Supabase puis recharge.<pre style="white-space:pre-wrap;user-select:all;margin:8px 0 0;font-size:11px;color:var(--gold);">'+esc(SQL_THEMES)+'</pre></div>' : '')+
-    '<div id="coll-list" class="coll-list"><p class="muted">Chargement…</p></div>';
+    '<div id="coll-list" class="tile-grid"><p class="muted" style="grid-column:1/-1;">Chargement…</p></div>';
   if(qs('back-themes')) qs('back-themes').onclick = function(){ state.currentThemeId = null; renderHome(); };
   if(qs('new-coll-btn')) qs('new-coll-btn').onclick = openNewCollectionModal;
   if(qs('new-theme-btn')) qs('new-theme-btn').onclick = openNewThemeModal;
 
   var list = qs('coll-list');
   if(!visible.length){
-    list.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);margin-bottom:6px;">Aucune collection pour l\'instant</h3><p>'+(themeMode ? 'Aucune collection dans ce thème.' : 'Crée la première collection pour commencer à suivre ton master set.')+'</p></div>';
+    list.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);margin-bottom:6px;">Aucune collection pour l\'instant</h3><p>'+(themeMode ? 'Aucune collection dans ce thème.' : 'Crée la première collection pour commencer à suivre ton master set.')+'</p></div>';
     return;
   }
 
@@ -732,11 +804,12 @@ async function renderHome(){
     var owned = ownedByColl[c.id]||0;
     var pct = total ? Math.round(owned/total*100) : 0;
     var row = el(
-      '<div class="coll-row">'+
-        '<div class="cnum">'+(idx+1)+'</div>'+
-        '<div class="cinfo"><h3>'+esc(c.name)+'</h3><div class="csub">'+owned+' / '+total+' cartes</div></div>'+
-        (state.isAdmin ? '<button class="btn-ghost coll-rename" style="padding:6px 10px;font-size:12px;flex:0 0 auto;">✎</button>' : '')+
-        '<div class="cprog"><div class="progress-track"><div class="progress-fill" style="width:'+pct+'%;"></div></div><div class="pct">'+pct+'%</div></div>'+
+      '<div class="gtile">'+
+        (state.isAdmin ? '<button class="gedit coll-rename" title="Modifier la collection">✎</button>' : '')+
+        tileImgHtml(c.image)+
+        '<div class="gname">'+esc(c.name)+'</div>'+
+        '<div class="gsub">'+owned+' / '+total+' · '+pct+'%</div>'+
+        '<div class="gbar"><div style="width:'+pct+'%;"></div></div>'+
       '</div>'
     );
     var renameBtn = row.querySelector('.coll-rename');
@@ -751,17 +824,42 @@ function openNewThemeModal(){
   openModal(
     '<h3>Nouveau thème</h3>'+
     '<div class="field"><label>Nom (ex. Pokémon, Naruto)</label><input id="m-theme-name" placeholder="Pokémon"></div>'+
+    photoFieldHtml('m-theme-photo', null)+
     '<button class="btn-primary" id="m-theme-save">Créer</button>'
   );
+  var photo = bindPhotoField('m-theme-photo');
   qs('m-theme-save').onclick = async function(){
     var name = (qs('m-theme-name').value||'').trim();
     if(!name) return;
-    try{ await apiInsert('pokeshop_themes', [{ name: name }]); }
-    catch(e){ alert('Impossible de créer le thème : '+(e && e.message ? e.message : e)+'\n\nLa table pokeshop_themes existe-t-elle ? (SQL affiché sur la page Collections)'); return; }
+    var row = { name: name };
+    if(typeof photo.value === 'string') row.image = photo.value;
+    try{ await apiInsert('pokeshop_themes', [row]); }
+    catch(e){ alert('Impossible de créer le thème : '+imageErrHint(e)); return; }
     closeModal();
     renderHome();
   };
   qs('m-theme-name').addEventListener('keydown', function(e){ if(e.key==='Enter') qs('m-theme-save').click(); });
+}
+
+function openEditThemeModal(theme){
+  if(!state.isAdmin) return;
+  openModal(
+    '<h3>Modifier le thème</h3>'+
+    '<div class="field"><label>Nom</label><input id="m-etheme-name" value="'+esc(theme.name)+'"></div>'+
+    photoFieldHtml('m-etheme-photo', theme.image)+
+    '<button class="btn-primary" id="m-etheme-save">Enregistrer</button>'
+  );
+  var photo = bindPhotoField('m-etheme-photo');
+  qs('m-etheme-save').onclick = async function(){
+    var name = (qs('m-etheme-name').value||'').trim();
+    if(!name) return;
+    var patch = { name: name };
+    if(photo.value !== undefined) patch.image = photo.value;
+    try{ await apiUpdate('pokeshop_themes', 'id=eq.'+theme.id, patch); }
+    catch(e){ alert('Erreur : '+imageErrHint(e)); return; }
+    closeModal();
+    renderHome();
+  };
 }
 
 async function openNewCollectionModal(){
@@ -771,16 +869,19 @@ async function openNewCollectionModal(){
     '<h3>Nouvelle collection</h3>'+
     '<div class="field"><label>Nom (ex. 151, 25 ans, Pokémon Go)</label><input id="m-coll-name" placeholder="151"></div>'+
     themeField+
+    photoFieldHtml('m-coll-photo', null)+
     '<button class="btn-primary" id="m-coll-save">Créer</button>'
   );
+  var photo = bindPhotoField('m-coll-photo');
   qs('m-coll-save').onclick = async function(){
     var name = (qs('m-coll-name').value||'').trim();
     if(!name) return;
     var row = { name: name, created_by: state.user.id };
     var sel = qs('m-coll-theme');
     if(sel && sel.value) row.theme_id = sel.value;
+    if(typeof photo.value === 'string') row.image = photo.value;
     try{ await apiInsert('pokeshop_collections', [row]); }
-    catch(e){ alert('Erreur : '+(e && e.message ? e.message : e)); return; }
+    catch(e){ alert('Erreur : '+imageErrHint(e)); return; }
     closeModal();
     renderHome();
   };
@@ -901,16 +1002,19 @@ function openRenameCollectionModal(collectionId, currentName){
     '<h3>Modifier la collection</h3>'+
     '<div class="field"><label>Nom</label><input id="m-rename-coll" value="'+esc(currentName)+'"></div>'+
     themeField+
+    photoFieldHtml('m-rename-photo', coll.image)+
     '<button class="btn-primary" id="m-rename-save">Enregistrer</button>'
   );
+  var photo = bindPhotoField('m-rename-photo');
   qs('m-rename-save').onclick = async function(){
     var name = (qs('m-rename-coll').value||'').trim();
     if(!name) return;
     var patch = { name: name };
     var sel = qs('m-rename-theme');
     if(sel) patch.theme_id = sel.value ? sel.value : null;
+    if(photo.value !== undefined) patch.image = photo.value;
     try{ await apiUpdate('pokeshop_collections', 'id=eq.'+collectionId, patch); }
-    catch(e){ alert('Erreur : '+(e && e.message ? e.message : e)); return; }
+    catch(e){ alert('Erreur : '+imageErrHint(e)); return; }
     closeModal();
     if(state.view==='home') renderHome(); else renderCollection(collectionId);
   };
