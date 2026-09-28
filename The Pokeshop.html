@@ -348,6 +348,9 @@ var state = {
   sent: [],
   inboxTab: 'received',
   isAdmin: (localStorage.getItem('pokeshop_admin')==='1'),
+  themes: [],
+  themesAvailable: false,
+  currentThemeId: null,
   friendPendingCount: 0,
   selectedDealId: null,
   messagesTab: 'active',
@@ -562,7 +565,7 @@ function renderShell(){
   qs('userchip').textContent = state.user.username;
   qs('logout-btn').onclick = doLogout;
   app.querySelectorAll('[data-nav]').forEach(function(b){
-    b.onclick = function(){ navigate(b.getAttribute('data-nav')); };
+    b.onclick = function(){ if(b.getAttribute('data-nav')==='home') state.currentThemeId = null; navigate(b.getAttribute('data-nav')); };
   });
   qs('admin-btn').onclick = function(){
     if(state.isAdmin){
@@ -646,30 +649,85 @@ async function navigate(view, arg){
 
 /* ============ HOME ============ */
 
+var SQL_THEMES = "create table if not exists pokeshop_themes (id uuid primary key default gen_random_uuid(), name text not null, created_at timestamptz default now());\nalter table pokeshop_themes disable row level security;\nalter table pokeshop_collections add column if not exists theme_id uuid references pokeshop_themes(id) on delete set null;";
+
+async function loadThemes(){
+  try{ state.themes = await apiSelect('pokeshop_themes', 'select=*&order=name.asc'); state.themesAvailable = true; }
+  catch(e){ state.themes = []; state.themesAvailable = false; }
+  return state.themes;
+}
+
+function themeOptionsHtml(selectedId){
+  var opts = '<option value="">Sans thème</option>';
+  (state.themes||[]).forEach(function(t){ opts += '<option value="'+esc(t.id)+'"'+(t.id===selectedId?' selected':'')+'>'+esc(t.name)+'</option>'; });
+  return opts;
+}
+
 async function renderHome(){
   var main = qs('main');
-  main.innerHTML = '<div class="section-head"><h2>Tes collections</h2>'+(state.isAdmin ? '<button class="btn-gold" id="new-coll-btn">+ Nouvelle collection</button>' : '')+'</div><div id="coll-list" class="coll-list"><p class="muted">Chargement…</p></div>';
-  if(qs('new-coll-btn')) qs('new-coll-btn').onclick = openNewCollectionModal;
-
+  main.innerHTML = '<p class="muted">Chargement…</p>';
+  var themes = await loadThemes();
   var collections = await apiSelect('pokeshop_collections', 'select=*&order=created_at.asc');
   state.collections = collections;
+
+  var noThemeColls = collections.filter(function(c){ return !c.theme_id; });
+  var themeMode = state.themesAvailable && themes.length > 0;
+
+  // ----- Écran de choix du thème -----
+  if(themeMode && !state.currentThemeId){
+    var html = '<div class="section-head"><h2>Thèmes</h2>'+(state.isAdmin ? '<button class="btn-gold" id="new-theme-btn">+ Nouveau thème</button>' : '')+'</div><div id="theme-list" class="coll-list"></div>';
+    main.innerHTML = html;
+    if(qs('new-theme-btn')) qs('new-theme-btn').onclick = openNewThemeModal;
+    var tl = qs('theme-list');
+    var entries = themes.map(function(t){
+      return { id:t.id, name:t.name, count: collections.filter(function(c){ return c.theme_id===t.id; }).length };
+    });
+    if(noThemeColls.length) entries.push({ id:'none', name:'Sans thème', count: noThemeColls.length });
+    entries.forEach(function(t, idx){
+      var row = el(
+        '<div class="coll-row">'+
+          '<div class="cnum">'+(idx+1)+'</div>'+
+          '<div class="cinfo"><h3>'+esc(t.name)+'</h3><div class="csub">'+t.count+' collection'+(t.count>1?'s':'')+'</div></div>'+
+        '</div>'
+      );
+      row.onclick = function(){ state.currentThemeId = t.id; renderHome(); };
+      tl.appendChild(row);
+    });
+    return;
+  }
+
+  // ----- Liste des collections (d'un thème, ou toutes si aucun thème n'existe) -----
+  var currentTheme = themeMode ? (state.currentThemeId==='none' ? { id:'none', name:'Sans thème' } : themes.find(function(t){ return t.id===state.currentThemeId; })) : null;
+  if(themeMode && !currentTheme){ state.currentThemeId = null; return renderHome(); }
+  var visible = !themeMode ? collections : collections.filter(function(c){ return state.currentThemeId==='none' ? !c.theme_id : c.theme_id===state.currentThemeId; });
+
+  main.innerHTML =
+    (themeMode ? '<button class="backlink" id="back-themes">← Tous les thèmes</button>' : '')+
+    '<div class="section-head"><h2>'+(currentTheme ? esc(currentTheme.name) : 'Tes collections')+'</h2>'+
+      (state.isAdmin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+(!themeMode ? '<button class="btn-ghost" id="new-theme-btn">+ Nouveau thème</button>' : '')+'<button class="btn-gold" id="new-coll-btn">+ Nouvelle collection</button></div>' : '')+
+    '</div>'+
+    ((state.isAdmin && !state.themesAvailable) ? '<div class="notice warn" style="background:#3a2f12;border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text);">Les thèmes ne sont pas encore activés : exécute ce SQL dans Supabase puis recharge.<pre style="white-space:pre-wrap;user-select:all;margin:8px 0 0;font-size:11px;color:var(--gold);">'+esc(SQL_THEMES)+'</pre></div>' : '')+
+    '<div id="coll-list" class="coll-list"><p class="muted">Chargement…</p></div>';
+  if(qs('back-themes')) qs('back-themes').onclick = function(){ state.currentThemeId = null; renderHome(); };
+  if(qs('new-coll-btn')) qs('new-coll-btn').onclick = openNewCollectionModal;
+  if(qs('new-theme-btn')) qs('new-theme-btn').onclick = openNewThemeModal;
+
   var list = qs('coll-list');
-  if(!collections.length){
-    list.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);margin-bottom:6px;">Aucune collection pour l\'instant</h3><p>Crée la première collection pour commencer à suivre ton master set.</p></div>';
+  if(!visible.length){
+    list.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);margin-bottom:6px;">Aucune collection pour l\'instant</h3><p>'+(themeMode ? 'Aucune collection dans ce thème.' : 'Crée la première collection pour commencer à suivre ton master set.')+'</p></div>';
     return;
   }
 
   var cardCounts = await apiSelect('pokeshop_cards', 'select=id,collection_id');
   var myCards = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&quantity=gt.0&select=card_id');
   var ownedSet = {}; myCards.forEach(function(r){ ownedSet[r.card_id]=true; });
-  var cardIdToColl = {};
   var totalsByColl = {};
-  cardCounts.forEach(function(c){ totalsByColl[c.collection_id]=(totalsByColl[c.collection_id]||0)+1; cardIdToColl[c.id]=c.collection_id; });
+  cardCounts.forEach(function(c){ totalsByColl[c.collection_id]=(totalsByColl[c.collection_id]||0)+1; });
   var ownedByColl = {};
   cardCounts.forEach(function(c){ if(ownedSet[c.id]) ownedByColl[c.collection_id]=(ownedByColl[c.collection_id]||0)+1; });
 
   list.innerHTML = '';
-  collections.forEach(function(c, idx){
+  visible.forEach(function(c, idx){
     var total = totalsByColl[c.id]||0;
     var owned = ownedByColl[c.id]||0;
     var pct = total ? Math.round(owned/total*100) : 0;
@@ -688,16 +746,41 @@ async function renderHome(){
   });
 }
 
-function openNewCollectionModal(){
+function openNewThemeModal(){
+  if(!state.isAdmin) return;
+  openModal(
+    '<h3>Nouveau thème</h3>'+
+    '<div class="field"><label>Nom (ex. Pokémon, Naruto)</label><input id="m-theme-name" placeholder="Pokémon"></div>'+
+    '<button class="btn-primary" id="m-theme-save">Créer</button>'
+  );
+  qs('m-theme-save').onclick = async function(){
+    var name = (qs('m-theme-name').value||'').trim();
+    if(!name) return;
+    try{ await apiInsert('pokeshop_themes', [{ name: name }]); }
+    catch(e){ alert('Impossible de créer le thème : '+(e && e.message ? e.message : e)+'\n\nLa table pokeshop_themes existe-t-elle ? (SQL affiché sur la page Collections)'); return; }
+    closeModal();
+    renderHome();
+  };
+  qs('m-theme-name').addEventListener('keydown', function(e){ if(e.key==='Enter') qs('m-theme-save').click(); });
+}
+
+async function openNewCollectionModal(){
+  var defaultTheme = (state.currentThemeId && state.currentThemeId!=='none') ? state.currentThemeId : '';
+  var themeField = state.themesAvailable ? '<div class="field"><label>Thème</label><select id="m-coll-theme">'+themeOptionsHtml(defaultTheme)+'</select></div>' : '';
   openModal(
     '<h3>Nouvelle collection</h3>'+
     '<div class="field"><label>Nom (ex. 151, 25 ans, Pokémon Go)</label><input id="m-coll-name" placeholder="151"></div>'+
+    themeField+
     '<button class="btn-primary" id="m-coll-save">Créer</button>'
   );
   qs('m-coll-save').onclick = async function(){
     var name = (qs('m-coll-name').value||'').trim();
     if(!name) return;
-    await apiInsert('pokeshop_collections', [{ name: name, created_by: state.user.id }]);
+    var row = { name: name, created_by: state.user.id };
+    var sel = qs('m-coll-theme');
+    if(sel && sel.value) row.theme_id = sel.value;
+    try{ await apiInsert('pokeshop_collections', [row]); }
+    catch(e){ alert('Erreur : '+(e && e.message ? e.message : e)); return; }
     closeModal();
     renderHome();
   };
@@ -710,7 +793,7 @@ async function renderCollection(collectionId){
   var coll = state.collections.find(function(c){ return c.id===collectionId; });
   var main = qs('main');
   main.innerHTML =
-    '<button class="backlink" id="back-home">← Toutes les collections</button>'+
+    '<button class="backlink" id="back-home">← Collections</button>'+
     '<div class="section-head"><h2>'+esc(coll ? coll.name : '')+(state.isAdmin ? ' <button class="btn-ghost" id="rename-coll-btn" style="font-size:11px;padding:4px 9px;vertical-align:middle;">✎ Renommer</button>' : '')+'</h2>'+
       (state.isAdmin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost" id="import-csv-btn">Importer CSV</button><button class="btn-gold" id="add-card-btn">+ Ajouter une carte</button><button class="btn-danger" id="delete-all-btn">Vider la collection</button></div>' : '')+
     '</div>'+
@@ -812,15 +895,22 @@ function variantChips(mine, relevantKeys){
 }
 
 function openRenameCollectionModal(collectionId, currentName){
+  var coll = (state.collections||[]).find(function(c){ return c.id===collectionId; }) || {};
+  var themeField = state.themesAvailable ? '<div class="field"><label>Thème</label><select id="m-rename-theme">'+themeOptionsHtml(coll.theme_id||'')+'</select></div>' : '';
   openModal(
-    '<h3>Renommer la collection</h3>'+
+    '<h3>Modifier la collection</h3>'+
     '<div class="field"><label>Nom</label><input id="m-rename-coll" value="'+esc(currentName)+'"></div>'+
+    themeField+
     '<button class="btn-primary" id="m-rename-save">Enregistrer</button>'
   );
   qs('m-rename-save').onclick = async function(){
     var name = (qs('m-rename-coll').value||'').trim();
     if(!name) return;
-    await apiUpdate('pokeshop_collections', 'id=eq.'+collectionId, { name: name });
+    var patch = { name: name };
+    var sel = qs('m-rename-theme');
+    if(sel) patch.theme_id = sel.value ? sel.value : null;
+    try{ await apiUpdate('pokeshop_collections', 'id=eq.'+collectionId, patch); }
+    catch(e){ alert('Erreur : '+(e && e.message ? e.message : e)); return; }
     closeModal();
     if(state.view==='home') renderHome(); else renderCollection(collectionId);
   };
