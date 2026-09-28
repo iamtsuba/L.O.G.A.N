@@ -941,6 +941,17 @@ async function loadCardmarketPrices(cards){
   pending.forEach(function(w){ if(w.price==null) paintMissing(w.card); });
 }
 
+async function refreshKeepScroll(){
+  var id = state.currentCollectionId;
+  var main = qs('main');
+  var y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  if(main) main.style.minHeight = main.offsetHeight + 'px';   // évite que la page se raccourcisse pendant le rechargement
+  try{ await renderCollection(id); }finally{
+    if(main) main.style.minHeight = '';
+    window.scrollTo(0, y); document.documentElement.scrollTop = y; document.body.scrollTop = y;
+  }
+}
+
 function compareCardNumbers(a, b){
   var na = String(a.number||'').trim(), nb = String(b.number||'').trim();
   var da = /^\d/.test(na), db = /^\d/.test(nb);
@@ -967,7 +978,7 @@ function openDeleteCardModal(card){
       return;
     }
     closeModal();
-    renderCollection(state.currentCollectionId);
+    refreshKeepScroll();
   };
 }
 
@@ -1004,7 +1015,7 @@ function openEditCardModal(card){
     if(!number || !name) return;
     await apiUpdate('pokeshop_cards', 'id=eq.'+card.id, { number: number, name: name, image_url: img, rarity: rarity });
     closeModal();
-    renderCollection(state.currentCollectionId);
+    refreshKeepScroll();
   };
 }
 
@@ -1230,7 +1241,7 @@ async function openCardModal(card){
       }
     }
     closeModal();
-    renderCollection(state.currentCollectionId);
+    refreshKeepScroll();
   };
 
   document.querySelectorAll('.add-cart-btn').forEach(function(btn){
