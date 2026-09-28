@@ -152,6 +152,7 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .tile img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:7px;background:var(--panel-raised);margin-bottom:6px;}
 .tile .tnum{font-size:10px;color:var(--text-dim);}
 .tile .tprice{font-size:11px;color:var(--gold);margin-top:2px;min-height:14px;font-weight:600;}
+.tile .tprice a{color:var(--text-dim);font-weight:400;font-size:10.5px;text-decoration:underline;}
 .tile .tname{font-size:11.5px;color:var(--text);line-height:1.25;margin-top:1px;}
 .tile-variants{display:flex;gap:3px;margin-top:5px;}
 .vchip{font-size:8.5px;padding:2px 5px;border-radius:5px;background:var(--panel-raised);color:var(--text-dim);font-weight:700;letter-spacing:.3px;}
@@ -832,13 +833,23 @@ function cardApiRef(card){
 function normNum(n){ return String(n||'').replace(/^0+(?=\d)/,'').toUpperCase(); }
 function fmtEur(v){ return v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}); }
 function cmCacheGet(key){
-  try{ var r = JSON.parse(localStorage.getItem('pokeshop_cm2_'+key)||'null'); if(r && Date.now()-r.t < CM_TTL) return r; }catch(e){}
+  try{ var r = JSON.parse(localStorage.getItem('pokeshop_cm2_'+key)||'null'); if(r && Date.now()-r.t < (r.p==null ? 3600*1000 : CM_TTL)) return r; }catch(e){}
   return null;
 }
 function cmCacheSet(key, p){ try{ localStorage.setItem('pokeshop_cm2_'+key, JSON.stringify({p:p,t:Date.now()})); }catch(e){} }
 function paintPrice(cardId, price){
   var t = document.querySelector('.tile[data-card-id="'+cardId+'"] .tprice');
   if(t) t.textContent = (price!=null) ? ('Moy. '+fmtEur(price)) : '';
+}
+var CM_EXP = { pgo:'PGO', sv3pt5:'MEW', cel25:'CEL', me55:'' };
+function paintMissing(card){
+  var t = document.querySelector('.tile[data-card-id="'+card.id+'"] .tprice');
+  if(!t) return;
+  var ref = cardApiRef(card);
+  var num = String((ref && ref.num) || card.number || '').replace(/\D/g,'').padStart(3,'0');
+  var exp = (ref && CM_EXP[ref.code]) || '';
+  var q = (card.name||'') + ' ' + (exp ? exp+num : num);
+  t.innerHTML = '<a href="https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString='+encodeURIComponent(q.trim())+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Prix indisponible ici : chercher sur Cardmarket">Voir Cardmarket ↗</a>';
 }
 function pickCmPrice(cm){
   if(!cm) return null;
@@ -884,10 +895,10 @@ async function loadCardmarketPrices(cards){
   var pending = [];
   cards.forEach(function(c){
     var ref = cardApiRef(c);
-    if(!ref) return;
+    if(!ref){ paintMissing(c); return; }
     var cached = cmCacheGet(ref.id);
-    if(cached){ paintPrice(c.id, cached.p); return; }
-    pending.push({ cardId:c.id, ref:ref, price:null });
+    if(cached){ if(cached.p!=null) paintPrice(c.id, cached.p); else paintMissing(c); return; }
+    pending.push({ cardId:c.id, card:c, ref:ref, price:null });
   });
   if(!pending.length) return;
 
@@ -923,9 +934,11 @@ async function loadCardmarketPrices(cards){
     chunk.forEach(function(w){
       var v = byId.hasOwnProperty(w.ref.id) ? byId[w.ref.id] : null;
       if(json) cmCacheSet(w.ref.id, v);   // on ne mémorise l'absence que si l'API a répondu
-      paintPrice(w.cardId, v);
+      if(v!=null){ w.price = v; paintPrice(w.cardId, v); }
     });
   }
+  // Toujours sans prix : lien direct vers Cardmarket
+  pending.forEach(function(w){ if(w.price==null) paintMissing(w.card); });
 }
 
 function compareCardNumbers(a, b){
