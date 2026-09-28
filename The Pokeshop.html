@@ -672,9 +672,12 @@ async function renderHome(){
       '<div class="coll-row">'+
         '<div class="cnum">'+(idx+1)+'</div>'+
         '<div class="cinfo"><h3>'+esc(c.name)+'</h3><div class="csub">'+owned+' / '+total+' cartes</div></div>'+
+        (state.isAdmin ? '<button class="btn-ghost coll-rename" style="padding:6px 10px;font-size:12px;flex:0 0 auto;">✎</button>' : '')+
         '<div class="cprog"><div class="progress-track"><div class="progress-fill" style="width:'+pct+'%;"></div></div><div class="pct">'+pct+'%</div></div>'+
       '</div>'
     );
+    var renameBtn = row.querySelector('.coll-rename');
+    if(renameBtn) renameBtn.onclick = function(e){ e.stopPropagation(); openRenameCollectionModal(c.id, c.name); };
     row.onclick = function(){ navigate('collection', c.id); };
     list.appendChild(row);
   });
@@ -799,7 +802,7 @@ function openRenameCollectionModal(collectionId, currentName){
     if(!name) return;
     await apiUpdate('pokeshop_collections', 'id=eq.'+collectionId, { name: name });
     closeModal();
-    renderCollection(collectionId);
+    if(state.view==='home') renderHome(); else renderCollection(collectionId);
   };
   qs('m-rename-coll').addEventListener('keydown', function(e){ if(e.key==='Enter') qs('m-rename-save').click(); });
 }
