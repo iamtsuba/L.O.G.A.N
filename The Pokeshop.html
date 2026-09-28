@@ -817,58 +817,114 @@ function openRenameCollectionModal(collectionId, currentName){
   qs('m-rename-coll').addEventListener('keydown', function(e){ if(e.key==='Enter') qs('m-rename-save').click(); });
 }
 
-/* ============ PRIX MOYEN CARDMARKET (via api.pokemontcg.io) ============ */
+/* ============ PRIX MOYEN CARDMARKET (TCGdex en priorité, pokemontcg.io en secours) ============ */
 var CM_TTL = 12*3600*1000;
-function cardApiId(card){
+var TCGDEX = 'https://api.tcgdex.net/v2/fr/';
+var TCGDEX_SET_MAP = { pgo:'swsh10.5', sv3pt5:'sv03.5', cel25:'cel25', svp:'svp', swshp:'swshp' };
+var tcgdexSetCache = {};
+
+function cardApiRef(card){
   var u = card.image_url || '';
   var m = u.match(/images\.pokemontcg\.io\/([^\/]+)\/([^_\/]+)_hires/);
-  if(m) return m[1]+'-'+m[2];
-  m = u.match(/images\.pokemoncard\.io\/images\/([^\/]+)\/[^\/]*?-([^\/.]+)\.png/);
-  if(m) return m[1]+'-'+m[2];
-  return null;
+  if(!m) m = u.match(/images\.pokemoncard\.io\/images\/([^\/]+)\/[^\/]*?-([^\/.]+)\.png/);
+  return m ? { code:m[1], num:m[2], id:m[1]+'-'+m[2] } : null;
 }
+function normNum(n){ return String(n||'').replace(/^0+(?=\d)/,'').toUpperCase(); }
 function fmtEur(v){ return v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}); }
-function cmCacheGet(id){
-  try{ var r = JSON.parse(localStorage.getItem('pokeshop_cm_'+id)||'null'); if(r && Date.now()-r.t < CM_TTL) return r; }catch(e){}
+function cmCacheGet(key){
+  try{ var r = JSON.parse(localStorage.getItem('pokeshop_cm2_'+key)||'null'); if(r && Date.now()-r.t < CM_TTL) return r; }catch(e){}
   return null;
 }
-function cmCacheSet(id, p){ try{ localStorage.setItem('pokeshop_cm_'+id, JSON.stringify({p:p,t:Date.now()})); }catch(e){} }
+function cmCacheSet(key, p){ try{ localStorage.setItem('pokeshop_cm2_'+key, JSON.stringify({p:p,t:Date.now()})); }catch(e){} }
 function paintPrice(cardId, price){
   var t = document.querySelector('.tile[data-card-id="'+cardId+'"] .tprice');
   if(t) t.textContent = (price!=null) ? ('Moy. '+fmtEur(price)) : '';
 }
+function pickCmPrice(cm){
+  if(!cm) return null;
+  var keys = ['avg','avg-holo','trend','trend-holo','avg30','avg30-holo'];
+  for(var i=0;i<keys.length;i++){ var v = cm[keys[i]]; if(typeof v==='number' && v>0) return v; }
+  return null;
+}
+async function fetchJson(url, ms){
+  try{
+    var ctrl = new AbortController();
+    var to = setTimeout(function(){ ctrl.abort(); }, ms||12000);
+    var res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(to);
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ return null; }
+}
+async function tcgdexSetCards(code){
+  if(tcgdexSetCache[code]) return tcgdexSetCache[code];
+  var set = null;
+  if(TCGDEX_SET_MAP[code]) set = await fetchJson(TCGDEX+'sets/'+TCGDEX_SET_MAP[code]);
+  if(!set){
+    // recherche par nom dans la liste des sets (ex. set des 30 ans)
+    var re = null;
+    if(code==='me55') re = function(n){ return /30/.test(n) && /c[ée]l[ée]bration/i.test(n) && !/classi/i.test(n); };
+    if(re){
+      var list = await fetchJson(TCGDEX+'sets', 20000);
+      var found = (list||[]).find(function(x){ return re(x.name||''); });
+      if(found) set = await fetchJson(TCGDEX+'sets/'+found.id);
+    }
+  }
+  var cards = (set && set.cards) ? set.cards : [];
+  tcgdexSetCache[code] = cards;
+  return cards;
+}
+async function runPool(items, worker, size){
+  var i = 0;
+  async function next(){ while(i<items.length){ var it = items[i++]; await worker(it); } }
+  var ws = []; for(var k=0;k<Math.min(size,items.length);k++) ws.push(next());
+  await Promise.all(ws);
+}
 async function loadCardmarketPrices(cards){
-  var wanted = [];   // {cardId, apiId}
+  var pending = [];
   cards.forEach(function(c){
-    var apiId = cardApiId(c);
-    if(!apiId) return;
-    var cached = cmCacheGet(apiId);
-    if(cached){ paintPrice(c.id, cached.p); }
-    else wanted.push({ cardId:c.id, apiId:apiId });
+    var ref = cardApiRef(c);
+    if(!ref) return;
+    var cached = cmCacheGet(ref.id);
+    if(cached){ paintPrice(c.id, cached.p); return; }
+    pending.push({ cardId:c.id, ref:ref, price:null });
   });
-  for(var i=0; i<wanted.length; i+=40){
-    if(state.view !== 'collection' && state.view !== 'coll') { /* la vue a peut-être changé */ }
-    var chunk = wanted.slice(i, i+40);
-    var q = chunk.map(function(w){ return 'id:"'+w.apiId+'"'; }).join(' OR ');
-    try{
-      var ctrl = new AbortController();
-      var to = setTimeout(function(){ ctrl.abort(); }, 15000);
-      var res = await fetch('https://api.pokemontcg.io/v2/cards?pageSize=250&select=id,cardmarket&q='+encodeURIComponent(q), { signal: ctrl.signal });
-      clearTimeout(to);
-      if(!res.ok) continue;
-      var json = await res.json();
-      var byId = {};
-      (json.data||[]).forEach(function(d){
-        var pr = d.cardmarket && d.cardmarket.prices;
-        var v = pr ? (pr.averageSellPrice!=null ? pr.averageSellPrice : (pr.trendPrice!=null ? pr.trendPrice : null)) : null;
-        byId[d.id] = (typeof v === 'number' && v>0) ? v : null;
-      });
-      chunk.forEach(function(w){
-        var v = byId.hasOwnProperty(w.apiId) ? byId[w.apiId] : null;
-        cmCacheSet(w.apiId, v);
-        paintPrice(w.cardId, v);
-      });
-    }catch(e){ /* API indisponible : on laisse vide */ }
+  if(!pending.length) return;
+
+  // 1) TCGdex : prix Cardmarket (moyen) carte par carte
+  var byCode = {};
+  pending.forEach(function(w){ (byCode[w.ref.code] = byCode[w.ref.code]||[]).push(w); });
+  for(var code in byCode){
+    var setCards = await tcgdexSetCards(code);
+    if(!setCards.length) continue;
+    var idx = {};
+    setCards.forEach(function(sc){ idx[normNum(sc.localId)] = sc.id; });
+    await runPool(byCode[code], async function(w){
+      var tid = idx[normNum(w.ref.num)];
+      if(!tid) return;
+      var d = await fetchJson(TCGDEX+'cards/'+encodeURIComponent(tid));
+      var v = pickCmPrice(d && d.pricing && d.pricing.cardmarket);
+      if(v!=null){ w.price = v; cmCacheSet(w.ref.id, v); paintPrice(w.cardId, v); }
+    }, 6);
+  }
+
+  // 2) Secours : pokemontcg.io pour ce qui n'a pas de prix
+  var rest = pending.filter(function(w){ return w.price==null; });
+  for(var i=0; i<rest.length; i+=40){
+    var chunk = rest.slice(i, i+40);
+    var q = chunk.map(function(w){ return 'id:"'+w.ref.id+'"'; }).join(' OR ');
+    var json = await fetchJson('https://api.pokemontcg.io/v2/cards?pageSize=250&select=id,cardmarket&q='+encodeURIComponent(q), 15000);
+    var byId = {};
+    ((json && json.data)||[]).forEach(function(d){
+      var pr = d.cardmarket && d.cardmarket.prices;
+      var v = pr ? (pr.averageSellPrice!=null ? pr.averageSellPrice : (pr.trendPrice!=null ? pr.trendPrice : null)) : null;
+      byId[d.id] = (typeof v==='number' && v>0) ? v : null;
+    });
+    chunk.forEach(function(w){
+      var v = byId.hasOwnProperty(w.ref.id) ? byId[w.ref.id] : null;
+      if(json) cmCacheSet(w.ref.id, v);   // on ne mémorise l'absence que si l'API a répondu
+      paintPrice(w.cardId, v);
+    });
   }
 }
 
