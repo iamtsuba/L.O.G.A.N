@@ -147,6 +147,7 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .tile.missing{background:var(--missing-bg);border-color:var(--missing);}
 .tile.friend{background:var(--friend-bg);border-color:var(--friend);}
 .tile.complete-gold{background:#4a3d0e;border-color:var(--gold);box-shadow:0 0 0 1.5px var(--gold);}
+.card-grid.only-missing .tile.owned{display:none;}
 .tile-del{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;background:var(--missing-bg);color:var(--missing);border:1px solid var(--missing);font-size:12px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;z-index:2;cursor:pointer;}
 .tile-del:hover{background:var(--missing);color:#fff;}
 .tile img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:7px;background:var(--panel-raised);margin-bottom:6px;}
@@ -719,9 +720,16 @@ async function renderCollection(collectionId){
       '<span><i style="background:var(--friend);"></i>Un ami a un doublon</span>'+
       '<span><i style="background:var(--missing);"></i>Manquante</span>'+
     '</div>'+
+    '<div style="margin-bottom:14px;"><button class="btn-ghost" id="filter-missing-btn" style="font-size:12px;">Manquantes seulement</button></div>'+
+    '<p id="no-missing" class="muted" style="display:none;text-align:center;margin:20px 0;">Aucune carte manquante 🎉</p>'+
     '<div id="card-grid" class="card-grid"><p class="muted">Chargement…</p></div>';
 
   qs('back-home').onclick = function(){ navigate('home'); };
+  qs('filter-missing-btn').onclick = function(){
+    state.onlyMissing = !state.onlyMissing;
+    try{ localStorage.setItem('pokeshop_only_missing', state.onlyMissing ? '1' : '0'); }catch(e){}
+    updateMissingFilter();
+  };
   if(qs('rename-coll-btn')) qs('rename-coll-btn').onclick = function(){ openRenameCollectionModal(collectionId, coll ? coll.name : ''); };
   if(qs('add-card-btn')) qs('add-card-btn').onclick = function(){ openAddCardModal(collectionId); };
   if(qs('import-csv-btn')) qs('import-csv-btn').onclick = function(){ openCsvImportModal(collectionId); };
@@ -790,6 +798,7 @@ async function renderCollection(collectionId){
     tile.onclick = function(){ openCardModal(card); };
     grid.appendChild(tile);
   });
+  updateMissingFilter();
   loadCardmarketPrices(cards);
 }
 
@@ -941,6 +950,22 @@ async function loadCardmarketPrices(cards){
   pending.forEach(function(w){ if(w.price==null) paintMissing(w.card); });
 }
 
+function updateMissingFilter(){
+  var grid = qs('card-grid'), btn = qs('filter-missing-btn'), msg = qs('no-missing');
+  if(!grid || !btn) return;
+  if(state.onlyMissing === undefined){
+    try{ state.onlyMissing = localStorage.getItem('pokeshop_only_missing')==='1'; }catch(e){ state.onlyMissing = false; }
+  }
+  var on = !!state.onlyMissing;
+  grid.classList.toggle('only-missing', on);
+  var total = grid.querySelectorAll('.tile').length;
+  var missing = grid.querySelectorAll('.tile:not(.owned)').length;
+  btn.className = on ? 'btn-gold' : 'btn-ghost';
+  btn.style.fontSize = '12px';
+  btn.textContent = on ? ('Manquantes seulement ✓ ('+missing+')') : ('Manquantes seulement ('+missing+')');
+  if(msg) msg.style.display = (on && total>0 && missing===0) ? 'block' : 'none';
+}
+
 async function refreshKeepScroll(){
   var id = state.currentCollectionId;
   var main = qs('main');
@@ -1042,6 +1067,7 @@ async function quickAdd(card, variantKey){
   tileEl.className = 'tile ' + (totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing')) + (complete?' complete-gold':'');
   var chipsEl = tileEl.querySelector('.tile-variants');
   if(chipsEl) chipsEl.innerHTML = variantChips(mine, relevant);
+  updateMissingFilter();
 }
 
 async function getLockedMap(){
