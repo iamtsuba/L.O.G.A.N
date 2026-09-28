@@ -147,6 +147,8 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .tile.missing{background:var(--missing-bg);border-color:var(--missing);}
 .tile.friend{background:var(--friend-bg);border-color:var(--friend);}
 .tile.complete-gold{box-shadow:0 0 0 2.5px var(--gold);}
+.tile-del{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;background:var(--missing-bg);color:var(--missing);border:1px solid var(--missing);font-size:12px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;z-index:2;cursor:pointer;}
+.tile-del:hover{background:var(--missing);color:#fff;}
 .tile img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:7px;background:var(--panel-raised);margin-bottom:6px;}
 .tile .tnum{font-size:10px;color:var(--text-dim);}
 .tile .tname{font-size:11.5px;color:var(--text);line-height:1.25;margin-top:1px;}
@@ -710,7 +712,8 @@ async function renderCollection(collectionId){
       (state.isAdmin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost" id="import-csv-btn">Importer CSV</button><button class="btn-gold" id="add-card-btn">+ Ajouter une carte</button><button class="btn-danger" id="delete-all-btn">Vider la collection</button></div>' : '')+
     '</div>'+
     '<div class="legend">'+
-      '<span><i style="background:var(--owned);"></i>Possédée</span>'+
+      '<span><i style="background:var(--owned);"></i>Possédé</span>'+
+      '<span><i style="background:var(--gold);"></i>Possédés</span>'+
       '<span><i style="background:var(--friend);"></i>Un ami a un doublon</span>'+
       '<span><i style="background:var(--missing);"></i>Manquante</span>'+
     '</div>'+
@@ -767,6 +770,7 @@ async function renderCollection(collectionId){
     var quickBtns = relevant.map(function(k){ return '<button class="quick-add" data-variant="'+k+'">+'+k+'</button>'; }).join('');
     var tile = el(
       '<div class="tile '+cls+(complete?' complete-gold':'')+'" data-card-id="'+card.id+'">'+
+        (state.isAdmin ? '<button class="tile-del" title="Supprimer cette carte">🗑</button>' : '')+
         '<img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" alt="" loading="lazy" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
         '<div class="tnum">#'+esc(card.number)+'</div>'+
         '<div class="tname">'+esc(card.name)+'</div>'+
@@ -777,6 +781,8 @@ async function renderCollection(collectionId){
     tile.querySelectorAll('.quick-add').forEach(function(btn){
       btn.onclick = function(e){ e.stopPropagation(); quickAdd(card, btn.getAttribute('data-variant')); };
     });
+    var delBtn = tile.querySelector('.tile-del');
+    if(delBtn) delBtn.onclick = function(e){ e.stopPropagation(); openDeleteCardModal(card); };
     tile.onclick = function(){ openCardModal(card); };
     grid.appendChild(tile);
   });
@@ -805,6 +811,29 @@ function openRenameCollectionModal(collectionId, currentName){
     if(state.view==='home') renderHome(); else renderCollection(collectionId);
   };
   qs('m-rename-coll').addEventListener('keydown', function(e){ if(e.key==='Enter') qs('m-rename-save').click(); });
+}
+
+function openDeleteCardModal(card){
+  if(!state.isAdmin) return;
+  openModal(
+    '<h3>Supprimer la carte</h3>'+
+    '<p class="muted" style="margin-bottom:18px;">Supprimer définitivement <b>'+esc(card.name)+'</b> (#'+esc(card.number)+') de la collection ? Les exemplaires possédés par les dresseurs pour cette carte seront aussi supprimés. Cette action est irréversible.</p>'+
+    '<button class="btn-danger" style="width:100%;padding:12px;" id="confirm-delete-card">Oui, supprimer cette carte</button>'
+  );
+  qs('confirm-delete-card').onclick = async function(){
+    var btn = qs('confirm-delete-card');
+    btn.disabled = true; btn.textContent = 'Suppression…';
+    try{
+      await apiDelete('pokeshop_user_cards', 'card_id=eq.'+card.id);
+      await apiDelete('pokeshop_cards', 'id=eq.'+card.id);
+    }catch(e){
+      btn.disabled = false; btn.textContent = 'Oui, supprimer cette carte';
+      alert('Erreur lors de la suppression : '+(e && e.message ? e.message : e));
+      return;
+    }
+    closeModal();
+    renderCollection(state.currentCollectionId);
+  };
 }
 
 function openDeleteAllCardsModal(collectionId, collName){
@@ -1013,7 +1042,7 @@ async function openCardModal(card){
     '<h3 style="text-align:center;">'+esc(card.name)+' <span class="muted">#'+esc(card.number)+'</span></h3>'+
     '<p class="muted" style="text-align:center;margin-bottom:10px;">Rareté : '+esc(card.rarity||'Normal')+'</p>'+
     '<div class="card-preview"><img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;"></div>'+
-    (state.isAdmin ? '<button class="btn-ghost" id="edit-card-btn" style="width:100%;margin-bottom:14px;font-size:12px;">✎ Modifier nom / numéro / image / rareté</button>' : '')+
+    (state.isAdmin ? '<button class="btn-ghost" id="edit-card-btn" style="width:100%;margin-bottom:14px;font-size:12px;">✎ Modifier nom / numéro / image / rareté</button><button class="btn-danger" id="delete-card-btn" style="width:100%;margin-bottom:14px;font-size:12px;">🗑 Supprimer cette carte</button>' : '')+
     variantRows+
     '<button class="btn-primary" id="qty-save">Enregistrer</button>'+
     '<div class="friendlist">'+
@@ -1027,6 +1056,7 @@ async function openCardModal(card){
   );
 
   if(qs('edit-card-btn')) qs('edit-card-btn').onclick = function(){ openEditCardModal(card); };
+  if(qs('delete-card-btn')) qs('delete-card-btn').onclick = function(){ openDeleteCardModal(card); };
 
   function refresh(v){
     qs('qty-val-'+v).textContent = qtyState[v];
