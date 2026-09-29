@@ -959,6 +959,7 @@ async function renderCollection(collectionId){
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'+
       '<input id="card-search" type="search" placeholder="Rechercher une carte…" style="flex:1;min-width:160px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--line);background:var(--panel);color:var(--text);font-size:13px;">'+
       '<button class="btn-ghost" id="filter-missing-btn" style="font-size:12px;">Manquantes seulement</button>'+
+      '<button class="btn-ghost" id="refresh-prices-btn" style="font-size:12px;" title="Recalcule le prix de tes doublons et cartes en vente à partir du prix moyen Cardmarket">↻ Actualiser mes prix</button>'+
     '</div>'+
     '<p id="no-missing" class="muted" style="display:none;text-align:center;margin:20px 0;">Aucune carte manquante 🎉</p>'+
     '<div id="card-grid" class="card-grid"><p class="muted">Chargement…</p></div>';
@@ -966,6 +967,7 @@ async function renderCollection(collectionId){
   qs('back-home').onclick = function(){ navigate('home'); };
   var searchInput = qs('card-search');
   searchInput.oninput = function(){ state.cardSearch = searchInput.value; applyCardSearch(); };
+  qs('refresh-prices-btn').onclick = function(){ refreshMyPrices(collectionId); };
   qs('filter-missing-btn').onclick = function(){
     state.onlyMissing = !state.onlyMissing;
     try{ localStorage.setItem('trocdecartes_only_missing', state.onlyMissing ? '1' : '0'); }catch(e){}
@@ -1175,18 +1177,22 @@ async function runPool(items, worker, size){
   var ws = []; for(var k=0;k<Math.min(size,items.length);k++) ws.push(next());
   await Promise.all(ws);
 }
-async function loadCardmarketPrices(cards){
+/* Résout le prix Cardmarket (TCGdex, puis pokemontcg.io) pour une liste de cartes.
+   onEach(card, price|null) est appelé pour CHAQUE carte, prix trouvé ou non. Ne peint rien. */
+async function resolveCardPrices(cards, onEach, opts){
+  opts = opts || {};
   var pending = [];
   cards.forEach(function(c){
     var ref = cardApiRef(c);
-    if(!ref){ paintMissing(c); return; }
-    var cached = cmCacheGet(ref.id);
-    if(cached){ if(cached.p!=null) paintPrice(c.id, cached.p); else paintMissing(c); return; }
-    pending.push({ cardId:c.id, card:c, ref:ref, price:null });
+    if(!ref){ onEach(c, null); return; }
+    if(!opts.force){
+      var cached = cmCacheGet(ref.id);
+      if(cached){ onEach(c, cached.p); return; }
+    }
+    pending.push({ card:c, ref:ref, price:null });
   });
   if(!pending.length) return;
 
-  // 1) TCGdex : prix Cardmarket (moyen) carte par carte
   var byCode = {};
   pending.forEach(function(w){ (byCode[w.ref.code] = byCode[w.ref.code]||[]).push(w); });
   for(var code in byCode){
@@ -1199,11 +1205,10 @@ async function loadCardmarketPrices(cards){
       if(!tid) return;
       var d = await fetchJson(TCGDEX+'cards/'+encodeURIComponent(tid));
       var v = pickCmPrice(d && d.pricing && d.pricing.cardmarket);
-      if(v!=null){ w.price = v; cmCacheSet(w.ref.id, v); paintPrice(w.cardId, v); }
+      if(v!=null){ w.price = v; cmCacheSet(w.ref.id, v); onEach(w.card, v); }
     }, 6);
   }
 
-  // 2) Secours : pokemontcg.io pour ce qui n'a pas de prix
   var rest = pending.filter(function(w){ return w.price==null; });
   for(var i=0; i<rest.length; i+=40){
     var chunk = rest.slice(i, i+40);
@@ -1217,12 +1222,71 @@ async function loadCardmarketPrices(cards){
     });
     chunk.forEach(function(w){
       var v = byId.hasOwnProperty(w.ref.id) ? byId[w.ref.id] : null;
-      if(json) cmCacheSet(w.ref.id, v);   // on ne mémorise l'absence que si l'API a répondu
-      if(v!=null){ w.price = v; paintPrice(w.cardId, v); }
+      if(json) cmCacheSet(w.ref.id, v);
+      if(v!=null) w.price = v;
+      onEach(w.card, w.price);
     });
   }
-  // Toujours sans prix : lien direct vers Cardmarket
-  pending.forEach(function(w){ if(w.price==null) paintMissing(w.card); });
+}
+
+async function loadCardmarketPrices(cards){
+  await resolveCardPrices(cards, function(card, price){
+    if(price!=null) paintPrice(card.id, price); else paintMissing(card);
+  });
+}
+
+/* Recalcule le prix des doublons/cartes en vente (mes lignes trocdecartes_user_cards
+   avec quantity>1 ou for_sale) d'une collection, à partir du prix moyen Cardmarket.
+   Sans prix trouvé pour une carte, son prix n'est pas modifié. */
+async function refreshMyPrices(collectionId){
+  var btn = qs('refresh-prices-btn');
+  if(!btn || btn.disabled) return;
+  btn.disabled = true;
+  var original = btn.textContent;
+  btn.textContent = 'Actualisation…';
+  try{
+    var cards = await apiSelect('trocdecartes_cards', 'collection_id=eq.'+collectionId+'&select=id,name,image_url');
+    var cardById = {}; cards.forEach(function(c){ cardById[c.id] = c; });
+
+    var rows = await apiSelect('trocdecartes_user_cards',
+      'user_id=eq.'+state.user.id+'&select=id,card_id,quantity,price,for_sale&quantity=gt.0');
+    var toUpdate = rows.filter(function(r){
+      return cardById[r.card_id] && (r.quantity > 1 || r.for_sale === true);
+    });
+
+    if(!toUpdate.length){
+      btn.textContent = original;
+      alert('Aucun doublon ni carte en vente dans cette collection.');
+      return;
+    }
+
+    var byCard = {};
+    toUpdate.forEach(function(r){ (byCard[r.card_id] = byCard[r.card_id]||[]).push(r); });
+    var uniqueCards = Object.keys(byCard).map(function(id){ return cardById[id]; });
+
+    var updated = 0, unchanged = 0;
+    await resolveCardPrices(uniqueCards, function(card, price){
+      if(price == null){ unchanged += byCard[card.id].length; return; }
+      byCard[card.id].forEach(function(r){
+        apiUpdate('trocdecartes_user_cards', 'id=eq.'+r.id, { price: price })
+          .then(function(){ updated++; })
+          .catch(function(){ unchanged++; });
+      });
+    }, { force: true });
+
+    // laisse le temps aux PATCH lancés en parallèle de se terminer
+    await new Promise(function(res){ setTimeout(res, 400); });
+
+    btn.textContent = original;
+    alert('Prix mis à jour pour '+updated+' exemplaire'+(updated>1?'s':'')+'.'+
+      (unchanged ? ' '+unchanged+' sans prix moyen trouvé, inchangé'+(unchanged>1?'s':'')+'.' : ''));
+    refreshKeepScroll();
+  }catch(e){
+    btn.textContent = original;
+    alert('Erreur : '+(e && e.message ? e.message : e));
+  }finally{
+    btn.disabled = false;
+  }
 }
 
 function updateMissingFilter(){
