@@ -110,21 +110,6 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .btn-danger:hover{background:var(--missing);color:#fff;}
 
 .coll-list{display:flex;flex-direction:column;gap:10px;}
-.tile-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
-.gtile{background:var(--panel);border:1.5px solid var(--line);border-radius:12px;padding:8px;cursor:pointer;position:relative;text-align:center;min-width:0;transition:transform .1s;}
-.gtile:hover{border-color:var(--gold);transform:translateY(-2px);}
-.gtile .gimg{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:9px;background:var(--panel-raised);display:block;margin-bottom:7px;}
-.gtile .gph{width:100%;aspect-ratio:1/1;border-radius:9px;background:var(--panel-raised);display:flex;align-items:center;justify-content:center;margin-bottom:7px;}
-.gtile .gph svg{width:46%;height:auto;opacity:.5;}
-.gtile .gname{font-size:12.5px;font-weight:700;color:var(--paper);line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;}
-.gtile .gsub{font-size:10.5px;color:var(--text-dim);margin-top:3px;}
-.gtile .gbar{height:5px;border-radius:4px;background:var(--panel-raised);overflow:hidden;margin-top:6px;}
-.gtile .gbar>div{height:100%;background:linear-gradient(90deg,var(--pokered),var(--gold));border-radius:4px;}
-.gtile .gedit{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;background:rgba(20,22,27,.85);color:var(--paper);border:1px solid var(--line);font-size:12px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;z-index:2;cursor:pointer;}
-.gtile .gedit:hover{background:var(--gold);color:var(--ink);}
-.photo-field{display:flex;gap:12px;align-items:center;}
-.photo-field img{width:64px;height:64px;object-fit:cover;border-radius:10px;background:var(--panel-raised);flex:0 0 auto;}
-.photo-field .pf-empty{width:64px;height:64px;border-radius:10px;background:var(--panel-raised);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim);}
 .coll-row{
   display:flex;align-items:center;gap:16px;background:var(--panel);border:1.5px solid var(--line);
   border-radius:14px;padding:14px 16px;cursor:pointer;transition:border-color .15s;
@@ -161,14 +146,9 @@ main{max-width:1040px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-
 .tile.owned{background:var(--owned-bg);border-color:var(--owned);}
 .tile.missing{background:var(--missing-bg);border-color:var(--missing);}
 .tile.friend{background:var(--friend-bg);border-color:var(--friend);}
-.tile.complete-gold{background:#4a3d0e;border-color:var(--gold);box-shadow:0 0 0 1.5px var(--gold);}
-.card-grid.only-missing .tile.owned{display:none;}
-.tile-del{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;background:var(--missing-bg);color:var(--missing);border:1px solid var(--missing);font-size:12px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;z-index:2;cursor:pointer;}
-.tile-del:hover{background:var(--missing);color:#fff;}
+.tile.complete-gold{box-shadow:0 0 0 2.5px var(--gold);}
 .tile img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:7px;background:var(--panel-raised);margin-bottom:6px;}
 .tile .tnum{font-size:10px;color:var(--text-dim);}
-.tile .tprice{font-size:11px;color:var(--gold);margin-top:2px;min-height:14px;font-weight:600;}
-.tile .tprice a{color:var(--text-dim);font-weight:400;font-size:10.5px;text-decoration:underline;}
 .tile .tname{font-size:11.5px;color:var(--text);line-height:1.25;margin-top:1px;}
 .tile-variants{display:flex;gap:3px;margin-top:5px;}
 .vchip{font-size:8.5px;padding:2px 5px;border-radius:5px;background:var(--panel-raised);color:var(--text-dim);font-weight:700;letter-spacing:.3px;}
@@ -357,15 +337,12 @@ var state = {
   userCardMap: {},      // card_id -> {quantity, price}
   friendDupMap: {},      // card_id -> [{friend_id, username, price}]
   friends: [],           // accepted friends [{id, username}]
-  friendRows: [],        // raw pokeshop_friends rows involving me
+  friendRows: [],        // raw trocdecartes_friends rows involving me
   cart: [],
   inbox: [],
   sent: [],
   inboxTab: 'received',
   isAdmin: (localStorage.getItem('pokeshop_admin')==='1'),
-  themes: [],
-  themesAvailable: false,
-  currentThemeId: null,
   friendPendingCount: 0,
   selectedDealId: null,
   messagesTab: 'active',
@@ -528,10 +505,10 @@ async function doRegister(){
   if(password.length < 4){ renderAuth('register','Mot de passe trop court (4 caractères min).'); return; }
   if(!registerSelectedCity){ renderAuth('register','Choisis une ville dans la liste de suggestions.'); return; }
   try{
-    var existing = await apiSelect('pokeshop_users', 'or=(username.eq.'+encodeURIComponent(username)+',email.eq.'+encodeURIComponent(email)+')&select=id');
+    var existing = await apiSelect('trocdecartes_users', 'or=(username.eq.'+encodeURIComponent(username)+',email.eq.'+encodeURIComponent(email)+')&select=id');
     if(existing.length){ renderAuth('register','Ce pseudo ou cet email est déjà pris.'); return; }
     var hash = await sha256(password);
-    var rows = await apiInsert('pokeshop_users', [{ username: username, email: email, password_hash: hash, city: registerSelectedCity.name, city_lat: registerSelectedCity.lat, city_lng: registerSelectedCity.lng, is_public: false }]);
+    var rows = await apiInsert('trocdecartes_users', [{ username: username, email: email, password_hash: hash, city: registerSelectedCity.name, city_lat: registerSelectedCity.lat, city_lng: registerSelectedCity.lng, is_public: false }]);
     if(!rows || !rows.length){ renderAuth('register','Inscription impossible, réessaie.'); return; }
     var u = rows[0];
     var sess = { id: u.id, username: u.username, email: u.email, city: u.city, city_lat: u.city_lat, city_lng: u.city_lng, is_public: u.is_public };
@@ -547,7 +524,7 @@ async function doLogin(){
   try{
     var hash = await sha256(password);
     var idEnc = encodeURIComponent(identifier.toLowerCase());
-    var rows = await apiSelect('pokeshop_users', 'or=(username.ilike.'+encodeURIComponent(identifier)+',email.eq.'+idEnc+')&select=*');
+    var rows = await apiSelect('trocdecartes_users', 'or=(username.ilike.'+encodeURIComponent(identifier)+',email.eq.'+idEnc+')&select=*');
     var u = rows.find(function(r){ return r.password_hash === hash; });
     if(!u){ renderAuth('login','Identifiants incorrects.'); return; }
     var sess = { id: u.id, username: u.username, email: u.email, city: u.city, city_lat: u.city_lat, city_lng: u.city_lng, is_public: u.is_public };
@@ -580,7 +557,7 @@ function renderShell(){
   qs('userchip').textContent = state.user.username;
   qs('logout-btn').onclick = doLogout;
   app.querySelectorAll('[data-nav]').forEach(function(b){
-    b.onclick = function(){ if(b.getAttribute('data-nav')==='home') state.currentThemeId = null; navigate(b.getAttribute('data-nav')); };
+    b.onclick = function(){ navigate(b.getAttribute('data-nav')); };
   });
   qs('admin-btn').onclick = function(){
     if(state.isAdmin){
@@ -644,7 +621,7 @@ function updateBadges(){
 
 async function refreshFriendPending(){
   try{
-    var rows = await apiSelect('pokeshop_friends', 'friend_id=eq.'+state.user.id+'&status=eq.pending&select=id');
+    var rows = await apiSelect('trocdecartes_friends', 'friend_id=eq.'+state.user.id+'&status=eq.pending&select=id');
     state.friendPendingCount = rows.length;
     updateBadges();
   }catch(e){}
@@ -664,152 +641,39 @@ async function navigate(view, arg){
 
 /* ============ HOME ============ */
 
-var SQL_IMAGES = "alter table pokeshop_themes add column if not exists image text;\nalter table pokeshop_collections add column if not exists image text;";
-
-function resizeImageFile(file, maxSize){
-  return new Promise(function(resolve, reject){
-    var reader = new FileReader();
-    reader.onerror = function(){ reject(new Error('Lecture du fichier impossible')); };
-    reader.onload = function(){
-      var img = new Image();
-      img.onerror = function(){ reject(new Error('Image illisible')); };
-      img.onload = function(){
-        var side = Math.min(img.width, img.height);           // recadrage carré centré
-        var sx = (img.width - side)/2, sy = (img.height - side)/2;
-        var out = Math.min(maxSize, side);
-        var cv = document.createElement('canvas'); cv.width = out; cv.height = out;
-        cv.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, out, out);
-        resolve(cv.toDataURL('image/jpeg', 0.82));
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-function photoFieldHtml(id, cur){
-  return '<div class="field"><label>Photo</label><div class="photo-field">'+
-    (cur ? '<img id="'+id+'-prev" src="'+esc(cur)+'">' : '<div class="pf-empty" id="'+id+'-prev">Aucune</div>')+
-    '<div style="display:flex;flex-direction:column;gap:6px;min-width:0;"><input type="file" accept="image/*" id="'+id+'-file" style="font-size:12px;max-width:100%;">'+
-    '<button type="button" class="btn-ghost" id="'+id+'-clear" style="font-size:11px;padding:4px 8px;align-self:flex-start;">Retirer la photo</button></div></div></div>';
-}
-// ctl.value : undefined = inchangé, null = retirer, chaîne = nouvelle photo
-function bindPhotoField(id){
-  var ctl = { value: undefined };
-  function setPrev(url){
-    var old = qs(id+'-prev');
-    var node = url ? el('<img id="'+id+'-prev" src="'+url+'">') : el('<div class="pf-empty" id="'+id+'-prev">Aucune</div>');
-    old.parentNode.replaceChild(node, old);
-  }
-  qs(id+'-file').onchange = async function(){
-    var f = this.files && this.files[0];
-    if(!f) return;
-    try{ ctl.value = await resizeImageFile(f, 480); setPrev(ctl.value); }
-    catch(e){ alert('Photo : '+e.message); }
-  };
-  qs(id+'-clear').onclick = function(){ ctl.value = null; setPrev(null); qs(id+'-file').value = ''; };
-  return ctl;
-}
-function imageErrHint(e){
-  var m = (e && e.message) ? e.message : String(e);
-  return /image/i.test(m) ? m+'\n\nLa colonne "image" existe-t-elle ? Exécute dans Supabase :\n'+SQL_IMAGES : m;
-}
-function tileImgHtml(img){
-  return img ? '<img class="gimg" loading="lazy" src="'+esc(img)+'" alt="">' : '<div class="gph">'+BALL_SVG+'</div>';
-}
-
-var SQL_THEMES = "create table if not exists pokeshop_themes (id uuid primary key default gen_random_uuid(), name text not null, created_at timestamptz default now());\nalter table pokeshop_themes disable row level security;\nalter table pokeshop_collections add column if not exists theme_id uuid references pokeshop_themes(id) on delete set null;";
-
-async function loadThemes(){
-  try{ state.themes = await apiSelect('pokeshop_themes', 'select=*&order=name.asc'); state.themesAvailable = true; }
-  catch(e){ state.themes = []; state.themesAvailable = false; }
-  return state.themes;
-}
-
-function themeOptionsHtml(selectedId){
-  var opts = '<option value="">Sans thème</option>';
-  (state.themes||[]).forEach(function(t){ opts += '<option value="'+esc(t.id)+'"'+(t.id===selectedId?' selected':'')+'>'+esc(t.name)+'</option>'; });
-  return opts;
-}
-
 async function renderHome(){
   var main = qs('main');
-  main.innerHTML = '<p class="muted">Chargement…</p>';
-  var themes = await loadThemes();
-  var collections = await apiSelect('pokeshop_collections', 'select=*&order=created_at.asc');
-  state.collections = collections;
-
-  var noThemeColls = collections.filter(function(c){ return !c.theme_id; });
-  var themeMode = state.themesAvailable && themes.length > 0;
-
-  // ----- Écran de choix du thème -----
-  if(themeMode && !state.currentThemeId){
-    var html = '<div class="section-head"><h2>Thèmes</h2>'+(state.isAdmin ? '<button class="btn-gold" id="new-theme-btn">+ Nouveau thème</button>' : '')+'</div><div id="theme-list" class="tile-grid"></div>';
-    main.innerHTML = html;
-    if(qs('new-theme-btn')) qs('new-theme-btn').onclick = openNewThemeModal;
-    var tl = qs('theme-list');
-    var entries = themes.map(function(t){
-      return { id:t.id, name:t.name, image:t.image, raw:t, count: collections.filter(function(c){ return c.theme_id===t.id; }).length };
-    });
-    if(noThemeColls.length) entries.push({ id:'none', name:'Sans thème', count: noThemeColls.length });
-    entries.forEach(function(t, idx){
-      var row = el(
-        '<div class="gtile">'+
-          (state.isAdmin && t.raw ? '<button class="gedit" title="Modifier le thème">✎</button>' : '')+
-          tileImgHtml(t.image)+
-          '<div class="gname">'+esc(t.name)+'</div>'+
-          '<div class="gsub">'+t.count+' collection'+(t.count>1?'s':'')+'</div>'+
-        '</div>'
-      );
-      var eb = row.querySelector('.gedit');
-      if(eb) eb.onclick = function(e){ e.stopPropagation(); openEditThemeModal(t.raw); };
-      row.onclick = function(){ state.currentThemeId = t.id; renderHome(); };
-      tl.appendChild(row);
-    });
-    return;
-  }
-
-  // ----- Liste des collections (d'un thème, ou toutes si aucun thème n'existe) -----
-  var currentTheme = themeMode ? (state.currentThemeId==='none' ? { id:'none', name:'Sans thème' } : themes.find(function(t){ return t.id===state.currentThemeId; })) : null;
-  if(themeMode && !currentTheme){ state.currentThemeId = null; return renderHome(); }
-  var visible = !themeMode ? collections : collections.filter(function(c){ return state.currentThemeId==='none' ? !c.theme_id : c.theme_id===state.currentThemeId; });
-
-  main.innerHTML =
-    (themeMode ? '<button class="backlink" id="back-themes">← Tous les thèmes</button>' : '')+
-    '<div class="section-head"><h2>'+(currentTheme ? esc(currentTheme.name) : 'Tes collections')+'</h2>'+
-      (state.isAdmin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+(!themeMode ? '<button class="btn-ghost" id="new-theme-btn">+ Nouveau thème</button>' : '')+'<button class="btn-gold" id="new-coll-btn">+ Nouvelle collection</button></div>' : '')+
-    '</div>'+
-    ((state.isAdmin && !state.themesAvailable) ? '<div class="notice warn" style="background:#3a2f12;border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text);">Les thèmes ne sont pas encore activés : exécute ce SQL dans Supabase puis recharge.<pre style="white-space:pre-wrap;user-select:all;margin:8px 0 0;font-size:11px;color:var(--gold);">'+esc(SQL_THEMES)+'</pre></div>' : '')+
-    '<div id="coll-list" class="tile-grid"><p class="muted" style="grid-column:1/-1;">Chargement…</p></div>';
-  if(qs('back-themes')) qs('back-themes').onclick = function(){ state.currentThemeId = null; renderHome(); };
+  main.innerHTML = '<div class="section-head"><h2>Tes collections</h2>'+(state.isAdmin ? '<button class="btn-gold" id="new-coll-btn">+ Nouvelle collection</button>' : '')+'</div><div id="coll-list" class="coll-list"><p class="muted">Chargement…</p></div>';
   if(qs('new-coll-btn')) qs('new-coll-btn').onclick = openNewCollectionModal;
-  if(qs('new-theme-btn')) qs('new-theme-btn').onclick = openNewThemeModal;
 
+  var collections = await apiSelect('trocdecartes_collections', 'select=*&order=created_at.asc');
+  state.collections = collections;
   var list = qs('coll-list');
-  if(!visible.length){
-    list.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);margin-bottom:6px;">Aucune collection pour l\'instant</h3><p>'+(themeMode ? 'Aucune collection dans ce thème.' : 'Crée la première collection pour commencer à suivre ton master set.')+'</p></div>';
+  if(!collections.length){
+    list.innerHTML = '<div class="empty-state"><div class="ball-big">'+BALL_SVG+'</div><h3 style="color:var(--paper);margin-bottom:6px;">Aucune collection pour l\'instant</h3><p>Crée la première collection pour commencer à suivre ton master set.</p></div>';
     return;
   }
 
-  var cardCounts = await apiSelect('pokeshop_cards', 'select=id,collection_id');
-  var myCards = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&quantity=gt.0&select=card_id');
+  var cardCounts = await apiSelect('trocdecartes_cards', 'select=id,collection_id');
+  var myCards = await apiSelect('trocdecartes_user_cards', 'user_id=eq.'+state.user.id+'&quantity=gt.0&select=card_id');
   var ownedSet = {}; myCards.forEach(function(r){ ownedSet[r.card_id]=true; });
+  var cardIdToColl = {};
   var totalsByColl = {};
-  cardCounts.forEach(function(c){ totalsByColl[c.collection_id]=(totalsByColl[c.collection_id]||0)+1; });
+  cardCounts.forEach(function(c){ totalsByColl[c.collection_id]=(totalsByColl[c.collection_id]||0)+1; cardIdToColl[c.id]=c.collection_id; });
   var ownedByColl = {};
   cardCounts.forEach(function(c){ if(ownedSet[c.id]) ownedByColl[c.collection_id]=(ownedByColl[c.collection_id]||0)+1; });
 
   list.innerHTML = '';
-  visible.forEach(function(c, idx){
+  collections.forEach(function(c, idx){
     var total = totalsByColl[c.id]||0;
     var owned = ownedByColl[c.id]||0;
     var pct = total ? Math.round(owned/total*100) : 0;
     var row = el(
-      '<div class="gtile">'+
-        (state.isAdmin ? '<button class="gedit coll-rename" title="Modifier la collection">✎</button>' : '')+
-        tileImgHtml(c.image)+
-        '<div class="gname">'+esc(c.name)+'</div>'+
-        '<div class="gsub">'+owned+' / '+total+' · '+pct+'%</div>'+
-        '<div class="gbar"><div style="width:'+pct+'%;"></div></div>'+
+      '<div class="coll-row">'+
+        '<div class="cnum">'+(idx+1)+'</div>'+
+        '<div class="cinfo"><h3>'+esc(c.name)+'</h3><div class="csub">'+owned+' / '+total+' cartes</div></div>'+
+        (state.isAdmin ? '<button class="btn-ghost coll-rename" style="padding:6px 10px;font-size:12px;flex:0 0 auto;">✎</button>' : '')+
+        '<div class="cprog"><div class="progress-track"><div class="progress-fill" style="width:'+pct+'%;"></div></div><div class="pct">'+pct+'%</div></div>'+
       '</div>'
     );
     var renameBtn = row.querySelector('.coll-rename');
@@ -819,69 +683,16 @@ async function renderHome(){
   });
 }
 
-function openNewThemeModal(){
-  if(!state.isAdmin) return;
-  openModal(
-    '<h3>Nouveau thème</h3>'+
-    '<div class="field"><label>Nom (ex. Pokémon, Naruto)</label><input id="m-theme-name" placeholder="Pokémon"></div>'+
-    photoFieldHtml('m-theme-photo', null)+
-    '<button class="btn-primary" id="m-theme-save">Créer</button>'
-  );
-  var photo = bindPhotoField('m-theme-photo');
-  qs('m-theme-save').onclick = async function(){
-    var name = (qs('m-theme-name').value||'').trim();
-    if(!name) return;
-    var row = { name: name };
-    if(typeof photo.value === 'string') row.image = photo.value;
-    try{ await apiInsert('pokeshop_themes', [row]); }
-    catch(e){ alert('Impossible de créer le thème : '+imageErrHint(e)); return; }
-    closeModal();
-    renderHome();
-  };
-  qs('m-theme-name').addEventListener('keydown', function(e){ if(e.key==='Enter') qs('m-theme-save').click(); });
-}
-
-function openEditThemeModal(theme){
-  if(!state.isAdmin) return;
-  openModal(
-    '<h3>Modifier le thème</h3>'+
-    '<div class="field"><label>Nom</label><input id="m-etheme-name" value="'+esc(theme.name)+'"></div>'+
-    photoFieldHtml('m-etheme-photo', theme.image)+
-    '<button class="btn-primary" id="m-etheme-save">Enregistrer</button>'
-  );
-  var photo = bindPhotoField('m-etheme-photo');
-  qs('m-etheme-save').onclick = async function(){
-    var name = (qs('m-etheme-name').value||'').trim();
-    if(!name) return;
-    var patch = { name: name };
-    if(photo.value !== undefined) patch.image = photo.value;
-    try{ await apiUpdate('pokeshop_themes', 'id=eq.'+theme.id, patch); }
-    catch(e){ alert('Erreur : '+imageErrHint(e)); return; }
-    closeModal();
-    renderHome();
-  };
-}
-
-async function openNewCollectionModal(){
-  var defaultTheme = (state.currentThemeId && state.currentThemeId!=='none') ? state.currentThemeId : '';
-  var themeField = state.themesAvailable ? '<div class="field"><label>Thème</label><select id="m-coll-theme">'+themeOptionsHtml(defaultTheme)+'</select></div>' : '';
+function openNewCollectionModal(){
   openModal(
     '<h3>Nouvelle collection</h3>'+
     '<div class="field"><label>Nom (ex. 151, 25 ans, Pokémon Go)</label><input id="m-coll-name" placeholder="151"></div>'+
-    themeField+
-    photoFieldHtml('m-coll-photo', null)+
     '<button class="btn-primary" id="m-coll-save">Créer</button>'
   );
-  var photo = bindPhotoField('m-coll-photo');
   qs('m-coll-save').onclick = async function(){
     var name = (qs('m-coll-name').value||'').trim();
     if(!name) return;
-    var row = { name: name, created_by: state.user.id };
-    var sel = qs('m-coll-theme');
-    if(sel && sel.value) row.theme_id = sel.value;
-    if(typeof photo.value === 'string') row.image = photo.value;
-    try{ await apiInsert('pokeshop_collections', [row]); }
-    catch(e){ alert('Erreur : '+imageErrHint(e)); return; }
+    await apiInsert('trocdecartes_collections', [{ name: name, created_by: state.user.id }]);
     closeModal();
     renderHome();
   };
@@ -894,36 +705,27 @@ async function renderCollection(collectionId){
   var coll = state.collections.find(function(c){ return c.id===collectionId; });
   var main = qs('main');
   main.innerHTML =
-    '<button class="backlink" id="back-home">← Collections</button>'+
+    '<button class="backlink" id="back-home">← Toutes les collections</button>'+
     '<div class="section-head"><h2>'+esc(coll ? coll.name : '')+(state.isAdmin ? ' <button class="btn-ghost" id="rename-coll-btn" style="font-size:11px;padding:4px 9px;vertical-align:middle;">✎ Renommer</button>' : '')+'</h2>'+
       (state.isAdmin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-ghost" id="import-csv-btn">Importer CSV</button><button class="btn-gold" id="add-card-btn">+ Ajouter une carte</button><button class="btn-danger" id="delete-all-btn">Vider la collection</button></div>' : '')+
     '</div>'+
     '<div class="legend">'+
-      '<span><i style="background:var(--owned);"></i>Possédé</span>'+
-      '<span><i style="background:var(--gold);"></i>Possédés</span>'+
+      '<span><i style="background:var(--owned);"></i>Possédée</span>'+
       '<span><i style="background:var(--friend);"></i>Un ami a un doublon</span>'+
       '<span><i style="background:var(--missing);"></i>Manquante</span>'+
     '</div>'+
-    '<div style="margin-bottom:14px;"><button class="btn-ghost" id="filter-missing-btn" style="font-size:12px;">Manquantes seulement</button></div>'+
-    '<p id="no-missing" class="muted" style="display:none;text-align:center;margin:20px 0;">Aucune carte manquante 🎉</p>'+
     '<div id="card-grid" class="card-grid"><p class="muted">Chargement…</p></div>';
 
   qs('back-home').onclick = function(){ navigate('home'); };
-  qs('filter-missing-btn').onclick = function(){
-    state.onlyMissing = !state.onlyMissing;
-    try{ localStorage.setItem('pokeshop_only_missing', state.onlyMissing ? '1' : '0'); }catch(e){}
-    updateMissingFilter();
-  };
   if(qs('rename-coll-btn')) qs('rename-coll-btn').onclick = function(){ openRenameCollectionModal(collectionId, coll ? coll.name : ''); };
   if(qs('add-card-btn')) qs('add-card-btn').onclick = function(){ openAddCardModal(collectionId); };
   if(qs('import-csv-btn')) qs('import-csv-btn').onclick = function(){ openCsvImportModal(collectionId); };
   if(qs('delete-all-btn')) qs('delete-all-btn').onclick = function(){ openDeleteAllCardsModal(collectionId, coll ? coll.name : ''); };
 
-  var cards = await apiSelect('pokeshop_cards', 'collection_id=eq.'+collectionId+'&select=*&order=number.asc');
-  cards.sort(compareCardNumbers);
+  var cards = await apiSelect('trocdecartes_cards', 'collection_id=eq.'+collectionId+'&select=*&order=number.asc');
   state.currentCollectionCards = cards;
 
-  var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=id,card_id,variant,quantity,price,for_sale');
+  var myRows = await apiSelect('trocdecartes_user_cards', 'user_id=eq.'+state.user.id+'&select=id,card_id,variant,quantity,price,for_sale');
   var myMap = {}; myRows.forEach(function(r){ (myMap[r.card_id] = myMap[r.card_id]||{})[r.variant] = r; });
   state.userCardMap = myMap;
 
@@ -934,7 +736,7 @@ async function renderCollection(collectionId){
     var cardIds = cards.map(function(c){ return c.id; });
     if(cardIds.length){
       var lockedMap = await getLockedMap();
-      var dupRows = await apiSelect('pokeshop_user_cards',
+      var dupRows = await apiSelect('trocdecartes_user_cards',
         'user_id=in.('+friendIds.join(',')+')&card_id=in.('+cardIds.join(',')+')&or=(quantity.gt.1,for_sale.eq.true)&select=*');
       dupRows.forEach(function(r){
         var f = state.friends.find(function(ff){ return ff.id===r.user_id; });
@@ -965,11 +767,9 @@ async function renderCollection(collectionId){
     var quickBtns = relevant.map(function(k){ return '<button class="quick-add" data-variant="'+k+'">+'+k+'</button>'; }).join('');
     var tile = el(
       '<div class="tile '+cls+(complete?' complete-gold':'')+'" data-card-id="'+card.id+'">'+
-        (state.isAdmin ? '<button class="tile-del" title="Supprimer cette carte">🗑</button>' : '')+
         '<img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" alt="" loading="lazy" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;">'+
         '<div class="tnum">#'+esc(card.number)+'</div>'+
         '<div class="tname">'+esc(card.name)+'</div>'+
-        '<div class="tprice" title="Prix moyen Cardmarket"></div>'+
         '<div class="tile-variants">'+variantChips(mine, relevant)+'</div>'+
         '<div class="quick-row">'+quickBtns+'</div>'+
       '</div>'
@@ -977,13 +777,9 @@ async function renderCollection(collectionId){
     tile.querySelectorAll('.quick-add').forEach(function(btn){
       btn.onclick = function(e){ e.stopPropagation(); quickAdd(card, btn.getAttribute('data-variant')); };
     });
-    var delBtn = tile.querySelector('.tile-del');
-    if(delBtn) delBtn.onclick = function(e){ e.stopPropagation(); openDeleteCardModal(card); };
     tile.onclick = function(){ openCardModal(card); };
     grid.appendChild(tile);
   });
-  updateMissingFilter();
-  loadCardmarketPrices(cards);
 }
 
 function variantChips(mine, relevantKeys){
@@ -996,209 +792,19 @@ function variantChips(mine, relevantKeys){
 }
 
 function openRenameCollectionModal(collectionId, currentName){
-  var coll = (state.collections||[]).find(function(c){ return c.id===collectionId; }) || {};
-  var themeField = state.themesAvailable ? '<div class="field"><label>Thème</label><select id="m-rename-theme">'+themeOptionsHtml(coll.theme_id||'')+'</select></div>' : '';
   openModal(
-    '<h3>Modifier la collection</h3>'+
+    '<h3>Renommer la collection</h3>'+
     '<div class="field"><label>Nom</label><input id="m-rename-coll" value="'+esc(currentName)+'"></div>'+
-    themeField+
-    photoFieldHtml('m-rename-photo', coll.image)+
     '<button class="btn-primary" id="m-rename-save">Enregistrer</button>'
   );
-  var photo = bindPhotoField('m-rename-photo');
   qs('m-rename-save').onclick = async function(){
     var name = (qs('m-rename-coll').value||'').trim();
     if(!name) return;
-    var patch = { name: name };
-    var sel = qs('m-rename-theme');
-    if(sel) patch.theme_id = sel.value ? sel.value : null;
-    if(photo.value !== undefined) patch.image = photo.value;
-    try{ await apiUpdate('pokeshop_collections', 'id=eq.'+collectionId, patch); }
-    catch(e){ alert('Erreur : '+imageErrHint(e)); return; }
+    await apiUpdate('trocdecartes_collections', 'id=eq.'+collectionId, { name: name });
     closeModal();
     if(state.view==='home') renderHome(); else renderCollection(collectionId);
   };
   qs('m-rename-coll').addEventListener('keydown', function(e){ if(e.key==='Enter') qs('m-rename-save').click(); });
-}
-
-/* ============ PRIX MOYEN CARDMARKET (TCGdex en priorité, pokemontcg.io en secours) ============ */
-var CM_TTL = 12*3600*1000;
-var TCGDEX = 'https://api.tcgdex.net/v2/fr/';
-var TCGDEX_SET_MAP = { pgo:'swsh10.5', sv3pt5:'sv03.5', cel25:'cel25', svp:'svp', swshp:'swshp' };
-var tcgdexSetCache = {};
-
-function cardApiRef(card){
-  var u = card.image_url || '';
-  var m = u.match(/images\.pokemontcg\.io\/([^\/]+)\/([^_\/]+)_hires/);
-  if(!m) m = u.match(/images\.pokemoncard\.io\/images\/([^\/]+)\/[^\/]*?-([^\/.]+)\.png/);
-  return m ? { code:m[1], num:m[2], id:m[1]+'-'+m[2] } : null;
-}
-function normNum(n){ return String(n||'').replace(/^0+(?=\d)/,'').toUpperCase(); }
-function fmtEur(v){ return v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}); }
-function cmCacheGet(key){
-  try{ var r = JSON.parse(localStorage.getItem('pokeshop_cm2_'+key)||'null'); if(r && Date.now()-r.t < (r.p==null ? 3600*1000 : CM_TTL)) return r; }catch(e){}
-  return null;
-}
-function cmCacheSet(key, p){ try{ localStorage.setItem('pokeshop_cm2_'+key, JSON.stringify({p:p,t:Date.now()})); }catch(e){} }
-function paintPrice(cardId, price){
-  var t = document.querySelector('.tile[data-card-id="'+cardId+'"] .tprice');
-  if(t) t.textContent = (price!=null) ? ('Moy. '+fmtEur(price)) : '';
-}
-var CM_EXP = { pgo:'PGO', sv3pt5:'MEW', cel25:'CEL', me55:'' };
-function paintMissing(card){
-  var t = document.querySelector('.tile[data-card-id="'+card.id+'"] .tprice');
-  if(!t) return;
-  var ref = cardApiRef(card);
-  var num = String((ref && ref.num) || card.number || '').replace(/\D/g,'').padStart(3,'0');
-  var exp = (ref && CM_EXP[ref.code]) || '';
-  var q = (card.name||'') + ' ' + (exp ? exp+num : num);
-  t.innerHTML = '<a href="https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString='+encodeURIComponent(q.trim())+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Prix indisponible ici : chercher sur Cardmarket">Voir Cardmarket ↗</a>';
-}
-function pickCmPrice(cm){
-  if(!cm) return null;
-  var keys = ['avg','avg-holo','trend','trend-holo','avg30','avg30-holo'];
-  for(var i=0;i<keys.length;i++){ var v = cm[keys[i]]; if(typeof v==='number' && v>0) return v; }
-  return null;
-}
-async function fetchJson(url, ms){
-  try{
-    var ctrl = new AbortController();
-    var to = setTimeout(function(){ ctrl.abort(); }, ms||12000);
-    var res = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(to);
-    if(!res.ok) return null;
-    return await res.json();
-  }catch(e){ return null; }
-}
-async function tcgdexSetCards(code){
-  if(tcgdexSetCache[code]) return tcgdexSetCache[code];
-  var set = null;
-  if(TCGDEX_SET_MAP[code]) set = await fetchJson(TCGDEX+'sets/'+TCGDEX_SET_MAP[code]);
-  if(!set){
-    // recherche par nom dans la liste des sets (ex. set des 30 ans)
-    var re = null;
-    if(code==='me55') re = function(n){ return /30/.test(n) && /c[ée]l[ée]bration/i.test(n) && !/classi/i.test(n); };
-    if(re){
-      var list = await fetchJson(TCGDEX+'sets', 20000);
-      var found = (list||[]).find(function(x){ return re(x.name||''); });
-      if(found) set = await fetchJson(TCGDEX+'sets/'+found.id);
-    }
-  }
-  var cards = (set && set.cards) ? set.cards : [];
-  tcgdexSetCache[code] = cards;
-  return cards;
-}
-async function runPool(items, worker, size){
-  var i = 0;
-  async function next(){ while(i<items.length){ var it = items[i++]; await worker(it); } }
-  var ws = []; for(var k=0;k<Math.min(size,items.length);k++) ws.push(next());
-  await Promise.all(ws);
-}
-async function loadCardmarketPrices(cards){
-  var pending = [];
-  cards.forEach(function(c){
-    var ref = cardApiRef(c);
-    if(!ref){ paintMissing(c); return; }
-    var cached = cmCacheGet(ref.id);
-    if(cached){ if(cached.p!=null) paintPrice(c.id, cached.p); else paintMissing(c); return; }
-    pending.push({ cardId:c.id, card:c, ref:ref, price:null });
-  });
-  if(!pending.length) return;
-
-  // 1) TCGdex : prix Cardmarket (moyen) carte par carte
-  var byCode = {};
-  pending.forEach(function(w){ (byCode[w.ref.code] = byCode[w.ref.code]||[]).push(w); });
-  for(var code in byCode){
-    var setCards = await tcgdexSetCards(code);
-    if(!setCards.length) continue;
-    var idx = {};
-    setCards.forEach(function(sc){ idx[normNum(sc.localId)] = sc.id; });
-    await runPool(byCode[code], async function(w){
-      var tid = idx[normNum(w.ref.num)];
-      if(!tid) return;
-      var d = await fetchJson(TCGDEX+'cards/'+encodeURIComponent(tid));
-      var v = pickCmPrice(d && d.pricing && d.pricing.cardmarket);
-      if(v!=null){ w.price = v; cmCacheSet(w.ref.id, v); paintPrice(w.cardId, v); }
-    }, 6);
-  }
-
-  // 2) Secours : pokemontcg.io pour ce qui n'a pas de prix
-  var rest = pending.filter(function(w){ return w.price==null; });
-  for(var i=0; i<rest.length; i+=40){
-    var chunk = rest.slice(i, i+40);
-    var q = chunk.map(function(w){ return 'id:"'+w.ref.id+'"'; }).join(' OR ');
-    var json = await fetchJson('https://api.pokemontcg.io/v2/cards?pageSize=250&select=id,cardmarket&q='+encodeURIComponent(q), 15000);
-    var byId = {};
-    ((json && json.data)||[]).forEach(function(d){
-      var pr = d.cardmarket && d.cardmarket.prices;
-      var v = pr ? (pr.averageSellPrice!=null ? pr.averageSellPrice : (pr.trendPrice!=null ? pr.trendPrice : null)) : null;
-      byId[d.id] = (typeof v==='number' && v>0) ? v : null;
-    });
-    chunk.forEach(function(w){
-      var v = byId.hasOwnProperty(w.ref.id) ? byId[w.ref.id] : null;
-      if(json) cmCacheSet(w.ref.id, v);   // on ne mémorise l'absence que si l'API a répondu
-      if(v!=null){ w.price = v; paintPrice(w.cardId, v); }
-    });
-  }
-  // Toujours sans prix : lien direct vers Cardmarket
-  pending.forEach(function(w){ if(w.price==null) paintMissing(w.card); });
-}
-
-function updateMissingFilter(){
-  var grid = qs('card-grid'), btn = qs('filter-missing-btn'), msg = qs('no-missing');
-  if(!grid || !btn) return;
-  if(state.onlyMissing === undefined){
-    try{ state.onlyMissing = localStorage.getItem('pokeshop_only_missing')==='1'; }catch(e){ state.onlyMissing = false; }
-  }
-  var on = !!state.onlyMissing;
-  grid.classList.toggle('only-missing', on);
-  var total = grid.querySelectorAll('.tile').length;
-  var missing = grid.querySelectorAll('.tile:not(.owned)').length;
-  btn.className = on ? 'btn-gold' : 'btn-ghost';
-  btn.style.fontSize = '12px';
-  btn.textContent = on ? ('Manquantes seulement ✓ ('+missing+')') : ('Manquantes seulement ('+missing+')');
-  if(msg) msg.style.display = (on && total>0 && missing===0) ? 'block' : 'none';
-}
-
-async function refreshKeepScroll(){
-  var id = state.currentCollectionId;
-  var main = qs('main');
-  var y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-  if(main) main.style.minHeight = main.offsetHeight + 'px';   // évite que la page se raccourcisse pendant le rechargement
-  try{ await renderCollection(id); }finally{
-    if(main) main.style.minHeight = '';
-    window.scrollTo(0, y); document.documentElement.scrollTop = y; document.body.scrollTop = y;
-  }
-}
-
-function compareCardNumbers(a, b){
-  var na = String(a.number||'').trim(), nb = String(b.number||'').trim();
-  var da = /^\d/.test(na), db = /^\d/.test(nb);
-  if(da !== db) return da ? -1 : 1; // les numéros commençant par un chiffre d'abord, puis ceux à lettres
-  return na.localeCompare(nb, 'fr', { numeric:true, sensitivity:'base' });
-}
-
-function openDeleteCardModal(card){
-  if(!state.isAdmin) return;
-  openModal(
-    '<h3>Supprimer la carte</h3>'+
-    '<p class="muted" style="margin-bottom:18px;">Supprimer définitivement <b>'+esc(card.name)+'</b> (#'+esc(card.number)+') de la collection ? Les exemplaires possédés par les dresseurs pour cette carte seront aussi supprimés. Cette action est irréversible.</p>'+
-    '<button class="btn-danger" style="width:100%;padding:12px;" id="confirm-delete-card">Oui, supprimer cette carte</button>'
-  );
-  qs('confirm-delete-card').onclick = async function(){
-    var btn = qs('confirm-delete-card');
-    btn.disabled = true; btn.textContent = 'Suppression…';
-    try{
-      await apiDelete('pokeshop_user_cards', 'card_id=eq.'+card.id);
-      await apiDelete('pokeshop_cards', 'id=eq.'+card.id);
-    }catch(e){
-      btn.disabled = false; btn.textContent = 'Oui, supprimer cette carte';
-      alert('Erreur lors de la suppression : '+(e && e.message ? e.message : e));
-      return;
-    }
-    closeModal();
-    refreshKeepScroll();
-  };
 }
 
 function openDeleteAllCardsModal(collectionId, collName){
@@ -1211,7 +817,7 @@ function openDeleteAllCardsModal(collectionId, collName){
   qs('confirm-delete-all').onclick = async function(){
     qs('confirm-delete-all').disabled = true;
     qs('confirm-delete-all').textContent = 'Suppression…';
-    await apiDelete('pokeshop_cards', 'collection_id=eq.'+collectionId);
+    await apiDelete('trocdecartes_cards', 'collection_id=eq.'+collectionId);
     closeModal();
     renderCollection(collectionId);
   };
@@ -1232,9 +838,9 @@ function openEditCardModal(card){
     var rarity = qs('e-card-rarity').value;
     var img = (qs('e-card-img').value||'').trim();
     if(!number || !name) return;
-    await apiUpdate('pokeshop_cards', 'id=eq.'+card.id, { number: number, name: name, image_url: img, rarity: rarity });
+    await apiUpdate('trocdecartes_cards', 'id=eq.'+card.id, { number: number, name: name, image_url: img, rarity: rarity });
     closeModal();
-    refreshKeepScroll();
+    renderCollection(state.currentCollectionId);
   };
 }
 
@@ -1246,10 +852,10 @@ async function quickAdd(card, variantKey){
   var newPrice = existing ? existing.price : null;
   if(newQty>1 && newPrice==null) newPrice = DEFAULT_PRICES[variantKey];
   if(existing){
-    await apiUpdate('pokeshop_user_cards', 'id=eq.'+existing.id, { quantity: newQty, price: newPrice });
+    await apiUpdate('trocdecartes_user_cards', 'id=eq.'+existing.id, { quantity: newQty, price: newPrice });
     existing.quantity = newQty; existing.price = newPrice;
   } else {
-    var inserted = await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, variant:variantKey, quantity: newQty, price: newPrice }]);
+    var inserted = await apiInsert('trocdecartes_user_cards', [{ user_id: state.user.id, card_id: card.id, variant:variantKey, quantity: newQty, price: newPrice }]);
     var newId = inserted && inserted[0] ? inserted[0].id : null;
     mine[variantKey] = { id: newId, variant:variantKey, quantity: newQty, price: newPrice };
   }
@@ -1261,11 +867,10 @@ async function quickAdd(card, variantKey){
   tileEl.className = 'tile ' + (totalQty>0 ? 'owned' : (hasFriendDup ? 'friend' : 'missing')) + (complete?' complete-gold':'');
   var chipsEl = tileEl.querySelector('.tile-variants');
   if(chipsEl) chipsEl.innerHTML = variantChips(mine, relevant);
-  updateMissingFilter();
 }
 
 async function getLockedMap(){
-  var msgs = await apiSelect('pokeshop_messages', 'status=eq.accepted&select=from_user_id,to_user_id,items');
+  var msgs = await apiSelect('trocdecartes_messages', 'status=eq.accepted&select=from_user_id,to_user_id,items');
   var map = {};
   msgs.forEach(function(m){
     (m.items||[]).forEach(function(it){
@@ -1279,12 +884,12 @@ async function getLockedMap(){
 }
 
 async function ensureFriends(){
-  var rows = await apiSelect('pokeshop_friends',
+  var rows = await apiSelect('trocdecartes_friends',
     'or=(user_id.eq.'+state.user.id+',friend_id.eq.'+state.user.id+')&status=eq.accepted&select=*');
   state.friendRows = rows;
   var otherIds = rows.map(function(r){ return r.user_id===state.user.id ? r.friend_id : r.user_id; });
   if(!otherIds.length){ state.friends = []; return; }
-  var users = await apiSelect('pokeshop_users', 'id=in.('+otherIds.join(',')+')&select=id,username');
+  var users = await apiSelect('trocdecartes_users', 'id=in.('+otherIds.join(',')+')&select=id,username');
   state.friends = users;
 }
 
@@ -1303,7 +908,7 @@ function openAddCardModal(collectionId){
     var rarity = qs('m-card-rarity').value;
     var img = (qs('m-card-img').value||'').trim();
     if(!number || !name) return;
-    await apiInsert('pokeshop_cards', [{ collection_id: collectionId, number: number, name: name, image_url: img, rarity: rarity }]);
+    await apiInsert('trocdecartes_cards', [{ collection_id: collectionId, number: number, name: name, image_url: img, rarity: rarity }]);
     closeModal();
     renderCollection(collectionId);
   };
@@ -1360,21 +965,21 @@ function openCsvImportModal(collectionId){
   qs('csv-save').onclick = async function(){
     if(!parsed || !parsed.length) return;
     qs('csv-save').disabled = true; qs('csv-save').textContent = 'Import en cours…';
-    var existingCards = await apiSelect('pokeshop_cards', 'collection_id=eq.'+collectionId+'&select=id,number');
+    var existingCards = await apiSelect('trocdecartes_cards', 'collection_id=eq.'+collectionId+'&select=id,number');
     var existingMap = {}; existingCards.forEach(function(c){ existingMap[c.number] = c.id; });
     var toInsert = [];
     for(var i=0;i<parsed.length;i++){
       var row = parsed[i];
       var existingId = existingMap[row.number];
       if(existingId){
-        await apiUpdate('pokeshop_cards', 'id=eq.'+existingId, { name: row.name, image_url: row.image_url, rarity: row.rarity });
+        await apiUpdate('trocdecartes_cards', 'id=eq.'+existingId, { name: row.name, image_url: row.image_url, rarity: row.rarity });
       } else {
         toInsert.push(row);
       }
     }
     var chunk = 200;
     for(var j=0;j<toInsert.length;j+=chunk){
-      await apiInsert('pokeshop_cards', toInsert.slice(j,j+chunk));
+      await apiInsert('trocdecartes_cards', toInsert.slice(j,j+chunk));
     }
     closeModal();
     renderCollection(collectionId);
@@ -1408,7 +1013,7 @@ async function openCardModal(card){
     '<h3 style="text-align:center;">'+esc(card.name)+' <span class="muted">#'+esc(card.number)+'</span></h3>'+
     '<p class="muted" style="text-align:center;margin-bottom:10px;">Rareté : '+esc(card.rarity||'Normal')+'</p>'+
     '<div class="card-preview"><img src="'+(card.image_url?esc(card.image_url):PLACEHOLDER_IMG)+'" onerror="this.onerror=null;this.src=window.POKESHOP_PLACEHOLDER;"></div>'+
-    (state.isAdmin ? '<button class="btn-ghost" id="edit-card-btn" style="width:100%;margin-bottom:14px;font-size:12px;">✎ Modifier nom / numéro / image / rareté</button><button class="btn-danger" id="delete-card-btn" style="width:100%;margin-bottom:14px;font-size:12px;">🗑 Supprimer cette carte</button>' : '')+
+    (state.isAdmin ? '<button class="btn-ghost" id="edit-card-btn" style="width:100%;margin-bottom:14px;font-size:12px;">✎ Modifier nom / numéro / image / rareté</button>' : '')+
     variantRows+
     '<button class="btn-primary" id="qty-save">Enregistrer</button>'+
     '<div class="friendlist">'+
@@ -1422,7 +1027,6 @@ async function openCardModal(card){
   );
 
   if(qs('edit-card-btn')) qs('edit-card-btn').onclick = function(){ openEditCardModal(card); };
-  if(qs('delete-card-btn')) qs('delete-card-btn').onclick = function(){ openDeleteCardModal(card); };
 
   function refresh(v){
     qs('qty-val-'+v).textContent = qtyState[v];
@@ -1446,7 +1050,7 @@ async function openCardModal(card){
   });
 
   qs('qty-save').onclick = async function(){
-    var existing = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&card_id=eq.'+card.id+'&select=id,variant');
+    var existing = await apiSelect('trocdecartes_user_cards', 'user_id=eq.'+state.user.id+'&card_id=eq.'+card.id+'&select=id,variant');
     for(var i=0;i<relevantVariants.length;i++){
       var v = relevantVariants[i].key;
       var priceVisible = qtyState[v]>1 || (qtyState[v]>=1 && forceState[v]);
@@ -1455,13 +1059,13 @@ async function openCardModal(card){
       var forSale = qtyState[v]>=1 ? forceState[v] : false;
       var row = existing.find(function(r){ return r.variant===v; });
       if(row){
-        await apiUpdate('pokeshop_user_cards', 'id=eq.'+row.id, { quantity: qtyState[v], price: price, for_sale: forSale });
+        await apiUpdate('trocdecartes_user_cards', 'id=eq.'+row.id, { quantity: qtyState[v], price: price, for_sale: forSale });
       } else if(qtyState[v]>0) {
-        await apiInsert('pokeshop_user_cards', [{ user_id: state.user.id, card_id: card.id, variant: v, quantity: qtyState[v], price: price, for_sale: forSale }]);
+        await apiInsert('trocdecartes_user_cards', [{ user_id: state.user.id, card_id: card.id, variant: v, quantity: qtyState[v], price: price, for_sale: forSale }]);
       }
     }
     closeModal();
-    refreshKeepScroll();
+    renderCollection(state.currentCollectionId);
   };
 
   document.querySelectorAll('.add-cart-btn').forEach(function(btn){
@@ -1500,7 +1104,7 @@ async function renderProfile(){
     var isPublic = qs('p-public').checked;
     var patch = { is_public: isPublic };
     if(profileSelectedCity){ patch.city = profileSelectedCity.name; patch.city_lat = profileSelectedCity.lat; patch.city_lng = profileSelectedCity.lng; }
-    await apiUpdate('pokeshop_users', 'id=eq.'+state.user.id, patch);
+    await apiUpdate('trocdecartes_users', 'id=eq.'+state.user.id, patch);
     Object.assign(state.user, patch);
     saveSession(state.user);
     qs('p-status').textContent = 'Profil mis à jour.';
@@ -1510,11 +1114,11 @@ async function renderProfile(){
 async function renderFriends(){
   await ensureFriends();
   var pendingIncoming = state.friendRows.length; // recomputed below with full set
-  var allRows = await apiSelect('pokeshop_friends', 'or=(user_id.eq.'+state.user.id+',friend_id.eq.'+state.user.id+')&select=*');
+  var allRows = await apiSelect('trocdecartes_friends', 'or=(user_id.eq.'+state.user.id+',friend_id.eq.'+state.user.id+')&select=*');
   var otherIds = Array.from(new Set(allRows.map(function(r){ return r.user_id===state.user.id?r.friend_id:r.user_id; })));
   var usersMap = {};
   if(otherIds.length){
-    var users = await apiSelect('pokeshop_users', 'id=in.('+otherIds.join(',')+')&select=id,username');
+    var users = await apiSelect('trocdecartes_users', 'id=in.('+otherIds.join(',')+')&select=id,username');
     users.forEach(function(u){ usersMap[u.id]=u.username; });
   }
 
@@ -1543,7 +1147,7 @@ async function renderFriends(){
   qs('friend-search-btn').onclick = async function(){
     var term = (qs('friend-search').value||'').trim();
     if(!term) return;
-    var found = await apiSelect('pokeshop_users', 'username=ilike.*'+encodeURIComponent(term)+'*&select=id,username&limit=8');
+    var found = await apiSelect('trocdecartes_users', 'username=ilike.*'+encodeURIComponent(term)+'*&select=id,username&limit=8');
     found = found.filter(function(u){ return u.id!==state.user.id; });
     var box = qs('friend-search-results');
     if(!found.length){ box.innerHTML = '<p class="muted">Aucun dresseur trouvé.</p>'; return; }
@@ -1557,7 +1161,7 @@ async function renderFriends(){
     });
     box.querySelectorAll('[data-add]').forEach(function(btn){
       btn.onclick = async function(){
-        await apiInsert('pokeshop_friends', [{ user_id: state.user.id, friend_id: btn.getAttribute('data-add'), status:'pending' }]);
+        await apiInsert('trocdecartes_friends', [{ user_id: state.user.id, friend_id: btn.getAttribute('data-add'), status:'pending' }]);
         renderFriends();
       };
     });
@@ -1570,7 +1174,7 @@ async function renderFriends(){
       il.appendChild(row);
     });
     il.querySelectorAll('[data-acc]').forEach(function(btn){
-      btn.onclick = async function(){ await apiUpdate('pokeshop_friends', 'id=eq.'+btn.getAttribute('data-acc'), { status:'accepted' }); renderFriends(); };
+      btn.onclick = async function(){ await apiUpdate('trocdecartes_friends', 'id=eq.'+btn.getAttribute('data-acc'), { status:'accepted' }); renderFriends(); };
     });
   }
   if(outgoing.length){
@@ -1607,7 +1211,7 @@ async function loadProximityList(km, existingRows){
   var box = qs('prox-list');
   if(!box) return;
   box.innerHTML = '<p class="muted">Chargement…</p>';
-  var rows = await apiSelect('pokeshop_users', 'is_public=eq.true&id=neq.'+state.user.id+'&select=id,username,city,city_lat,city_lng');
+  var rows = await apiSelect('trocdecartes_users', 'is_public=eq.true&id=neq.'+state.user.id+'&select=id,username,city,city_lat,city_lng');
   var withDist = rows.filter(function(r){ return r.city_lat!=null && r.city_lng!=null; }).map(function(r){
     return { id:r.id, username:r.username, city:r.city, dist: haversineKm(state.user.city_lat, state.user.city_lng, r.city_lat, r.city_lng) };
   }).filter(function(r){ return r.dist<=km; }).sort(function(a,b){ return a.dist-b.dist; });
@@ -1627,7 +1231,7 @@ async function loadProximityList(km, existingRows){
   });
   box.querySelectorAll('[data-preq]').forEach(function(btn){
     btn.onclick = async function(){
-      await apiInsert('pokeshop_friends', [{ user_id: state.user.id, friend_id: btn.getAttribute('data-preq'), status:'pending' }]);
+      await apiInsert('trocdecartes_friends', [{ user_id: state.user.id, friend_id: btn.getAttribute('data-preq'), status:'pending' }]);
       renderFriends();
     };
   });
@@ -1645,19 +1249,19 @@ async function renderFriendDetail(friendId){
   await ensureFriends();
   var friend = state.friends.find(function(f){ return f.id===friendId; });
   if(!friend){
-    var res = await apiSelect('pokeshop_users', 'id=eq.'+friendId+'&select=id,username');
+    var res = await apiSelect('trocdecartes_users', 'id=eq.'+friendId+'&select=id,username');
     friend = res[0] || { id: friendId, username: '—' };
   }
   qs('fd-title').textContent = friend.username;
 
-  var collections = await apiSelect('pokeshop_collections', 'select=*&order=created_at.asc');
+  var collections = await apiSelect('trocdecartes_collections', 'select=*&order=created_at.asc');
   var collMap = {}; collections.forEach(function(c){ collMap[c.id]=c.name; });
-  var cards = await apiSelect('pokeshop_cards', 'select=*&order=number.asc');
+  var cards = await apiSelect('trocdecartes_cards', 'select=*&order=number.asc');
 
-  var myRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+state.user.id+'&select=card_id,variant,quantity,price,for_sale');
+  var myRows = await apiSelect('trocdecartes_user_cards', 'user_id=eq.'+state.user.id+'&select=card_id,variant,quantity,price,for_sale');
   var myMap = {}; myRows.forEach(function(r){ (myMap[r.card_id]=myMap[r.card_id]||{})[r.variant]=r; });
 
-  var theirRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+friendId+'&select=card_id,variant,quantity,price,for_sale');
+  var theirRows = await apiSelect('trocdecartes_user_cards', 'user_id=eq.'+friendId+'&select=card_id,variant,quantity,price,for_sale');
   var theirMap = {}; theirRows.forEach(function(r){ (theirMap[r.card_id]=theirMap[r.card_id]||{})[r.variant]=r; });
 
   var lockedMap = await getLockedMap();
@@ -1756,7 +1360,7 @@ async function renderCart(){
 
   var ownerIds = Array.from(new Set(state.cart.map(function(i){ return i.direction==='sell' ? state.user.id : i.sellerId; })));
   var cardIds = Array.from(new Set(state.cart.map(function(i){ return i.cardId; })));
-  var ownRows = ownerIds.length && cardIds.length ? await apiSelect('pokeshop_user_cards', 'user_id=in.('+ownerIds.join(',')+')&card_id=in.('+cardIds.join(',')+')&select=user_id,card_id,variant,quantity') : [];
+  var ownRows = ownerIds.length && cardIds.length ? await apiSelect('trocdecartes_user_cards', 'user_id=in.('+ownerIds.join(',')+')&card_id=in.('+cardIds.join(',')+')&select=user_id,card_id,variant,quantity') : [];
   var qtyMap = {}; ownRows.forEach(function(r){ qtyMap[r.user_id+'|'+r.card_id+'|'+r.variant] = r.quantity; });
   var lockedMap = await getLockedMap();
 
@@ -1836,7 +1440,7 @@ async function checkout(){
       read: false
     };
   });
-  await apiInsert('pokeshop_messages', rows);
+  await apiInsert('trocdecartes_messages', rows);
   state.cart = [];
   saveCart();
   updateBadges();
@@ -1853,8 +1457,8 @@ function dealColorClass(status){
 }
 
 async function renderInbox(){
-  var received = await apiSelect('pokeshop_messages', 'to_user_id=eq.'+state.user.id+'&select=*');
-  var sent = await apiSelect('pokeshop_messages', 'from_user_id=eq.'+state.user.id+'&select=*');
+  var received = await apiSelect('trocdecartes_messages', 'to_user_id=eq.'+state.user.id+'&select=*');
+  var sent = await apiSelect('trocdecartes_messages', 'from_user_id=eq.'+state.user.id+'&select=*');
   received.forEach(function(m){ m._received = true; });
   sent.forEach(function(m){ m._received = false; });
   var all = received.concat(sent);
@@ -1865,7 +1469,7 @@ async function renderInbox(){
   var otherIds = Array.from(new Set(all.map(function(m){ return m._received ? m.from_user_id : m.to_user_id; })));
   var usersMap = {};
   if(otherIds.length){
-    var users = await apiSelect('pokeshop_users', 'id=in.('+otherIds.join(',')+')&select=id,username');
+    var users = await apiSelect('trocdecartes_users', 'id=in.('+otherIds.join(',')+')&select=id,username');
     users.forEach(function(u){ usersMap[u.id]=u.username; });
   }
   state.dealUsersMap = usersMap;
@@ -1968,24 +1572,24 @@ function renderDealDetail(){
     (m._received && !m.read ? '<button class="btn-ghost" style="margin-top:10px;font-size:11.5px;padding:6px 10px;" data-read>Marquer comme lu</button>' : '');
 
   var readBtn = box.querySelector('[data-read]');
-  if(readBtn) readBtn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+m.id, { read:true }); m.read=true; renderDealDetail(); updateBadges(); };
+  if(readBtn) readBtn.onclick = async function(){ await apiUpdate('trocdecartes_messages', 'id=eq.'+m.id, { read:true }); m.read=true; renderDealDetail(); updateBadges(); };
   var archiveBtn = qs('archive-toggle-btn');
   if(archiveBtn) archiveBtn.onclick = async function(){
     var field = m._received ? 'archived_by_receiver' : 'archived_by_sender';
     var newVal = !isArchived(m);
     var patch = {}; patch[field] = newVal;
-    await apiUpdate('pokeshop_messages', 'id=eq.'+m.id, patch);
+    await apiUpdate('trocdecartes_messages', 'id=eq.'+m.id, patch);
     m[field] = newVal;
     renderInbox();
   };
   var acceptBtn = box.querySelector('[data-accept]');
-  if(acceptBtn) acceptBtn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+m.id, { status:'accepted', last_actor_id: state.user.id }); m.status='accepted'; m.last_actor_id=state.user.id; renderDealDetail(); };
+  if(acceptBtn) acceptBtn.onclick = async function(){ await apiUpdate('trocdecartes_messages', 'id=eq.'+m.id, { status:'accepted', last_actor_id: state.user.id }); m.status='accepted'; m.last_actor_id=state.user.id; renderDealDetail(); };
   var refuseBtn = box.querySelector('[data-refuse]');
   if(refuseBtn) refuseBtn.onclick = function(){ openRefuseModal(m.id); };
   var negotiateBtn = box.querySelector('[data-negotiate]');
   if(negotiateBtn) negotiateBtn.onclick = function(){ openNegotiateModal(m); };
   var cancelBtn = box.querySelector('[data-cancel]');
-  if(cancelBtn) cancelBtn.onclick = async function(){ await apiUpdate('pokeshop_messages', 'id=eq.'+m.id, { status:'cancelled', last_actor_id: state.user.id }); m.status='cancelled'; renderDealDetail(); };
+  if(cancelBtn) cancelBtn.onclick = async function(){ await apiUpdate('trocdecartes_messages', 'id=eq.'+m.id, { status:'cancelled', last_actor_id: state.user.id }); m.status='cancelled'; renderDealDetail(); };
   var validateBtn = box.querySelector('[data-validate]');
   if(validateBtn) validateBtn.onclick = function(){ validateDeal(m); };
 
@@ -1997,7 +1601,7 @@ async function loadDealChat(dealId){
   if(!container) return;
   var msgs;
   try{
-    msgs = await apiSelect('pokeshop_deal_messages', 'deal_id=eq.'+dealId+'&select=*&order=created_at.asc');
+    msgs = await apiSelect('trocdecartes_deal_messages', 'deal_id=eq.'+dealId+'&select=*&order=created_at.asc');
   }catch(e){
     container.innerHTML = '<h4 style="font-size:12px;color:var(--paper);margin-bottom:6px;">Discussion</h4><p class="muted" style="color:var(--missing);font-size:11px;word-break:break-word;">Erreur : '+esc(e.message)+'</p>';
     return;
@@ -2005,7 +1609,7 @@ async function loadDealChat(dealId){
   var ids = Array.from(new Set(msgs.map(function(m){ return m.sender_id; })));
   var namesMap = {};
   if(ids.length){
-    var us = await apiSelect('pokeshop_users', 'id=in.('+ids.join(',')+')&select=id,username');
+    var us = await apiSelect('trocdecartes_users', 'id=in.('+ids.join(',')+')&select=id,username');
     us.forEach(function(u){ namesMap[u.id]=u.username; });
   }
   container = qs('chat-'+dealId);
@@ -2032,7 +1636,7 @@ async function sendDealChat(dealId){
   if(!val) return;
   inp.disabled = true;
   try{
-    await apiInsert('pokeshop_deal_messages', [{ deal_id: dealId, sender_id: state.user.id, content: val }]);
+    await apiInsert('trocdecartes_deal_messages', [{ deal_id: dealId, sender_id: state.user.id, content: val }]);
     loadDealChat(dealId);
   }catch(e){
     inp.disabled = false;
@@ -2052,7 +1656,7 @@ function openRefuseModal(msgId){
   );
   qs('m-refuse-save').onclick = async function(){
     var reason = (qs('m-refuse-reason').value||'').trim();
-    await apiUpdate('pokeshop_messages', 'id=eq.'+msgId, { status:'refused', refusal_reason: reason, last_actor_id: state.user.id });
+    await apiUpdate('trocdecartes_messages', 'id=eq.'+msgId, { status:'refused', refusal_reason: reason, last_actor_id: state.user.id });
     closeModal();
     renderInbox();
   };
@@ -2067,7 +1671,7 @@ function openNegotiateModal(msg){
   );
   qs('m-negotiate-save').onclick = async function(){
     var pct = parseFloat(qs('m-negotiate-pct').value)||0;
-    await apiUpdate('pokeshop_messages', 'id=eq.'+msg.id, { status:'negotiating', discount_percent: pct, last_actor_id: state.user.id });
+    await apiUpdate('trocdecartes_messages', 'id=eq.'+msg.id, { status:'negotiating', discount_percent: pct, last_actor_id: state.user.id });
     closeModal();
     renderInbox();
   };
@@ -2080,13 +1684,13 @@ async function validateDeal(msg){
     if(!it.card_id) continue;
     var ownerId = it.direction==='sell' ? msg.from_user_id : msg.to_user_id;
     var receiverId = it.direction==='sell' ? msg.to_user_id : msg.from_user_id;
-    var ownerRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+ownerId+'&card_id=eq.'+it.card_id+'&variant=eq.'+it.variant+'&select=*');
-    if(ownerRows[0]) await apiUpdate('pokeshop_user_cards', 'id=eq.'+ownerRows[0].id, { quantity: Math.max(0, ownerRows[0].quantity-1) });
-    var receiverRows = await apiSelect('pokeshop_user_cards', 'user_id=eq.'+receiverId+'&card_id=eq.'+it.card_id+'&variant=eq.'+it.variant+'&select=*');
-    if(receiverRows[0]) await apiUpdate('pokeshop_user_cards', 'id=eq.'+receiverRows[0].id, { quantity: receiverRows[0].quantity+1 });
-    else await apiInsert('pokeshop_user_cards', [{ user_id: receiverId, card_id: it.card_id, variant: it.variant, quantity: 1, price: null }]);
+    var ownerRows = await apiSelect('trocdecartes_user_cards', 'user_id=eq.'+ownerId+'&card_id=eq.'+it.card_id+'&variant=eq.'+it.variant+'&select=*');
+    if(ownerRows[0]) await apiUpdate('trocdecartes_user_cards', 'id=eq.'+ownerRows[0].id, { quantity: Math.max(0, ownerRows[0].quantity-1) });
+    var receiverRows = await apiSelect('trocdecartes_user_cards', 'user_id=eq.'+receiverId+'&card_id=eq.'+it.card_id+'&variant=eq.'+it.variant+'&select=*');
+    if(receiverRows[0]) await apiUpdate('trocdecartes_user_cards', 'id=eq.'+receiverRows[0].id, { quantity: receiverRows[0].quantity+1 });
+    else await apiInsert('trocdecartes_user_cards', [{ user_id: receiverId, card_id: it.card_id, variant: it.variant, quantity: 1, price: null }]);
   }
-  await apiUpdate('pokeshop_messages', 'id=eq.'+msg.id, { status:'completed' });
+  await apiUpdate('trocdecartes_messages', 'id=eq.'+msg.id, { status:'completed' });
   renderInbox();
 }
 
@@ -2107,7 +1711,7 @@ async function boot(){
   state.cart = loadCart();
   renderShell();
   try{
-    var inb = await apiSelect('pokeshop_messages', 'to_user_id=eq.'+state.user.id+'&read=eq.false&select=id');
+    var inb = await apiSelect('trocdecartes_messages', 'to_user_id=eq.'+state.user.id+'&read=eq.false&select=id');
     state.inbox = inb.map(function(r){ return {read:false}; });
   }catch(e){}
   refreshFriendPending();
