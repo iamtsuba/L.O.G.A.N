@@ -226,7 +226,7 @@ select:focus,input:focus{border-color:var(--blue)}
 .imp-sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
 .imp-sec-new{color:var(--blue);background:var(--blue-light)}
 .imp-sec-dup{color:var(--orange);background:#FEF9EE}
-.imp-tbl-wrap{max-height:38vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.imp-tbl-wrap{max-height:42vh;overflow:auto;-webkit-overflow-scrolling:touch}
 .imp-tbl{width:100%;border-collapse:collapse;font-size:12px}
 .imp-tbl th{text-align:left;padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--s2);white-space:nowrap;position:sticky;top:0;z-index:1}
 .imp-tbl td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -236,7 +236,13 @@ select:focus,input:focus{border-color:var(--blue)}
 .imp-tbl tr.nr.off td{opacity:.25}
 .imp-tbl tr.dr{background:#FFFBF0}
 .imp-tbl td.dt{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap;width:90px}
-.imp-tbl td.lb{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.imp-tbl td.lb{min-width:170px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;font-weight:600}
+.imp-tbl td.ct{min-width:170px;white-space:nowrap}
+.imp-tbl td.ct select{width:calc(100% - 22px);max-width:200px;vertical-align:middle}
+.imp-auto{font-size:12px;margin-left:4px;cursor:help}
+.imp-why{font-size:10px;color:var(--orange);font-weight:700;margin-top:2px}
+.imp-tbl tr.dr.nr.off td{opacity:.75}
+.imp-tbl tr.dr.nr:not(.off){background:#EAF7EE}
 .imp-tbl td.am{font-family:var(--mono);font-weight:700;text-align:right;white-space:nowrap}
 .imp-tbl input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--blue)}
 .imp-bal{padding:10px 14px;font-size:12px;border-top:1px solid var(--border)}
@@ -276,7 +282,11 @@ select:focus,input:focus{border-color:var(--blue)}
 .txr-trf{grid-area:cat;font-size:11px;color:var(--muted)}
 .txr-act{grid-area:tog;display:flex;gap:6px;justify-content:flex-end}
 .txr-act .tbadge{text-align:center;padding:5px 9px;white-space:nowrap;font-size:11px}
-.txr-head{display:none;grid-template-columns:minmax(0,1fr);padding:9px 14px;background:var(--s2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.txr-head{display:flex;justify-content:flex-end;align-items:center;grid-template-columns:minmax(0,1fr);padding:9px 14px;background:var(--s2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.txr-head>span:not(.h-cat){display:none}
+.h-cat{display:flex;align-items:center;gap:8px}
+.h-add{width:22px;height:22px;border-radius:50%;border:1px solid var(--blue);background:var(--blue-light);color:var(--blue);font-weight:800;font-size:14px;line-height:1;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font);text-transform:none}
+.h-add:hover{background:var(--blue);color:#fff}
 .h-date{grid-area:date}.h-label{grid-area:label}.h-acc{grid-area:acc}.h-cat{grid-area:cat}.h-amt{grid-area:amt;text-align:right}.h-tog{grid-area:tog}
 @media(min-width:860px){
   .txr,.txr-head{grid-template-columns:130px minmax(0,1fr) 160px 210px 92px 84px;grid-template-areas:"date label acc cat amt tog";gap:0 12px;align-items:center}
@@ -285,6 +295,7 @@ select:focus,input:focus{border-color:var(--blue)}
   .txr.noacc.notog,.txr-head.noacc.notog{grid-template-columns:130px minmax(0,1fr) 210px 92px;grid-template-areas:"date label cat amt"}
   .txr-meta{display:contents}
   .txr-head{display:grid}
+  .txr-head>span:not(.h-cat){display:block}
 }
 .txr-empty{padding:30px 16px;text-align:center;color:var(--muted)}
 .acc-list-right{text-align:right}
@@ -349,7 +360,7 @@ select:focus,input:focus{border-color:var(--blue)}
 <div id="topbarWrap">
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:9px">
-    <img class="app-logo" src="data:image/png;base64,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" title="Version 26.11.4.1001"/>
+    <img class="app-logo" src="data:image/png;base64,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" title="Version 26.11.4.1005"/>
     <span class="app-name">BankApp</span>
   </div>
   <div style="display:flex;align-items:center;gap:7px">
@@ -491,7 +502,7 @@ select:focus,input:focus{border-color:var(--blue)}
   <div class="tab-content" id="tab-import">
     <div class="import-body" style="max-width:520px">
       <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Import CSV La Banque Postale</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">Doublons détectés par empreinte complète. Solde extrait automatiquement. Toutes les transactions sont placées en <b>NON CATEGORISÉ</b>.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">La catégorie est proposée automatiquement par similarité de libellé avec tes transactions déjà classées (sinon <b>NON CATEGORISÉ</b>) et reste modifiable avant l'import. Les doublons détectés ne sont pas importés par défaut, mais tu peux les cocher pour les importer quand même. Solde extrait automatiquement.</div>
       <div class="form-field"><label>Compte de destination</label><select id="impAcc" style="width:100%"><option value="">— Sélectionnez —</option></select></div>
       <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="handleDrop(event)">
         <div class="drop-text"><b>📂 Glisser ou cliquer</b>Fichier CSV La Banque Postale</div>
@@ -519,6 +530,7 @@ select:focus,input:focus{border-color:var(--blue)}
 <div class="modal-overlay hidden" id="mCat"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title" id="mCatTitle">Nouvelle catégorie</div>
+  <div class="form-field" id="mcTypeF"><label>Type</label><select id="mcType" onchange="mcTypeChange()" style="width:100%"><option value="cat">Catégorie</option><option value="sub">Sous-catégorie</option></select></div>
   <div class="form-field"><label>Nom</label><input id="mcN" type="text"/></div>
   <div class="form-field" id="mcPF" style="display:none"><label>Catégorie parente</label><select id="mcP"></select></div>
   <div class="form-field"><label>Couleur</label><div class="color-row" id="catColRow"></div></div>
@@ -1116,7 +1128,7 @@ function splitGroup(t){
 }
 function txHeadHtml(o){
   o=o||{};const act=o.transfer||o.split;
-  return `<div class="txr-head${o.acc?'':' noacc'}${act?'':' notog'}"><span class="h-date">Date</span><span class="h-label">Libellé</span>${o.acc?'<span class="h-acc">Compte</span>':''}<span class="h-cat">Catégorie</span><span class="h-amt">Montant</span>${act?'<span class="h-tog"></span>':''}</div>`;
+  return `<div class="txr-head${o.acc?'':' noacc'}${act?'':' notog'}"><span class="h-date">Date</span><span class="h-label">Libellé</span>${o.acc?'<span class="h-acc">Compte</span>':''}<span class="h-cat">Catégorie<button class="h-add" onclick="openCatModal(true)" title="Créer une catégorie ou une sous-catégorie">+</button></span><span class="h-amt">Montant</span>${act?'<span class="h-tog"></span>':''}</div>`;
 }
 function txRowHtml(t,o){
   o=o||{};
@@ -1254,20 +1266,31 @@ function renderCatList(){
     return row(c,false)+(subs.length?`<div style="padding-left:24px">`+subs.map(s=>row(s,true)).join('')+`</div>`:'');
   }).join('');
 }
+function mcTypeChange(){
+  const sub=document.getElementById("mcType").value==="sub";
+  document.getElementById("mcPF").style.display=sub?"block":"none";
+  if(!editCatId)document.getElementById("mCatTitle").textContent=sub?"Nouvelle sous-catégorie":"Nouvelle catégorie";
+}
 function openCatModal(isSub=false,editId=null){
   editCatId=editId;
   const cat=editId?categories.find(x=>x.id===editId):null;
-  document.getElementById("mCatTitle").textContent=editId?(isSub?"Modifier la sous-catégorie":"Modifier la catégorie"):(isSub?"Nouvelle sous-catégorie":"Nouvelle catégorie");
+  const parents=categories.filter(c=>!c.parent_id&&c.name!==NON_CAT_NAME);
+  if(isSub&&!parents.length)isSub=false;
+  document.getElementById("mcP").innerHTML=parents.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  if(cat?.parent_id)document.getElementById("mcP").value=cat.parent_id;
+  document.getElementById("mcTypeF").style.display=editId?"none":"block";
+  const optSub=document.querySelector('#mcType option[value="sub"]');if(optSub)optSub.disabled=!parents.length;
+  document.getElementById("mcType").value=isSub?"sub":"cat";
   document.getElementById("mcBtn").textContent=editId?"Enregistrer":"Créer";
-  document.getElementById("mcPF").style.display=isSub?"block":"none";
-  if(isSub){
-    document.getElementById("mcP").innerHTML=categories.filter(c=>!c.parent_id&&c.name!==NON_CAT_NAME).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
-    if(cat?.parent_id)document.getElementById("mcP").value=cat.parent_id;
-  }
+  if(editId){
+    document.getElementById("mCatTitle").textContent=isSub?"Modifier la sous-catégorie":"Modifier la catégorie";
+    document.getElementById("mcPF").style.display=isSub?"block":"none";
+  }else mcTypeChange();
   document.getElementById("mcN").value=cat?cat.name:"";
   document.getElementById("mcK").value=cat?(cat.keywords||[]).join(", "):"";
   selCatCol=cat?.color||COLORS[0];renderCP("catColRow","cat");
   document.getElementById("mCat").classList.remove("hidden");
+  setTimeout(()=>{try{document.getElementById("mcN").focus();}catch(e){}},50);
 }
 async function saveCat(){
   const name=document.getElementById("mcN").value.trim();if(!name)return toast("Nom requis","error");
@@ -1375,13 +1398,11 @@ function pA(s){
 async function importTx(parsed,aid,detectedBalance){
   let ex=[];
   try{
-    // Use raw fetch to avoid supabase-js column URL param format issue
     const res=await fetch(
       `${SB}/rest/v1/bankapp_transactions?account_id=eq.${aid}&user_id=eq.${uid}&select=hash,date,amount`,
       {headers:{'apikey':SK,'Authorization':'Bearer '+SK}});
     if(res.ok)ex=await res.json();
     else{
-      // Fallback: date+amount only
       const r2=await fetch(
         `${SB}/rest/v1/bankapp_transactions?account_id=eq.${aid}&user_id=eq.${uid}&select=date,amount`,
         {headers:{'apikey':SK,'Authorization':'Bearer '+SK}});
@@ -1389,75 +1410,80 @@ async function importTx(parsed,aid,detectedBalance){
     }
   }catch(e){ex=[];}
   const eH=new Set(ex.map(r=>r.hash).filter(Boolean));
-  // Normalize amount to 2 decimal places to avoid float mismatch between DB and CSV
   const eDA=new Set(ex.map(r=>`${r.date}|${parseFloat(r.amount).toFixed(2)}`));
-  const toImport=[],duplicates=[];
+  const train=buildTrainingSet();                       // transactions déjà catégorisées
+  const fallbackCat=nonCatId||categories.find(x=>x.name==="Autre")?.id||null;
+  const used=new Set(eH);                               // empreintes déjà prises
+  const uniq=h=>{                                       // empreinte libre (pour importer un doublon quand même)
+    if(!used.has(h)){used.add(h);return h;}
+    let n=2;while(used.has(`${h}~${n}`))n++;
+    const u=`${h}~${n}`;used.add(u);return u;
+  };
+  const toImport=[],duplicates=[],dupWhy=[],newAuto=[],dupAuto=[];
   const inFileDA=new Set();
   for(const t of parsed){
     const h=mkH(t.date,t.label,t.amount);
-    // Normalized key: date + amount rounded to cents
-    const normAmt=parseFloat(t.amount).toFixed(2);
-    const key=`${t.date}|${normAmt}`;
-    if(eH.has(h)||eDA.has(key)||inFileDA.has(key)){
-      duplicates.push(t);
-    }else{
-      inFileDA.add(key);
-      const catId=nonCatId||categories.find(c=>c.name==="Autre")?.id||null;
-      toImport.push({user_id:uid,account_id:aid,date:t.date,label:t.label,
-        amount:t.amount,category_id:catId,hash:h,is_transfer:false});
-    }
+    const key=`${t.date}|${parseFloat(t.amount).toFixed(2)}`;
+    let why=null;
+    if(eH.has(h))why="Déjà importée (même date, libellé et montant)";
+    else if(eDA.has(key))why="Même date et même montant qu'une transaction déjà en base";
+    else if(inFileDA.has(key))why="Même date et même montant qu'une autre ligne du fichier";
+    const guess=train.length?predictCat({label:t.label,amount:t.amount},train):null;
+    const row={user_id:uid,account_id:aid,date:t.date,label:t.label,amount:t.amount,category_id:guess||fallbackCat,hash:uniq(h),is_transfer:false};
+    if(why){duplicates.push(row);dupWhy.push(why);dupAuto.push(!!guess);}
+    else{inFileDA.add(key);toImport.push(row);newAuto.push(!!guess);}
   }
-  window._pendingImport={toImport,duplicates,aid,balance:detectedBalance};
+  window._pendingImport={toImport,duplicates,dupWhy,newAuto,dupAuto,aid,balance:detectedBalance};
   if(!toImport.length&&!duplicates.length&&detectedBalance===null){toast("Aucune transaction trouvée dans le CSV","error");return;}
-  renderImpPreview(toImport,duplicates,detectedBalance);
+  renderImpPreview(detectedBalance);
 }
 
-function renderImpPreview(toImport,duplicates,detectedBalance){
-  // ── Nouvelles transactions
-  const newRows=toImport.map((t,i)=>`
-    <tr class="nr" id="imp-row-${i}" onclick="toggleImpRow(${i})">
-      <td><input type="checkbox" id="imp-cb-${i}" checked onclick="event.stopPropagation();updateImpSummary()"/></td>
-      <td class="dt">${t.date||'—'}</td>
-      <td class="lb">${t.label||'—'}</td>
+function renderImpPreview(detectedBalance){
+  const P=window._pendingImport;if(!P)return;
+  const{toImport,duplicates}=P;
+  const rowHtml=(t,i,kind)=>{
+    const d=kind==='d',auto=d?P.dupAuto[i]:P.newAuto[i];
+    return `<tr class="nr${d?' dr off':''}" id="imp-row-${kind}-${i}" onclick="toggleImpRow('${kind}',${i})">
+      <td><input type="checkbox" id="imp-cb-${kind}-${i}" ${d?'':'checked'} onclick="event.stopPropagation();syncImpRow('${kind}',${i})"/></td>
+      <td class="dt">${esc(t.date||'—')}</td>
+      <td class="lb">${esc(t.label||'—')}${d?`<div class="imp-why">⚠ ${esc(P.dupWhy[i])}</div>`:''}</td>
+      <td class="ct"><select class="cat-sel" id="imp-cat-${kind}-${i}" onclick="event.stopPropagation()">${catOptHtml(t.category_id)}</select>${auto?'<span class="imp-auto" title="Catégorie proposée automatiquement d\'après des libellés ressemblants">✨</span>':''}</td>
       <td class="am ${t.amount>=0?'positive':'negative'}">${fmt(t.amount)}</td>
-    </tr>`).join('');
-  // ── Doublons
-  const dupRows=duplicates.map(t=>`
-    <tr class="dr">
-      <td style="text-align:center;font-size:13px">⚠</td>
-      <td class="dt">${t.date||'—'}</td>
-      <td class="lb">${t.label||'—'}</td>
-      <td class="am ${t.amount>=0?'positive':'negative'}">${fmt(t.amount)}</td>
-    </tr>`).join('');
-  // ── Balance row
+    </tr>`;
+  };
   const balHtml=detectedBalance!==null
     ?`<div class="imp-bal" style="background:#E8F8F0">✅ <b style="color:var(--green)">Solde détecté : ${fmt(detectedBalance)}</b> — sera mis à jour sur le compte.</div>`
     :`<div class="imp-bal" style="background:#FEF9EE">⚠️ <b style="color:var(--orange)">Solde non détecté</b> — le solde du compte ne sera pas mis à jour.</div>`;
-  const thead=`<thead><tr><th style="width:28px"></th><th>Date</th><th>Libellé</th><th style="text-align:right">Montant</th></tr></thead>`;
+  const thead=`<thead><tr><th style="width:28px"></th><th>Date</th><th>Libellé</th><th>Catégorie ✨</th><th style="text-align:right">Montant</th></tr></thead>`;
+  const nAuto=P.newAuto.filter(Boolean).length;
   const newSection=`
     <div class="imp-sec-hdr imp-sec-new">
-      <span>✅ Nouvelles transactions — ${toImport.length}</span>
+      <span>✅ Nouvelles transactions — ${toImport.length}${nAuto?` · ${nAuto} catégorisée${nAuto>1?'s':''} automatiquement`:''}</span>
       <div style="display:flex;gap:6px">
-        <button class="btn sm" onclick="selectAllImp(true)">Tout ✓</button>
-        <button class="btn sm" onclick="selectAllImp(false)">Tout ☐</button>
+        <button class="btn sm" onclick="selectAllImp('n',true)">Tout ✓</button>
+        <button class="btn sm" onclick="selectAllImp('n',false)">Tout ☐</button>
       </div>
     </div>
     <div class="imp-tbl-wrap">
-      <table class="imp-tbl">${thead}<tbody>${newRows||`<tr><td colspan="4"><div class="empty" style="padding:16px"><div class="ei" style="font-size:28px;margin-bottom:6px">📭</div>Aucune nouvelle transaction</div></td></tr>`}</tbody></table>
+      <table class="imp-tbl">${thead}<tbody>${toImport.length?toImport.map((t,i)=>rowHtml(t,i,'n')).join(''):`<tr><td colspan="5"><div class="empty" style="padding:16px"><div class="ei" style="font-size:28px;margin-bottom:6px">📭</div>Aucune nouvelle transaction</div></td></tr>`}</tbody></table>
     </div>`;
   const dupSection=duplicates.length?`
     <div class="imp-sec-hdr imp-sec-dup">
-      <span>⚠ Doublons détectés — ${duplicates.length} (déjà importés, non sélectionnables)</span>
+      <span>⚠ Doublons détectés — ${duplicates.length} · non importés par défaut, coche une ligne pour l'importer quand même</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn sm" onclick="selectAllImp('d',true)">Tout ✓</button>
+        <button class="btn sm" onclick="selectAllImp('d',false)">Tout ☐</button>
+      </div>
     </div>
-    <div class="imp-tbl-wrap" style="max-height:22vh">
-      <table class="imp-tbl"><thead><tr><th style="width:28px"></th><th>Date</th><th>Libellé</th><th style="text-align:right">Montant</th></tr></thead><tbody>${dupRows}</tbody></table>
+    <div class="imp-tbl-wrap" style="max-height:30vh">
+      <table class="imp-tbl">${thead}<tbody>${duplicates.map((t,i)=>rowHtml(t,i,'d')).join('')}</tbody></table>
     </div>`:'';
   document.getElementById("impPrev").innerHTML=`<div class="imp-wrap">
     ${newSection}${dupSection}${balHtml}
     <div class="imp-footer">
       <div class="imp-footer-l">
-        <span>À importer : <b id="impSelCount">${toImport.length}</b></span>
-        ${duplicates.length?`<span style="color:var(--muted)">Doublons ignorés : ${duplicates.length}</span>`:''}
+        <span>À importer : <b id="impSelCount">${toImport.length}</b><span id="impForce" style="color:var(--orange)"></span></span>
+        ${duplicates.length?`<span style="color:var(--muted)" id="impSkip">Doublons non importés : ${duplicates.length}</span>`:''}
       </div>
       <div class="imp-footer-r">
         <button class="btn" onclick="cancelImp()">Annuler</button>
@@ -1467,27 +1493,33 @@ function renderImpPreview(toImport,duplicates,detectedBalance){
   </div>`;
 }
 
-function toggleImpRow(i){
-  const cb=document.getElementById(`imp-cb-${i}`);if(!cb)return;
-  cb.checked=!cb.checked;
-  document.getElementById(`imp-row-${i}`).classList.toggle("off",!cb.checked);
+function syncImpRow(kind,i){
+  const cb=document.getElementById(`imp-cb-${kind}-${i}`),row=document.getElementById(`imp-row-${kind}-${i}`);
+  if(cb&&row)row.classList.toggle("off",!cb.checked);
   updateImpSummary();
 }
-function selectAllImp(state){
+function toggleImpRow(kind,i){
+  const cb=document.getElementById(`imp-cb-${kind}-${i}`);if(!cb)return;
+  cb.checked=!cb.checked;syncImpRow(kind,i);
+}
+function selectAllImp(kind,state){
   const p=window._pendingImport;if(!p)return;
-  p.toImport.forEach((_,i)=>{
-    const cb=document.getElementById(`imp-cb-${i}`);if(!cb)return;
+  (kind==='d'?p.duplicates:p.toImport).forEach((_,i)=>{
+    const cb=document.getElementById(`imp-cb-${kind}-${i}`);if(!cb)return;
     cb.checked=state;
-    document.getElementById(`imp-row-${i}`).classList.toggle("off",!state);
+    document.getElementById(`imp-row-${kind}-${i}`).classList.toggle("off",!state);
   });
   updateImpSummary();
 }
 function updateImpSummary(){
   const p=window._pendingImport;if(!p)return;
-  let n=0;p.toImport.forEach((_,i)=>{const cb=document.getElementById(`imp-cb-${i}`);if(cb?.checked)n++;});
-  const sc=document.getElementById("impSelCount");if(sc)sc.textContent=n;
-  const bc=document.getElementById("impBtnCount");if(bc)bc.textContent=n;
-  const btn=document.getElementById("impConfirmBtn");if(btn)btn.disabled=n===0&&(window._pendingImport?.balance===null);
+  const cnt=(list,kind)=>list.reduce((s,_,i)=>s+(document.getElementById(`imp-cb-${kind}-${i}`)?.checked?1:0),0);
+  const n=cnt(p.toImport,'n'),d=cnt(p.duplicates,'d');
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set("impSelCount",n+d);set("impBtnCount",n+d);
+  set("impForce",d?` (dont ${d} doublon${d>1?'s':''} forcé${d>1?'s':''})`:'');
+  set("impSkip",`Doublons non importés : ${p.duplicates.length-d}`);
+  const btn=document.getElementById("impConfirmBtn");if(btn)btn.disabled=(n+d===0)&&(p.balance===null);
 }
 function cancelImp(){document.getElementById("impPrev").innerHTML="";window._pendingImport=null;}
 
@@ -1553,8 +1585,15 @@ async function safeInsertBatch(rows){
 
 window.confirmImport=async function(){
   const p=window._pendingImport;if(!p)return;
-  const{toImport,aid,balance}=p;
-  const selected=toImport.filter((_,i)=>{const cb=document.getElementById(`imp-cb-${i}`);return cb?.checked;});
+  const{toImport,duplicates,aid,balance}=p;
+  const gather=(list,kind)=>(list||[]).map((row,i)=>{
+    if(!document.getElementById(`imp-cb-${kind}-${i}`)?.checked)return null;
+    const sel=document.getElementById(`imp-cat-${kind}-${i}`);
+    return{...row,category_id:(sel&&sel.value)?sel.value:row.category_id};
+  }).filter(Boolean);
+  const selN=gather(toImport,'n'),selD=gather(duplicates,'d');
+  const selected=[...selN,...selD];
+  const forcedTxt=selD.length?` · ${selD.length} doublon${selD.length>1?'s':''} forcé${selD.length>1?'s':''}`:'';
   if(!selected.length&&balance===null){toast("Aucune transaction sélectionnée","error");return;}
   let totalIns=0,totalSkip=0,totalFail=0;
   if(selected.length){
@@ -1583,11 +1622,11 @@ window.confirmImport=async function(){
   catQueue=transactions.filter(t=>!t.is_transfer&&t.category_id===nonCatId);
   catQueueIdx=0;
   if(catQueue.length>0){
-    toast(`${totalIns} nouvelles tx${totalSkip?' · '+totalSkip+' doublons ignorés':''}${balance!==null?' · Solde mis à jour':''}. Catégorisation…`,"success");
+    toast(`${totalIns} nouvelles tx${totalSkip?' · '+totalSkip+' doublons ignorés':''}${forcedTxt}${balance!==null?' · Solde mis à jour':''}. Catégorisation…`,"success");
     showCatPage();
   }else{
     renderAll();switchTab("dashboard");
-    const msg=totalIns>0?`${totalIns} nouvelle(s) tx importée(s)${totalSkip?' · '+totalSkip+' doublons ignorés':''}${balance!==null?' · Solde mis à jour':''} ✓`:`Aucune nouvelle transaction (${totalSkip} doublon${totalSkip>1?'s':''} détecté${totalSkip>1?'s':''})`;
+    const msg=totalIns>0?`${totalIns} nouvelle(s) tx importée(s)${totalSkip?' · '+totalSkip+' doublons ignorés':''}${forcedTxt}${balance!==null?' · Solde mis à jour':''} ✓`:`Aucune nouvelle transaction (${totalSkip} doublon${totalSkip>1?'s':''} détecté${totalSkip>1?'s':''})`;
     toast(msg,totalIns>0?"success":"error");
   }
 };
