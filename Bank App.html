@@ -262,7 +262,10 @@ select:focus,input:focus{border-color:var(--blue)}
 .txr-label{grid-area:label;display:block;width:calc(100% + 12px);min-height:26px;resize:none;overflow:hidden;border:1px solid transparent;background:transparent;border-radius:6px;padding:3px 6px;margin:-3px -6px;font-family:var(--font);font-weight:600;font-size:13px;line-height:1.45;color:var(--text);word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap;outline:none;cursor:text;transition:border-color .15s,background .15s}
 .txr-label:hover{border-color:var(--border);background:var(--s2)}
 .txr-label:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(22,82,201,.1)}
-.txr-amt{grid-area:amt;font-family:var(--mono);font-weight:700;font-size:13px;white-space:nowrap;text-align:right;padding-top:1px}
+.txr-amtc{grid-area:amt;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.txr-amt{font-family:var(--mono);font-weight:700;font-size:13px;white-space:nowrap;text-align:right;padding-top:1px}
+.txr-part{font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-light);border:none;border-radius:10px;padding:2px 8px;cursor:pointer;font-family:var(--font);white-space:nowrap}
+.txr-part:hover{background:var(--blue);color:#fff}
 .txr-meta{grid-area:meta;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"date acc acc" "cat cat tog";gap:8px;align-items:center}
 .txr-date{grid-area:date;width:100%;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-family:var(--mono);font-size:11px;color:var(--t2);outline:none}
 .txr-date:focus{border-color:var(--blue)}
@@ -271,7 +274,8 @@ select:focus,input:focus{border-color:var(--blue)}
 .acc-dot-s{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
 .txr .cat-sel{grid-area:cat;width:100%;max-width:none;min-width:0;padding:6px 8px;font-size:12px}
 .txr-trf{grid-area:cat;font-size:11px;color:var(--muted)}
-.txr .tbadge{grid-area:tog;justify-self:stretch;text-align:center;padding:5px 8px;white-space:nowrap}
+.txr-act{grid-area:tog;display:flex;gap:6px;justify-content:flex-end}
+.txr-act .tbadge{text-align:center;padding:5px 9px;white-space:nowrap;font-size:11px}
 .txr-head{display:none;grid-template-columns:minmax(0,1fr);padding:9px 14px;background:var(--s2);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .h-date{grid-area:date}.h-label{grid-area:label}.h-acc{grid-area:acc}.h-cat{grid-area:cat}.h-amt{grid-area:amt;text-align:right}.h-tog{grid-area:tog}
 @media(min-width:860px){
@@ -293,6 +297,21 @@ select:focus,input:focus{border-color:var(--blue)}
 .sub-head{background:var(--surface);border-radius:var(--R);box-shadow:var(--sh);padding:14px 16px;margin-bottom:12px}
 .sub-head-name{font-weight:800;font-size:16px}
 .sub-head-meta{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ── DIVISER UNE TRANSACTION ── */
+.sp-label{font-weight:600;font-size:13px;line-height:1.45;word-break:break-word;margin-bottom:8px}
+.sp-total{font-size:13px;color:var(--t2);margin-bottom:14px;padding:10px 12px;background:var(--s2);border-radius:var(--Rs)}
+.sp-total b{font-family:var(--mono);font-size:15px;color:var(--text)}
+.sp-row{display:grid;grid-template-columns:22px 112px minmax(0,1fr) 30px;gap:8px;align-items:center;margin-bottom:8px}
+.sp-n{font-size:11px;font-weight:800;color:var(--muted);text-align:center}
+.sp-amt{width:100%;text-align:right;font-family:var(--mono);font-size:13px;font-weight:700;padding:8px 10px;border:1px solid var(--border);border-radius:var(--Rs);background:var(--surface);outline:none}
+.sp-amt:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(22,82,201,.1)}
+.sp-amt[readonly]{background:var(--s2);color:var(--t2)}
+.sp-cat{width:100%;min-width:0;padding:8px 8px;font-size:12px}
+.sp-del{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--red);cursor:pointer;font-size:15px}
+.sp-del:disabled{opacity:.25;cursor:default}
+.sp-msg{font-size:12px;margin:10px 0 0;min-height:18px;font-weight:600}
+.sp-msg.err{color:var(--red)}.sp-msg.ok{color:var(--green)}
 </style>
 </head>
 <body>
@@ -330,7 +349,7 @@ select:focus,input:focus{border-color:var(--blue)}
 <div id="topbarWrap">
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:9px">
-    <img class="app-logo" src="data:image/png;base64,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" title="Version 26.11.4.0955"/>
+    <img class="app-logo" src="data:image/png;base64,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" title="Version 26.11.4.1001"/>
     <span class="app-name">BankApp</span>
   </div>
   <div style="display:flex;align-items:center;gap:7px">
@@ -505,6 +524,18 @@ select:focus,input:focus{border-color:var(--blue)}
   <div class="form-field"><label>Couleur</label><div class="color-row" id="catColRow"></div></div>
   <div class="form-field"><label>Mots-clés (séparés par virgules)</label><input id="mcK" type="text" placeholder="MOT1, MOT2"/></div>
   <div class="modal-actions"><button class="btn" onclick="closeModal('mCat')">Annuler</button><button class="btn primary" id="mcBtn" onclick="saveCat()">Créer</button></div>
+</div></div>
+
+<!-- MODAL DIVISER -->
+<div class="modal-overlay hidden" id="mSplit"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title" id="spTitle">Diviser la transaction</div>
+  <div class="sp-label" id="spLabel"></div>
+  <div class="sp-total">Montant total : <b id="spTotal">—</b> <span id="spKind"></span></div>
+  <div id="spParts"></div>
+  <button class="btn sm" onclick="spAdd()">+ Ajouter une part</button>
+  <div class="sp-msg" id="spMsg"></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('mSplit')">Annuler</button><button class="btn primary" id="spSave" onclick="saveSplit()">Enregistrer</button></div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -719,6 +750,121 @@ async function autoCategorize(){
   else{renderCatTx();toast(msg,fail?"error":"success");}
 }
 
+// ══ DIVISER UNE TRANSACTION EN PLUSIEURS PARTS ═════════════════════════════
+// Part 1 = ligne d'origine (même empreinte → un réimport du CSV la reconnaît toujours).
+// Parts suivantes = nouvelles lignes, empreinte "<empreinte d'origine>#n" (aucune colonne en plus).
+let spState=null;
+function spFmtIn(cents){return (cents/100).toFixed(2);}
+function spCatOpts(cur){
+  return categories.filter(c=>!c.parent_id).map(c=>{
+    const subs=categories.filter(s=>s.parent_id===c.id);
+    const self=`<option value="${c.id}" ${c.id===cur?'selected':''}>${esc(c.name)}</option>`;
+    const so=subs.map(s=>`<option value="${s.id}" ${s.id===cur?'selected':''}> ↳ ${esc(s.name)}</option>`).join('');
+    return subs.length?`<optgroup label="${esc(c.name)}">${self}${so}</optgroup>`:self;
+  }).join('');
+}
+function openSplit(id){
+  const t=transactions.find(x=>x.id===id);if(!t)return;
+  const g=splitGroup(t);
+  const total=Math.round(g.reduce((s,x)=>s+(parseFloat(x.amount)||0),0)*100);
+  if(!total){toast("Montant total nul : division impossible","error");return;}
+  const sign=total<0?-1:1,tc=Math.abs(total);
+  if(g.some(x=>Math.sign(parseFloat(x.amount)||0)!==sign)){toast("Cette transaction contient des parts de signes différents : modification impossible","error");return;}
+  let parts=g.map(x=>({id:x.id,cents:Math.abs(Math.round((parseFloat(x.amount)||0)*100)),cat:x.category_id||nonCatId}));
+  if(parts.length===1){
+    if(tc<2){toast("Montant trop faible pour être divisé","error");return;}
+    const first=Math.ceil(tc/2);
+    parts=[{id:parts[0].id,cents:first,cat:parts[0].cat},{id:null,cents:tc-first,cat:parts[0].cat}];
+  }
+  spState={key:splitKey(t),acc:g[0].account_id,date:g[0].date,label:g[0].label,sign,tc,parts,removed:[],baseHash:splitKey(g[0]),existing:g};
+  document.getElementById("spTitle").textContent=g.length>1?"Modifier la répartition":"Diviser la transaction";
+  document.getElementById("spLabel").textContent=g[0].label||"";
+  document.getElementById("spTotal").textContent=fmt(sign*tc/100);
+  document.getElementById("spKind").textContent=sign<0?"(dépense)":"(revenu)";
+  renderSplit();
+  document.getElementById("mSplit").classList.remove("hidden");
+}
+function renderSplit(){
+  const S=spState;if(!S)return;
+  const n=S.parts.length;
+  document.getElementById("spParts").innerHTML=S.parts.map((p,i)=>{
+    const last=i===n-1;
+    return `<div class="sp-row">
+      <div class="sp-n">${i+1}</div>
+      <input class="sp-amt" id="spA${i}" type="text" inputmode="decimal" value="${spFmtIn(p.cents)}" ${last?'readonly title="Calculé automatiquement : total moins les autres parts"':''} onfocus="this.select()" oninput="spInput(${i},this.value)" onchange="spBlur(${i})"/>
+      <select class="cat-sel sp-cat" onchange="spCat(${i},this.value)">${spCatOpts(p.cat)}</select>
+      <button class="sp-del" ${i===0?'disabled title="La première part est la ligne d\'origine"':''} onclick="spRemove(${i})" title="Supprimer cette part">×</button>
+    </div>`;
+  }).join('');
+  spRefresh();
+}
+function spRefresh(){
+  const S=spState;if(!S)return;
+  const n=S.parts.length;
+  const others=S.parts.slice(0,n-1).reduce((s,p)=>s+p.cents,0);
+  S.parts[n-1].cents=S.tc-others;
+  const lastEl=document.getElementById("spA"+(n-1));if(lastEl)lastEl.value=spFmtIn(S.parts[n-1].cents);
+  const bad=S.parts.some(p=>p.cents<=0);
+  const msg=document.getElementById("spMsg"),btn=document.getElementById("spSave");
+  if(bad){msg.className="sp-msg err";msg.textContent=S.parts[n-1].cents<=0&&others>0?"Le total est dépassé : réduis une des parts.":"Chaque part doit être supérieure à 0.";}
+  else{msg.className="sp-msg ok";msg.textContent=`${n} part${n>1?'s':''} · total ${fmt(S.sign*S.tc/100)} ✓`;}
+  btn.disabled=bad;
+}
+function spInput(i,v){
+  const S=spState;if(!S||i===S.parts.length-1)return;
+  const f=parseFloat(String(v).replace(',','.').replace(/\s/g,''));
+  S.parts[i].cents=isNaN(f)?0:Math.round(f*100);
+  spRefresh();
+}
+function spBlur(i){const S=spState;if(!S)return;const el=document.getElementById("spA"+i);if(el&&i<S.parts.length-1)el.value=spFmtIn(Math.max(0,S.parts[i].cents));}
+function spCat(i,v){if(spState)spState.parts[i].cat=v;}
+function spAdd(){
+  const S=spState;if(!S)return;
+  const n=S.parts.length,last=S.parts[n-1];
+  const give=Math.floor(last.cents/2);
+  if(give<1){toast("Plus assez de montant à répartir : réduis d'abord une part","error");return;}
+  last.cents-=give;                       // l'ancienne dernière part devient modifiable
+  S.parts.push({id:null,cents:give,cat:last.cat});
+  renderSplit();
+}
+function spRemove(i){
+  const S=spState;if(!S||i===0||S.parts.length<=1)return;
+  const p=S.parts[i];if(p.id)S.removed.push(p.id);
+  S.parts.splice(i,1);
+  renderSplit();
+}
+async function saveSplit(){
+  const S=spState;if(!S)return;
+  spRefresh();if(S.parts.some(p=>p.cents<=0))return;
+  const btn=document.getElementById("spSave");btn.disabled=true;btn.textContent="⏳ …";
+  const amt=cents=>parseFloat((S.sign*cents/100).toFixed(2));
+  let ok=true;
+  try{
+    // 1) parts existantes : montant + catégorie
+    for(const p of S.parts.filter(p=>p.id)){
+      if(!await patchTx(p.id,{amount:amt(p.cents),category_id:p.cat||null})){ok=false;break;}
+    }
+    // 2) nouvelles parts
+    if(ok){
+      let next=Math.max(0,...S.existing.map(splitNum))+1;
+      const rows=S.parts.filter(p=>!p.id).map(p=>({user_id:uid,account_id:S.acc,date:S.date,label:S.label,amount:amt(p.cents),category_id:p.cat||null,hash:`${S.baseHash}#${next++}`,is_transfer:false}));
+      if(rows.length){const r=await safeInsertBatch(rows);if(r.ins!==rows.length)ok=false;}
+    }
+    // 3) parts supprimées
+    if(ok&&S.removed.length){
+      const res=await fetch(`${SB}/rest/v1/bankapp_transactions?user_id=eq.${uid}&id=in.(${S.removed.join(',')})`,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=minimal'}});
+      if(!res.ok){console.error('delete parts',res.status,await res.text());ok=false;}
+    }
+  }catch(e){console.error(e);ok=false;}
+  btn.textContent="Enregistrer";btn.disabled=false;
+  const n=S.parts.length;
+  await loadTxs();
+  afterTxChange();
+  closeModal("mSplit");spState=null;
+  if(ok)toast(n>1?`Transaction répartie en ${n} parts ✓`:"Transaction rétablie en une seule ligne ✓","success");
+  else toast("Erreur pendant la division — vérifie les montants (F12 pour le détail)","error");
+}
+
 // ══ BALANCE LOGIC ═════════════════════════════════════════════════════════
 function computeBal(aid){
   const acc=accounts.find(a=>a.id===aid);if(!acc)return 0;
@@ -896,7 +1042,7 @@ function renderAnTxList(pool){
   const title=anSubId===anCatId?`${esc(cat?.name)} (direct)`:`${esc(parent?.name||'')} › ${esc(cat?.name)}`;
   document.getElementById("anContent").innerHTML=`<div class="detail-back" onclick="anSubId=null;renderAnalyse()">← Retour</div>
     <div class="sub-head"><div class="sub-head-name">${title}</div><div class="sub-head-meta">${fmt(total)} · ${txs.length} transaction${txs.length>1?'s':''} · ${mLabelFull(anMonth)}</div></div>
-    <div class="txr-list" style="margin:0 0 14px">`+(txs.length?txHeadHtml({acc:true,transfer:false})+txs.map(t=>txRowHtml(t,{acc:true,transfer:false})).join(''):`<div class="txr-empty">Plus aucune transaction dans cette catégorie pour ce mois.</div>`)+`</div>`;
+    <div class="txr-list" style="margin:0 0 14px">`+(txs.length?txHeadHtml({acc:true,transfer:false,split:true})+txs.map(t=>txRowHtml(t,{acc:true,transfer:false,split:true})).join(''):`<div class="txr-empty">Plus aucune transaction dans cette catégorie pour ce mois.</div>`)+`</div>`;
   autoGrowAll();
 }
 function anNav(d){const dt=new Date(anMonth+"-01");dt.setMonth(dt.getMonth()+d);anMonth=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;anCatId=null;anSubId=null;renderAnalyse();}
@@ -962,22 +1108,30 @@ async function editTxLabel(id,val){
   if(!await patchTx(id,{label:val}))return;
   t.label=val;toast("Libellé modifié","success");
 }
+function splitKey(t){return String(t.hash||('ID'+t.id)).split('#')[0];}
+function splitNum(t){const h=String(t.hash||''),i=h.indexOf('#');return i<0?0:(parseInt(h.slice(i+1),10)||0);}
+function splitGroup(t){
+  const key=splitKey(t);
+  return transactions.filter(x=>x.account_id===t.account_id&&splitKey(x)===key).sort((a,b)=>splitNum(a)-splitNum(b));
+}
 function txHeadHtml(o){
-  o=o||{};
-  return `<div class="txr-head${o.acc?'':' noacc'}${o.transfer?'':' notog'}"><span class="h-date">Date</span><span class="h-label">Libellé</span>${o.acc?'<span class="h-acc">Compte</span>':''}<span class="h-cat">Catégorie</span><span class="h-amt">Montant</span>${o.transfer?'<span class="h-tog"></span>':''}</div>`;
+  o=o||{};const act=o.transfer||o.split;
+  return `<div class="txr-head${o.acc?'':' noacc'}${act?'':' notog'}"><span class="h-date">Date</span><span class="h-label">Libellé</span>${o.acc?'<span class="h-acc">Compte</span>':''}<span class="h-cat">Catégorie</span><span class="h-amt">Montant</span>${act?'<span class="h-tog"></span>':''}</div>`;
 }
 function txRowHtml(t,o){
   o=o||{};
-  const acc=accounts.find(a=>a.id===t.account_id),isT=t.is_transfer;
-  const cls=`txr${isT?' transfer':''}${o.acc?'':' noacc'}${o.transfer?'':' notog'}`;
+  const acc=accounts.find(a=>a.id===t.account_id),isT=t.is_transfer,act=o.transfer||o.split;
+  const cls=`txr${isT?' transfer':''}${o.acc?'':' noacc'}${act?'':' notog'}`;
+  const g=splitGroup(t);
+  const chip=g.length>1?`<button class="txr-part" onclick="openSplit('${t.id}')" title="Modifier la répartition de cette transaction">✂ ${g.indexOf(t)+1}/${g.length}</button>`:'';
   return `<div class="${cls}">
     <textarea class="txr-label" rows="1" spellcheck="false" title="Cliquer pour modifier le libellé" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" oninput="autoGrow(this)" onchange="editTxLabel('${t.id}',this.value)">${esc(t.label)}</textarea>
-    <div class="txr-amt ${t.amount>=0?'positive':'negative'}">${fmt(t.amount)}</div>
+    <div class="txr-amtc"><div class="txr-amt ${t.amount>=0?'positive':'negative'}">${fmt(t.amount)}</div>${chip}</div>
     <div class="txr-meta">
       <input type="date" class="txr-date" value="${t.date||''}" onchange="editTxDate('${t.id}',this.value)" title="Modifier la date"/>
       ${o.acc?`<span class="txr-acc" title="${esc(acc?acc.label:'')}">${acc?`<span class="acc-dot-s" style="background:${acc.color}"></span><span class="txr-acc-n">${esc(acc.label)}</span>`:'—'}</span>`:''}
       ${isT?`<span class="txr-trf">Virement interne</span>`:`<select class="cat-sel" onchange="quickCat('${t.id}',this.value)">${catOptHtml(t.category_id)}</select>`}
-      ${o.transfer?`<button class="tbadge ${isT?'on':''}" onclick="toggleTransfer('${t.id}')" title="${isT?'Retirer des virements internes':'Marquer comme virement interne'}">${isT?'↔ Virement':'↔'}</button>`:''}
+      ${act?`<div class="txr-act">${o.split&&!isT?`<button class="tbadge" onclick="openSplit('${t.id}')" title="Diviser cette transaction en plusieurs parts (catégories différentes)">✂</button>`:''}${o.transfer?`<button class="tbadge ${isT?'on':''}" onclick="toggleTransfer('${t.id}')" title="${isT?'Retirer des virements internes':'Marquer comme virement interne'}">${isT?'↔ Virement':'↔'}</button>`:''}</div>`:''}
     </div></div>`;
 }
 function catFilterHtml(){
@@ -1000,7 +1154,7 @@ function renderTx(){
   document.getElementById("pgInfo").textContent=`${tot} transaction${tot>1?'s':''} — ${curPage}/${tp}`;
   const b=document.getElementById("txList");
   if(!sl.length){b.innerHTML=`<div class="txr-empty"><div style="font-size:36px;opacity:.4">📭</div>Aucune transaction</div>`;return;}
-  b.innerHTML=txHeadHtml({acc:true,transfer:true})+sl.map(t=>txRowHtml(t,{acc:true,transfer:true})).join('');autoGrowAll();
+  b.innerHTML=txHeadHtml({acc:true,transfer:true,split:true})+sl.map(t=>txRowHtml(t,{acc:true,transfer:true,split:true})).join('');autoGrowAll();
 }
 function chgPage(d){const tp=Math.max(1,Math.ceil(filteredTx.length/PS));curPage=Math.max(1,Math.min(tp,curPage+d));renderTx();}
 
@@ -1062,7 +1216,7 @@ function renderAccDetail(){
   const PSD=30,tp=Math.max(1,Math.ceil(list.length/PSD));adPage=Math.max(1,Math.min(adPage,tp));
   document.getElementById("adPgInfo").textContent=`${list.length} transaction${list.length>1?'s':''} — ${adPage}/${tp}`;
   const el=document.getElementById("adList");
-  el.innerHTML=list.length?txHeadHtml({acc:false,transfer:true})+list.slice((adPage-1)*PSD,adPage*PSD).map(t=>txRowHtml(t,{acc:false,transfer:true})).join(''):`<div class="txr-empty"><div style="font-size:36px;opacity:.4">📭</div>Aucune transaction</div>`;
+  el.innerHTML=list.length?txHeadHtml({acc:false,transfer:true,split:true})+list.slice((adPage-1)*PSD,adPage*PSD).map(t=>txRowHtml(t,{acc:false,transfer:true,split:true})).join(''):`<div class="txr-empty"><div style="font-size:36px;opacity:.4">📭</div>Aucune transaction</div>`;
   autoGrowAll();
 }
 function openAccModal(id=null){
