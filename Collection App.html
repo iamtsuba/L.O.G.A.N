@@ -162,6 +162,9 @@
     }
     .product-card:hover { border-color: var(--accent); }
     .product-card.product-excluded { opacity: 0.6; }
+    .product-card.product-sold { border-color: rgba(108,99,255,0.45); }
+    .pbadge-sold { background: rgba(108,99,255,0.18); color: #b4aeff; }
+    .pnl-banner-sold { border-color: rgba(108,99,255,0.45); }
     .status-dot {
       width: 9px; height: 9px; border-radius: 50%;
       flex-shrink: 0; box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
@@ -407,7 +410,7 @@
 const SUPABASE_URL  = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
 const APP_FILE      = 'Collection App.html';
-const VERSION       = '26.9.19.1000';
+const VERSION       = '26.11.15.1302';
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -622,6 +625,8 @@ async function deleteProduct(id) {
 
 async function duplicateProduct(p) {
   const { id, created_at, ...rest } = p;
+  // Une copie d'un objet vendu n'est pas vendue
+  if ('sold' in rest) { rest.sold = false; rest.sold_price = null; }
   const { error } = await db
     .from('collectapp_products')
     .insert({ ...rest, name: rest.name + ' (copie)' });
@@ -677,11 +682,19 @@ function collectionCard(c) {
 
 async function loadAllStats() {
   for (const c of collections) {
-    const { data } = await db
+    let { data, error } = await db
       .from('collectapp_products')
-      .select('buy_price, sell_price_ebay, excluded')
+      .select('buy_price, sell_price_ebay, excluded, sold, sold_price')
       .eq('collection_id', c.id)
       .eq('user_id', currentUserId);
+    if (error) {
+      // Colonnes "sold" pas encore créées en base : on retombe sur l'ancienne requête
+      ({ data } = await db
+        .from('collectapp_products')
+        .select('buy_price, sell_price_ebay, excluded')
+        .eq('collection_id', c.id)
+        .eq('user_id', currentUserId));
+    }
     if (!data) continue;
     const included  = data.filter(p => !isEffExcluded(p));
     const totalBuy  = included.reduce((s, p) => s + (p.buy_price || 0), 0);
@@ -704,9 +717,15 @@ async function openCollection(id) {
   renderProductsView();
 }
 
-// Un objet est exclu du calcul total si exclu manuellement OU s'il n'a pas de prix de revente
+// Un objet est exclu du calcul de revente ESTIMÉE s'il est exclu manuellement,
+// s'il n'a pas de prix de revente, OU s'il est déjà vendu
 function isEffExcluded(p) {
-  return !!p.excluded || !p.sell_price_ebay;
+  return !!p.excluded || !p.sell_price_ebay || !!p.sold;
+}
+
+// Objets vendus comptés dans la revente RÉELLE (hors exclusion manuelle)
+function soldCounted(list) {
+  return list.filter(p => p.sold && !p.excluded);
 }
 
 function renderProductsView() {
@@ -720,12 +739,20 @@ function renderProductsView() {
   const totalSell = included.reduce((s, p) => s + (p.sell_price_ebay || 0), 0);
   const profit    = totalSell - totalBuy;
   const pColor    = profit >= 0 ? 'var(--accent3)' : 'var(--accent4)';
-  const excludedCount = products.length - included.length;
+  const soldAll       = products.filter(p => p.sold);
+  const excludedCount = products.filter(p => !p.sold && isEffExcluded(p)).length;
+
+  // Ventes réalisées
+  const soldItems  = soldCounted(products);
+  const realSell   = soldItems.reduce((s, p) => s + (p.sold_price || 0), 0);
+  const soldBuy    = soldItems.reduce((s, p) => s + (p.buy_price || 0), 0);
+  const realProfit = realSell - soldBuy;
+  const rColor     = realProfit >= 0 ? 'var(--accent3)' : 'var(--accent4)';
 
   const html = `
     <button class="back-btn" onclick="goBack()">← Retour</button>
     <div class="view-title">${esc(currentCollection.name)}</div>
-    <div class="view-subtitle">${t.emoji} ${esc(label)} · ${products.length} item${products.length !== 1 ? 's' : ''}${excludedCount > 0 ? ` · ${excludedCount} exclu(s) du calcul` : ''}</div>
+    <div class="view-subtitle">${t.emoji} ${esc(label)} · ${products.length} item${products.length !== 1 ? 's' : ''}${soldAll.length > 0 ? ` · ${soldAll.length} vendu(s)` : ''}${excludedCount > 0 ? ` · ${excludedCount} exclu(s) du calcul` : ''}</div>
 
     <button class="add-product-btn" onclick="openNewProductModal()" style="margin-top:0;margin-bottom:14px;">＋ Ajouter un produit</button>
 
@@ -751,6 +778,24 @@ function renderProductsView() {
       </div>
     </div>
 
+    ${soldItems.length > 0 ? `
+    <div class="pnl-banner pnl-banner-sold">
+      <div class="pnl-item">
+        <div class="pnl-value" style="color:var(--accent)">${soldItems.length}</div>
+        <div class="pnl-label">Vendus</div>
+      </div>
+      <div class="pnl-sep"></div>
+      <div class="pnl-item">
+        <div class="pnl-value" style="color:var(--accent3)">${fmt(realSell)}</div>
+        <div class="pnl-label">Revente réelle</div>
+      </div>
+      <div class="pnl-sep"></div>
+      <div class="pnl-item">
+        <div class="pnl-value" style="color:${rColor}">${(realProfit >= 0 ? '+' : '') + fmt(realProfit)}</div>
+        <div class="pnl-label">P&amp;L réel</div>
+      </div>
+    </div>` : ''}
+
     <div class="action-row">
       <button class="action-btn accent" onclick="openQuickAddModal()" style="flex:1;">⚡ Ajout rapide</button>
       <button class="action-btn" onclick="exportToPDF()" style="flex:none;padding:10px 14px;">📄 PDF</button>
@@ -769,12 +814,19 @@ function productCard(p) {
   const img = p.photo
     ? `<img class="product-thumb" src="${p.photo}" alt="" loading="lazy">`
     : `<div class="product-thumb-placeholder">📷</div>`;
-  const sellBadge = p.sell_price_ebay
-    ? `<span class="pbadge pbadge-sell">${fmt(p.sell_price_ebay)} eBay</span>`
-    : `<span class="pbadge pbadge-nosell">Pas évalué</span>`;
+  let sellBadge;
+  if (p.sold) {
+    sellBadge = `<span class="pbadge pbadge-sold">Vendu ${fmt(p.sold_price)}</span>`;
+  } else if (p.sell_price_ebay) {
+    sellBadge = `<span class="pbadge pbadge-sell">${fmt(p.sell_price_ebay)} eBay</span>`;
+  } else {
+    sellBadge = `<span class="pbadge pbadge-nosell">Pas évalué</span>`;
+  }
 
   let dotColor, dotTitle;
-  if (p.excluded) {
+  if (p.sold) {
+    dotColor = 'var(--accent)'; dotTitle = 'Vendu — retiré de la revente estimée, compté dans la revente réelle';
+  } else if (p.excluded) {
     dotColor = 'var(--accent4)'; dotTitle = 'Exclu manuellement du calcul total';
   } else if (!p.sell_price_ebay) {
     dotColor = 'var(--orange)'; dotTitle = 'Pas de prix de revente — exclu automatiquement du calcul total';
@@ -783,7 +835,7 @@ function productCard(p) {
   }
 
   return `
-    <div class="product-card${isEffExcluded(p) ? ' product-excluded' : ''}">
+    <div class="product-card${p.sold ? ' product-sold' : (isEffExcluded(p) ? ' product-excluded' : '')}">
       <span class="status-dot" style="background:${dotColor}" title="${dotTitle}"></span>
       ${img}
       <div class="product-info">
@@ -977,11 +1029,30 @@ function openProductModal(pre) {
         </label>
       </div>
 
+      <!-- Vendu -->
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;">
+          <input type="checkbox" id="input-sold" ${pre?.sold ? 'checked' : ''} onchange="toggleSoldFields()"
+                 style="width:19px;height:19px;accent-color:var(--accent);flex-shrink:0;">
+          <span style="font-size:0.85rem;">Marquer comme vendu</span>
+        </label>
+        <div id="sold-fields" style="display:${pre?.sold ? 'block' : 'none'};margin-top:10px;">
+          <label class="form-label">Prix de vente réel (€)</label>
+          <input class="form-input" type="number" id="input-sold-price" placeholder="0.00" min="0" step="0.01" value="${pre?.sold_price ?? ''}">
+        </div>
+      </div>
+
       <button class="btn btn-primary" onclick="submitProduct()">${editingProductId ? 'Enregistrer' : 'Ajouter le produit'}</button>
       ${editingProductId ? `<button class="btn btn-danger" onclick="deleteFromEdit()">Supprimer ce produit</button>` : ''}
     </div>`;
   document.body.appendChild(ol);
   ol.addEventListener('click', e => { if (e.target === ol) closeModal('modal-prod'); });
+}
+
+function toggleSoldFields() {
+  const on = document.getElementById('input-sold').checked;
+  document.getElementById('sold-fields').style.display = on ? 'block' : 'none';
+  if (on) document.getElementById('input-sold-price')?.focus();
 }
 
 // ── eBay : ouverture dans un nouvel onglet (eBay bloque l'affichage en iframe) ──
@@ -1017,31 +1088,55 @@ function exportToExcel() {
     'P&L estimé (€)':   p.sell_price_ebay
                           ? parseFloat((p.sell_price_ebay - (p.buy_price||0)).toFixed(2))
                           : '',
-    'Exclu du total':    p.excluded ? 'Oui (manuel)' : (!p.sell_price_ebay ? 'Oui (pas de prix)' : 'Non'),
+    'Vendu':             p.sold ? 'Oui' : 'Non',
+    'Prix de vente réel (€)': p.sold ? (p.sold_price ?? 0) : '',
+    'P&L réel (€)':      p.sold ? parseFloat(((p.sold_price || 0) - (p.buy_price || 0)).toFixed(2)) : '',
+    'Exclu du total':    p.excluded ? 'Oui (manuel)' : (p.sold ? 'Oui (vendu)' : (!p.sell_price_ebay ? 'Oui (pas de prix)' : 'Non')),
     'Photo':             p.photo ? 'Oui' : 'Non',
     'Ajouté le':         p.created_at ? p.created_at.slice(0,10) : '',
   }));
 
-  // Ligne totaux (hors objets exclus, manuellement ou faute de prix de revente)
+  // Ligne totaux estimés (hors exclus, hors vendus, hors objets sans prix de revente)
   const included  = products.filter(p => !isEffExcluded(p));
   const totalBuy  = included.reduce((s, p) => s + (p.buy_price||0), 0);
   const totalSell = included.reduce((s, p) => s + (p.sell_price_ebay||0), 0);
   rows.push({
-    'Nom': 'TOTAL (hors exclus)',
+    'Nom': 'TOTAL ESTIMÉ (hors exclus et vendus)',
     'Nom recherche': '',
     'Prix achat (€)': parseFloat(totalBuy.toFixed(2)),
     'Prix revente eBay (€)': included.length ? parseFloat(totalSell.toFixed(2)) : '',
     'P&L estimé (€)': included.length ? parseFloat((totalSell - totalBuy).toFixed(2)) : '',
+    'Vendu': '', 'Prix de vente réel (€)': '', 'P&L réel (€)': '',
     'Exclu du total': '',
     'Photo': '',
     'Ajouté le': '',
   });
 
+  // Ligne totaux réels (objets vendus, hors exclusion manuelle)
+  const soldItems = soldCounted(products);
+  if (soldItems.length) {
+    const realSell = soldItems.reduce((s, p) => s + (p.sold_price||0), 0);
+    const soldBuy  = soldItems.reduce((s, p) => s + (p.buy_price||0), 0);
+    rows.push({
+      'Nom': 'TOTAL VENDU (réel)',
+      'Nom recherche': '',
+      'Prix achat (€)': parseFloat(soldBuy.toFixed(2)),
+      'Prix revente eBay (€)': '',
+      'P&L estimé (€)': '',
+      'Vendu': soldItems.length,
+      'Prix de vente réel (€)': parseFloat(realSell.toFixed(2)),
+      'P&L réel (€)': parseFloat((realSell - soldBuy).toFixed(2)),
+      'Exclu du total': '',
+      'Photo': '',
+      'Ajouté le': '',
+    });
+  }
+
   const ws = XLSX.utils.json_to_sheet(rows);
 
   // Largeurs colonnes
   ws['!cols'] = [
-    { wch: 30 }, { wch: 30 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 8 }, { wch: 12 }
+    { wch: 36 }, { wch: 30 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 8 }, { wch: 22 }, { wch: 14 }, { wch: 18 }, { wch: 8 }, { wch: 12 }
   ];
 
   const wb = XLSX.utils.book_new();
@@ -1393,8 +1488,12 @@ async function submitProduct() {
   const buy_price     = parseFloat(document.getElementById('input-buy').value)  || 0;
   const sell_price_ebay = parseFloat(document.getElementById('input-sell').value) || null;
   const excluded      = document.getElementById('input-excluded').checked;
+  const sold          = document.getElementById('input-sold').checked;
+  const soldPriceRaw  = parseFloat(document.getElementById('input-sold-price').value);
   if (!name) { alert('Entrez un nom de produit.'); return; }
-  const payload = { name, search_name, buy_price, sell_price_ebay, excluded };
+  if (sold && Number.isNaN(soldPriceRaw)) { alert('Entrez le prix de vente réel.'); return; }
+  const sold_price = sold ? soldPriceRaw : null;
+  const payload = { name, search_name, buy_price, sell_price_ebay, excluded, sold, sold_price };
   if (currentPhotoB64 !== null && currentPhotoB64 !== undefined) payload.photo = currentPhotoB64;
   try {
     if (editingProductId) {
