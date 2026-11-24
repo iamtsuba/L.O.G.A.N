@@ -175,7 +175,7 @@ if (window.opener && window.opener !== window && /[#?&](code|error|id_token|acce
 
 /* ===== Configuration ===== */
 var APP_FILE = 'MesMails.html';
-var VERSION  = '26.11.24.2207';
+var VERSION  = '26.11.24.2236';
 var LOGAN_URL = 'https://iamtsuba.github.io/L.O.G.A.N';
 var SB_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
@@ -639,6 +639,7 @@ function renderDetail() {
   if (g) {
     var u = S.unsubs[g.key], all = S.byKey.get(g.key) || [], info = pickUnsub(g.key);
     h += '<div class="phead"><button class="btn sm" id="backBtn" data-act="back">←</button><h3>' + esc(g.name || g.email) + '</h3><span class="t" style="flex:none">' + nf(g.mails.length) + (g.mails.length !== all.length ? ' / ' + nf(all.length) : '') + ' mails</span>' +
+      (all.some(function (m) { return m.unread; }) ? '<button class="btn sm" data-act="read-sender">Tout marquer comme lu</button>' : '') +
       (info && !(u && u.status === 'done') ? '<button class="btn sm" data-act="unsub-sender">Se désabonner</button>' : '') +
       '<button class="btn sm bad" data-act="del-sender">Tout supprimer</button></div>';
     h += '<div class="rh" style="background:var(--card)"><b>' + esc(g.email) + '</b>' + (u ? ' · ' + (u.status === 'done' ? 'désabonnement envoyé' : 'désabonnement à finaliser') + ' le ' + new Date(u.at).toLocaleDateString('fr-FR') : '') + (!info ? ' · pas de lien de désabonnement détecté' : '') + '</div>';
@@ -662,7 +663,7 @@ function renderBulk() {
   var el = $('#bulk');
   if (S.selS.size) {
     var n = 0; S.selS.forEach(function (k) { n += (S.byKey.get(k) || []).length; });
-    el.innerHTML = '<b>' + S.selS.size + ' ' + plural(S.selS.size, 'expéditeur', 'expéditeurs') + '</b><span>· ' + nf(n) + ' mails</span><button class="btn sm" data-act="unsub-selected">Se désabonner</button><button class="btn sm bad" data-act="del-selected">Supprimer</button><button class="btn sm" data-act="clear-sel">Annuler</button>';
+    el.innerHTML = '<b>' + S.selS.size + ' ' + plural(S.selS.size, 'expéditeur', 'expéditeurs') + '</b><span>· ' + nf(n) + ' mails</span><button class="btn sm" data-act="read-selected">Marquer comme lu</button><button class="btn sm" data-act="unsub-selected">Se désabonner</button><button class="btn sm bad" data-act="del-selected">Supprimer</button><button class="btn sm" data-act="clear-sel">Annuler</button>';
     el.hidden = false;
   } else if (S.selM.size) {
     el.innerHTML = '<b>' + S.selM.size + ' ' + plural(S.selM.size, 'mail sélectionné', 'mails sélectionnés') + '</b><button class="btn sm bad" data-act="del-mails">Supprimer</button><button class="btn sm" data-act="clear-sel">Annuler</button>';
@@ -922,6 +923,58 @@ async function doConfirmDelete() {
   if (r.errs.length) toast('Erreurs : ' + r.errs.join(' · '), true); else toast(nf(r.removed.size) + ' ' + plural(r.removed.size, 'mail déplacé', 'mails déplacés') + ' dans la corbeille');
 }
 
+/* ===== Marquer comme lu ===== */
+async function serverUnreadIds(a, email) {
+  var ids = [], j;
+  if (a.provider === 'google') {
+    var pt = '';
+    do {
+      j = await apiJson(a, 'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500&q=' + encodeURIComponent('from:' + email + ' is:unread') + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''));
+      (j.messages || []).forEach(function (m) { ids.push(m.id); }); pt = j.nextPageToken || '';
+    } while (pt && ids.length < 20000);
+  } else {
+    var url = 'https://graph.microsoft.com/v1.0/me/messages?$select=id&$top=100&$filter=' + encodeURIComponent("isRead eq false and from/emailAddress/address eq '" + email.replace(/'/g, "''") + "'");
+    while (url && ids.length < 20000) { j = await apiJson(a, url); j.value.forEach(function (m) { ids.push(m.id); }); url = j['@odata.nextLink'] || null; }
+  }
+  return ids;
+}
+async function markSendersRead(keys) {
+  keys = keys.filter(Boolean); if (!keys.length) return;
+  var by = {}, add = function (aid, mid) { (by[aid] = by[aid] || new Set()).add(mid); };
+  keys.forEach(function (k) { (S.byKey.get(k) || []).forEach(function (m) { if (m.unread) add(m.acct, m.mid); }); });
+  setProg('Recherche des mails non lus…', 0, 0);
+  var jobs = []; keys.forEach(function (k) { S.accounts.forEach(function (a) { jobs.push([k, a]); }); });
+  await pool(jobs, 4, async function (j) { try { (await serverUnreadIds(j[1], j[0])).forEach(function (id) { add(j[1].id, id); }); } catch (e) { /* on garde les mails déjà chargés */ } });
+  var done = new Set(), errs = [], total = 0;
+  Object.keys(by).forEach(function (aid) { total += by[aid].size; });
+  var n = 0;
+  for (var ai = 0; ai < Object.keys(by).length; ai++) {
+    var aid = Object.keys(by)[ai], a = acctById(aid), ids = Array.from(by[aid]), i;
+    try {
+      if (a.provider === 'google') {
+        for (i = 0; i < ids.length; i += 1000) {
+          var ch = ids.slice(i, i + 1000);
+          await apiOk(a, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: ch, removeLabelIds: ['UNREAD'] }) });
+          ch.forEach(function (x) { done.add(a.id + '|' + x); }); n += ch.length; setProg('Marquage comme lu : ' + nf(n) + ' / ' + nf(total), n, total);
+        }
+      } else {
+        var chunks = []; for (i = 0; i < ids.length; i += 20) chunks.push(ids.slice(i, i + 20));
+        await pool(chunks, 3, async function (c) {
+          var body = { requests: c.map(function (id, k) { return { id: String(k), method: 'PATCH', url: '/me/messages/' + encodeURIComponent(id), headers: { 'Content-Type': 'application/json' }, body: { isRead: true } }; }) };
+          var j = await apiJson(a, 'https://graph.microsoft.com/v1.0/$batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          (j.responses || []).forEach(function (rp) { if (rp.status < 300 || rp.status === 404) done.add(a.id + '|' + c[Number(rp.id)]); });
+          n += c.length; setProg('Marquage comme lu : ' + nf(n) + ' / ' + nf(total), n, total);
+        });
+      }
+    } catch (e) { errs.push(a.email + ' : ' + e.message); }
+  }
+  var changed = [];
+  S.mails.forEach(function (m) { if (m.unread && done.has(m.id)) { m.unread = false; changed.push(m); } });
+  if (changed.length) await idbPut(changed).catch(function () { });
+  setProg(null); refresh(true);
+  if (errs.length) toast('Erreurs : ' + errs.join(' · '), true); else toast(nf(done.size) + ' ' + plural(done.size, 'mail marqué', 'mails marqués') + ' comme lu' + (done.size > 1 ? 's' : ''));
+}
+
 /* ===== Désabonnement ===== */
 function pickUnsub(key) {
   var ms = S.byKey.get(key) || [];
@@ -1092,6 +1145,8 @@ document.addEventListener('click', function (e) {
     case 'del-sender': startSenderDelete([S.active]); break;
     case 'del-mails': startMailDelete(Array.from(S.selM)); break;
     case 'confirm-del': doConfirmDelete(); break;
+    case 'read-sender': markSendersRead([S.active]); break;
+    case 'read-selected': markSendersRead(Array.from(S.selS)); break;
     case 'unsub-selected': startUnsub(Array.from(S.selS), false); break;
     case 'unsub-sender': startUnsub([S.active], false); break;
     case 'confirm-unsub': doConfirmUnsub(); break;
