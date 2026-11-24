@@ -96,6 +96,7 @@ mark{background:#ffe08a;color:#222;border-radius:3px;padding:0 1px}
 .x{border:0;background:transparent;font-size:22px;line-height:1;color:var(--mut);padding:2px 8px}
 .mb p{margin:0 0 10px}
 .mb label.row{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
+.ct{width:100%;border-collapse:collapse;margin-bottom:6px}.ct th{text-align:left;font-size:12px;color:var(--mut);padding:2px 4px;font-weight:500}.ct td{padding:3px}.ct td:first-child{width:34%}.ct td:last-child{width:30px}
 .mb textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);resize:vertical}
 .mb input[type=text]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 .mb h4{margin:16px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut)}
@@ -174,7 +175,7 @@ if (window.opener && window.opener !== window && /[#?&](code|error|id_token|acce
 
 /* ===== Configuration ===== */
 var APP_FILE = 'MesMails.html';
-var VERSION  = '26.11.24.2203';
+var VERSION  = '26.11.24.2207';
 var LOGAN_URL = 'https://iamtsuba.github.io/L.O.G.A.N';
 var SB_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
@@ -251,15 +252,20 @@ var S = {
   groups: [], view: [], selS: new Set(), selM: new Set(), active: null,
   unsubs: {}, sLimit: 150, mLimit: 150, terms: [],
   f: { q: '', acct: 'all', news: false, unread: false, date: 'all', sort: 'recent' },
-  cfg: { google: '', ms: '', depth: 1000 }, syncing: false, last: {}
+  cfg: { google: '', ms: '', depth: 1000 }, clients: [], syncing: false, last: {}
 };
 var tokens = {}; try { tokens = JSON.parse(sessionStorage.getItem('mm_tok') || '{}'); } catch (e) { }
 function saveTok() { try { sessionStorage.setItem('mm_tok', JSON.stringify(tokens)); } catch (e) { } }
 function loadCfg() { try { Object.assign(S.cfg, JSON.parse(localStorage.getItem('mm_cfg') || '{}')); } catch (e) { } }
 function saveCfg() { try { localStorage.setItem('mm_cfg', JSON.stringify(S.cfg)); } catch (e) { } }
-function gids() { return String(S.cfg.google || GOOGLE_CLIENT_ID || '').split(/[\s,;]+/).filter(Boolean); }
+function clientsOf(p) { return S.clients.filter(function (c) { return c.provider === p; }); }
+function gids() { return clientsOf('google').map(function (c) { return c.cid; }); }
 function gid() { return gids()[0] || ''; }
-function mid_() { return S.cfg.ms || MS_CLIENT_ID; }
+function mid_() { var l = clientsOf('microsoft'); return l.length ? l[0].cid : ''; }
+function clientName(a) {
+  var l = clientsOf(a.provider), cid = a.cid || (l[0] && l[0].cid), c = l.find(function (x) { return x.cid === cid; });
+  return c ? (c.name || c.cid.slice(0, 12) + '…') : '';
+}
 function acctById(id) { return S.accounts.find(function (a) { return a.id === id; }); }
 
 /* ===== Supabase (REST brut) ===== */
@@ -375,17 +381,19 @@ function parseUnsub(h, post) {
 }
 
 /* ===== Authentification fournisseurs ===== */
-var msalApp = null;
-async function getMsal() {
-  if (msalApp) return msalApp;
-  if (!mid_()) throw new Error("ID client Microsoft manquant (Comptes > Configuration).");
+var msalApps = {};
+async function getMsal(cid) {
+  cid = cid || mid_();
+  if (!cid) throw new Error("ID client Microsoft manquant (Comptes > Configuration).");
+  if (msalApps[cid]) return msalApps[cid];
   await loadScript(MSAL_URL);
-  msalApp = new window.msal.PublicClientApplication({
-    auth: { clientId: mid_(), authority: 'https://login.microsoftonline.com/common', redirectUri: location.origin + location.pathname },
+  var app = new window.msal.PublicClientApplication({
+    auth: { clientId: cid, authority: 'https://login.microsoftonline.com/common', redirectUri: location.origin + location.pathname },
     cache: { cacheLocation: 'localStorage' }
   });
-  if (msalApp.initialize) await msalApp.initialize();
-  return msalApp;
+  if (app.initialize) await app.initialize();
+  msalApps[cid] = app;
+  return app;
 }
 async function gisToken(hint, prompt, cid) {
   cid = cid || gid();
@@ -407,7 +415,7 @@ async function getToken(a) {
     var r = await gisToken(a.email, '', a.cid);
     tokens[a.id] = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
   } else {
-    var m = await getMsal();
+    var m = await getMsal(a.cid);
     var acc = m.getAllAccounts().find(function (x) { return x.username.toLowerCase() === a.email.toLowerCase(); });
     var res;
     try { if (!acc) throw new Error('no-account'); res = await m.acquireTokenSilent({ scopes: MS_SCOPES, account: acc }); }
@@ -670,18 +678,62 @@ function modalHtml(title, body, foot, cls, noClose) {
   return '<div class="modal ' + (cls || '') + '"><div class="mh"><h2>' + title + '</h2>' + (noClose ? '' : '<button class="x" data-act="close" title="Fermer">×</button>') + '</div><div class="mb">' + body + '</div>' + (foot ? '<div class="mf">' + foot + '</div>' : '') + '</div>';
 }
 function redirectUri() { return location.origin + location.pathname; }
+function clientRow(n, c) {
+  return '<tr><td><input type="text" class="cn" value="' + esc(n) + '" placeholder="ex. perso"></td><td><input type="text" class="ci" value="' + esc(c) + '" placeholder="ID client"></td><td><button class="x" data-act="row-del" title="Supprimer la ligne">×</button></td></tr>';
+}
+function clientTable(p, title, ph) {
+  var rows = clientsOf(p).map(function (c) { return clientRow(c.name, c.cid); }).join('');
+  return '<h4>' + title + '</h4><table class="ct" data-prov="' + p + '"><thead><tr><th>Compte</th><th>Client ID</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><button class="btn sm" data-act="row-add" data-prov="' + p + '" data-ph="' + esc(ph) + '">+ Ajouter une ligne</button>';
+}
 function cfgBlock() {
   return '<h4>Configuration OAuth</h4>' +
-    '<p class="note">Ces identifiants ne sont pas secrets. Ils sont enregistrés uniquement dans ce navigateur. Les mails ne quittent jamais votre appareil : ils vont directement de Gmail/Outlook vers cette page.</p>' +
-    '<label>ID clients Google (un par ligne : vous pouvez en mettre plusieurs)<textarea id="cfgG" rows="3" placeholder="xxxxxxxx.apps.googleusercontent.com">' + esc(gids().join('\n')) + '</textarea></label>' +
-    '<label style="display:block;margin-top:8px">ID d\'application Microsoft (client)<input type="text" id="cfgM" value="' + esc(S.cfg.ms || MS_CLIENT_ID) + '" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>' +
-    '<details><summary>Comment obtenir l\'ID Google ?</summary><ol><li>Ouvrir <code>console.cloud.google.com</code> → créer un projet.</li><li>« API et services » → activer <b>Gmail API</b>.</li><li>« Écran de consentement OAuth » → type Externe, mode Test, ajouter votre adresse Gmail comme utilisateur test.</li><li>« Identifiants » → Créer → ID client OAuth → Application Web.</li><li>Origine JavaScript autorisée : <code>' + esc(location.origin) + '</code></li><li>Copier l\'ID client ici. (Au premier accès, Google affiche « application non vérifiée » : Paramètres avancés → Continuer.)</li></ol></details>' +
-    '<details><summary>Comment obtenir l\'ID Microsoft (Outlook / Hotmail) ?</summary><ol><li>Ouvrir <code>portal.azure.com</code> → Microsoft Entra ID → Inscriptions d\'applications → Nouvelle inscription.</li><li>Types de comptes : « …annuaire organisationnel <b>et comptes Microsoft personnels</b> ».</li><li>URI de redirection, type <b>Application monopage (SPA)</b> : <code>' + esc(redirectUri()) + '</code></li><li>Autorisations API → Microsoft Graph (déléguées) : <code>Mail.ReadWrite</code>, <code>Mail.Send</code>, <code>User.Read</code>.</li><li>Copier l\'« ID d\'application (client) » ici.</li></ol></details>';
+    '<p class="note">Associez un nom à chaque ID client. Ces identifiants ne sont pas secrets. Les mails ne quittent jamais votre appareil : ils vont directement de Gmail/Outlook vers cette page.</p>' +
+    clientTable('google', 'Clients Google (Gmail)', 'xxxxxxxx.apps.googleusercontent.com') +
+    clientTable('microsoft', 'Clients Microsoft (Outlook / Hotmail)', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') +
+    '<details><summary>Comment obtenir l\'ID Google ?</summary><ol><li>Ouvrir <code>console.cloud.google.com</code> → créer un projet.</li><li>« API et services » → activer <b>Gmail API</b>.</li><li>« Écran de consentement OAuth » → type Externe, puis <b>Publier l\'application</b> (ou, en mode Test, ajouter vos adresses comme utilisateurs test).</li><li>« Identifiants » → Créer → ID client OAuth → Application Web.</li><li>Origine JavaScript autorisée : <code>' + esc(location.origin) + '</code></li><li>Copier l\'ID client dans le tableau. (Au premier accès, Google affiche « application non vérifiée » : Paramètres avancés → Continuer.)</li></ol></details>' +
+    '<details><summary>Comment obtenir l\'ID Microsoft (Outlook / Hotmail) ?</summary><ol><li>Ouvrir <code>portal.azure.com</code> → Microsoft Entra ID → Inscriptions d\'applications → Nouvelle inscription.</li><li>Types de comptes : « …annuaire organisationnel <b>et comptes Microsoft personnels</b> ».</li><li>URI de redirection, type <b>Application monopage (SPA)</b> : <code>' + esc(redirectUri()) + '</code></li><li>Autorisations API → Microsoft Graph (déléguées) : <code>Mail.ReadWrite</code>, <code>Mail.Send</code>, <code>User.Read</code>.</li><li>Copier l\'« ID d\'application (client) » dans le tableau.</li></ol></details>';
 }
 function readCfgInputs() {
-  var g = $('#cfgG'), m = $('#cfgM');
-  if (g) S.cfg.google = g.value.split(/[\s,;]+/).filter(Boolean).join('\n'); if (m) S.cfg.ms = m.value.trim();
-  msalApp = null; saveCfg();
+  var tables = document.querySelectorAll('#m1 table.ct');
+  if (!tables.length) return;
+  var out = [], seen = {};
+  tables.forEach(function (t) {
+    t.querySelectorAll('tbody tr').forEach(function (tr) {
+      var cid = tr.querySelector('.ci').value.trim(), name = tr.querySelector('.cn').value.trim(), k = t.dataset.prov + '|' + cid;
+      if (cid && !seen[k]) { seen[k] = 1; out.push({ provider: t.dataset.prov, name: name, cid: cid }); }
+    });
+  });
+  S.clients = out; saveClients();
+}
+async function saveClients() {
+  try { localStorage.setItem('mm_clients_' + currentUserId, JSON.stringify(S.clients)); } catch (e) { }
+  try {
+    await sb('mesmails_clients?user_id=eq.' + currentUserId, { method: 'DELETE' });
+    if (S.clients.length) await sb('mesmails_clients', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(S.clients.map(function (c) { return { user_id: currentUserId, provider: c.provider, name: c.name, client_id: c.cid }; })) });
+  } catch (e) { }
+}
+async function loadClients() {
+  var lk = 'mm_clients_' + currentUserId;
+  try {
+    var r = await sb('mesmails_clients?select=provider,name,client_id&user_id=eq.' + currentUserId + '&order=created_at,name');
+    if (!r.ok) throw new Error(r.status);
+    S.clients = (await r.json()).map(function (x) { return { provider: x.provider, name: x.name, cid: x.client_id }; });
+    localStorage.setItem(lk, JSON.stringify(S.clients));
+  } catch (e) { try { S.clients = JSON.parse(localStorage.getItem(lk) || '[]'); } catch (e2) { S.clients = []; } }
+  if (!S.clients.length) {   /* reprise des anciens réglages (ID saisis avant l'arrivée du tableau) */
+    var add = function (p, str) { String(str || '').split(/[\s,;]+/).filter(Boolean).forEach(function (c, i) { S.clients.push({ provider: p, name: 'Client ' + (i + 1), cid: c }); }); };
+    add('google', S.cfg.google || GOOGLE_CLIENT_ID); add('microsoft', S.cfg.ms || MS_CLIENT_ID);
+    if (S.clients.length) saveClients();
+  }
+}
+function chooseClient(prov) {
+  readCfgInputs();
+  var list = clientsOf(prov);
+  if (!list.length) { toast('Ajoutez d\'abord une ligne (compte + client ID) dans le tableau de configuration.', true); return; }
+  if (list.length === 1) { addAccount(prov, list[0].cid); return; }
+  showModal('m2', modalHtml('Quel client utiliser ?', '<p>Choisissez le client ' + (prov === 'google' ? 'Google' : 'Microsoft') + ' pour cette connexion :</p>' + list.map(function (c) {
+    return '<p><button class="btn" style="width:100%;text-align:left" data-act="add-cid" data-prov="' + prov + '" data-cid="' + esc(c.cid) + '"><b>' + esc(c.name || '(sans nom)') + '</b> — ' + esc(c.cid.slice(0, 14)) + '…</button></p>';
+  }).join(''), '<button class="btn" data-act="close2">Annuler</button>'));
 }
 function openWelcome() {
   var miss = !gid() && !mid_();
@@ -695,7 +747,7 @@ function openAccounts() {
   var h = '';
   if (S.dbWarn) h += '<div class="warnbox">Les tables Supabase <code>mesmails_accounts</code> / <code>mesmails_unsubs</code> sont introuvables : les comptes sont mémorisés localement uniquement.</div>';
   S.accounts.forEach(function (a) {
-    h += '<div class="acc-row"><div class="g"><b>' + esc(a.email) + '</b><small>' + (a.provider === 'google' ? 'Gmail' + (gids().length > 1 ? ' (client …' + (a.cid || gid()).slice(-24, -20) + ')' : '') : 'Outlook / Hotmail') + ' · ' + (S.last[a.id] ? 'synchro ' + fmtDate(S.last[a.id]) : 'jamais synchronisé') + ' · ' + nf(S.mails.filter(function (m) { return m.acct === a.id; }).length) + ' mails</small></div><button class="btn sm" data-act="rm-acct" data-id="' + esc(a.id) + '">Retirer</button></div>';
+    h += '<div class="acc-row"><div class="g"><b>' + esc(a.email) + '</b><small>' + (a.provider === 'google' ? 'Gmail' : 'Outlook / Hotmail') + (clientName(a) ? ' · client « ' + esc(clientName(a)) + ' »' : '') + ' · ' + (S.last[a.id] ? 'synchro ' + fmtDate(S.last[a.id]) : 'jamais synchronisé') + ' · ' + nf(S.mails.filter(function (m) { return m.acct === a.id; }).length) + ' mails</small></div><button class="btn sm" data-act="rm-acct" data-id="' + esc(a.id) + '">Retirer</button></div>';
   });
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="btn pri" data-act="add-g">+ Gmail</button><button class="btn pri" data-act="add-ms">+ Outlook / Hotmail</button></div>';
   h += '<h4>Profondeur de synchronisation</h4><select data-sel="depth" class="btn">' + [500, 1000, 2000, 5000, 10000].map(function (n) { return '<option value="' + n + '"' + (Number(S.cfg.depth) === n ? ' selected' : '') + '>' + nf(n) + ' mails les plus récents par boîte</option>'; }).join('') + '</select>';
@@ -719,10 +771,11 @@ async function addAccount(provider, cid) {
       a = { id: 'google:' + email, provider: 'google', email: email, cid: cid };
       tokens[a.id] = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
     } else {
-      var m = await getMsal();
+      cid = cid || mid_();
+      var m = await getMsal(cid);
       var res = await m.loginPopup({ scopes: MS_SCOPES, prompt: 'select_account' });
       email = res.account.username.toLowerCase();
-      a = { id: 'microsoft:' + email, provider: 'microsoft', email: email };
+      a = { id: 'microsoft:' + email, provider: 'microsoft', email: email, cid: cid };
       tokens[a.id] = { token: res.accessToken, exp: res.expiresOn ? res.expiresOn.getTime() : Date.now() + 3000000 };
     }
     saveTok();
@@ -1015,14 +1068,12 @@ document.addEventListener('click', function (e) {
     case 'accounts': openAccounts(); break;
     case 'close': closeModal('m1'); break;
     case 'close2': closeModal('m2'); pending.planToken = null; break;
-    case 'save-cfg': readCfgInputs(); toast('Configuration enregistrée'); break;
-    case 'add-g':
-      if (gids().length > 1) {
-        showModal('m2', modalHtml('Quel ID client Google ?', '<p>Choisissez l\'ID client à utiliser pour cette adresse Gmail :</p>' + gids().map(function (c, i) { return '<p><button class="btn" style="width:100%;text-align:left" data-act="add-g-cid" data-cid="' + esc(c) + '">ID client ' + (i + 1) + ' — ' + esc(c.slice(0, 12)) + '…' + esc(c.slice(-30)) + '</button></p>'; }).join(''), '<button class="btn" data-act="close2">Annuler</button>'));
-      } else addAccount('google');
-      break;
-    case 'add-g-cid': closeModal('m2'); addAccount('google', t.dataset.cid); break;
-    case 'add-ms': addAccount('microsoft'); break;
+    case 'save-cfg': readCfgInputs(); toast('Configuration enregistrée'); openAccounts(); break;
+    case 'add-g': chooseClient('google'); break;
+    case 'add-ms': chooseClient('microsoft'); break;
+    case 'add-cid': closeModal('m2'); addAccount(t.dataset.prov, t.dataset.cid); break;
+    case 'row-add': t.previousElementSibling.querySelector('tbody').insertAdjacentHTML('beforeend', clientRow('', '')); break;
+    case 'row-del': t.closest('tr').remove(); break;
     case 'rm-acct': if (confirm('Retirer ce compte de MesMails ? (vos mails ne sont pas touchés, seul le cache local est effacé)')) removeAccount(t.dataset.id); break;
     case 'acct': S.f.acct = t.dataset.v; S.active = null; refresh(); break;
     case 'tgl': S.f[t.dataset.v] = !S.f[t.dataset.v]; refresh(); break;
@@ -1082,7 +1133,7 @@ async function init() {
       : '<h2>Connexion impossible</h2><p>' + esc(e.message) + '</p>');
   }
   try { await idbOpen(); S.mails = (await idbAll()).map(prep); } catch (e) { S.mails = []; toast('Cache local indisponible', true); }
-  await Promise.all([loadAccounts(), loadUnsubs()]);
+  await Promise.all([loadAccounts(), loadUnsubs(), loadClients()]);
   reindex();
   $('#boot').hidden = true;
   if (!S.accounts.length) { openWelcome(); return; }     /* premier lancement : pas d'interface vide */
