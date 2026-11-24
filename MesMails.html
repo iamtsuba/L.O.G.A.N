@@ -96,6 +96,7 @@ mark{background:#ffe08a;color:#222;border-radius:3px;padding:0 1px}
 .x{border:0;background:transparent;font-size:22px;line-height:1;color:var(--mut);padding:2px 8px}
 .mb p{margin:0 0 10px}
 .mb label.row{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
+.mb textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);resize:vertical}
 .mb input[type=text]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 .mb h4{margin:16px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut)}
 .acc-row{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
@@ -173,7 +174,7 @@ if (window.opener && window.opener !== window && /[#?&](code|error|id_token|acce
 
 /* ===== Configuration ===== */
 var APP_FILE = 'MesMails.html';
-var VERSION  = '26.11.24.1853';
+var VERSION  = '26.11.24.2203';
 var LOGAN_URL = 'https://iamtsuba.github.io/L.O.G.A.N';
 var SB_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
@@ -256,7 +257,8 @@ var tokens = {}; try { tokens = JSON.parse(sessionStorage.getItem('mm_tok') || '
 function saveTok() { try { sessionStorage.setItem('mm_tok', JSON.stringify(tokens)); } catch (e) { } }
 function loadCfg() { try { Object.assign(S.cfg, JSON.parse(localStorage.getItem('mm_cfg') || '{}')); } catch (e) { } }
 function saveCfg() { try { localStorage.setItem('mm_cfg', JSON.stringify(S.cfg)); } catch (e) { } }
-function gid() { return S.cfg.google || GOOGLE_CLIENT_ID; }
+function gids() { return String(S.cfg.google || GOOGLE_CLIENT_ID || '').split(/[\s,;]+/).filter(Boolean); }
+function gid() { return gids()[0] || ''; }
 function mid_() { return S.cfg.ms || MS_CLIENT_ID; }
 function acctById(id) { return S.accounts.find(function (a) { return a.id === id; }); }
 
@@ -278,9 +280,9 @@ async function resolveUser() {
 async function loadAccounts() {
   var lk = 'mm_acc_' + currentUserId;
   try {
-    var r = await sb('mesmails_accounts?select=provider,email&user_id=eq.' + currentUserId + '&order=created_at');
+    var r = await sb('mesmails_accounts?select=provider,email,client_id&user_id=eq.' + currentUserId + '&order=created_at');
     if (!r.ok) throw new Error(r.status);
-    S.accounts = (await r.json()).map(function (x) { return { id: x.provider + ':' + x.email, provider: x.provider, email: x.email }; });
+    S.accounts = (await r.json()).map(function (x) { return { id: x.provider + ':' + x.email, provider: x.provider, email: x.email, cid: x.client_id || '' }; });
     localStorage.setItem(lk, JSON.stringify(S.accounts));
   } catch (e) {
     try { S.accounts = JSON.parse(localStorage.getItem(lk) || '[]'); } catch (e2) { S.accounts = []; }
@@ -290,7 +292,7 @@ async function loadAccounts() {
 async function saveAccount(a) {
   try { localStorage.setItem('mm_acc_' + currentUserId, JSON.stringify(S.accounts)); } catch (e) { }
   try {
-    await sb('mesmails_accounts?on_conflict=user_id,provider,email', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ user_id: currentUserId, provider: a.provider, email: a.email }) });
+    await sb('mesmails_accounts?on_conflict=user_id,provider,email', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ user_id: currentUserId, provider: a.provider, email: a.email, client_id: a.cid || null }) });
   } catch (e) { }
 }
 async function loadUnsubs() {
@@ -385,12 +387,13 @@ async function getMsal() {
   if (msalApp.initialize) await msalApp.initialize();
   return msalApp;
 }
-async function gisToken(hint, prompt) {
-  if (!gid()) throw new Error("ID client Google manquant (Comptes > Configuration).");
+async function gisToken(hint, prompt, cid) {
+  cid = cid || gid();
+  if (!cid) throw new Error("ID client Google manquant (Comptes > Configuration).");
   await loadScript(GIS_URL);
   return new Promise(function (res, rej) {
     var tc = window.google.accounts.oauth2.initTokenClient({
-      client_id: gid(), scope: G_SCOPES, hint: hint || undefined,
+      client_id: cid, scope: G_SCOPES, hint: hint || undefined,
       callback: function (r) { if (r.error) rej(new Error(r.error_description || r.error)); else res(r); },
       error_callback: function (e) { rej(new Error(e && e.type === 'popup_closed' ? 'Fenêtre de connexion fermée' : 'Connexion Google impossible (' + (e && e.type || '?') + ')')); }
     });
@@ -401,7 +404,7 @@ async function getToken(a) {
   var t = tokens[a.id];
   if (t && t.exp > Date.now() + 60000) return t.token;
   if (a.provider === 'google') {
-    var r = await gisToken(a.email, '');
+    var r = await gisToken(a.email, '', a.cid);
     tokens[a.id] = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
   } else {
     var m = await getMsal();
@@ -670,14 +673,14 @@ function redirectUri() { return location.origin + location.pathname; }
 function cfgBlock() {
   return '<h4>Configuration OAuth</h4>' +
     '<p class="note">Ces identifiants ne sont pas secrets. Ils sont enregistrés uniquement dans ce navigateur. Les mails ne quittent jamais votre appareil : ils vont directement de Gmail/Outlook vers cette page.</p>' +
-    '<label>ID client Google<input type="text" id="cfgG" value="' + esc(S.cfg.google || GOOGLE_CLIENT_ID) + '" placeholder="xxxxxxxx.apps.googleusercontent.com"></label>' +
+    '<label>ID clients Google (un par ligne : vous pouvez en mettre plusieurs)<textarea id="cfgG" rows="3" placeholder="xxxxxxxx.apps.googleusercontent.com">' + esc(gids().join('\n')) + '</textarea></label>' +
     '<label style="display:block;margin-top:8px">ID d\'application Microsoft (client)<input type="text" id="cfgM" value="' + esc(S.cfg.ms || MS_CLIENT_ID) + '" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>' +
     '<details><summary>Comment obtenir l\'ID Google ?</summary><ol><li>Ouvrir <code>console.cloud.google.com</code> → créer un projet.</li><li>« API et services » → activer <b>Gmail API</b>.</li><li>« Écran de consentement OAuth » → type Externe, mode Test, ajouter votre adresse Gmail comme utilisateur test.</li><li>« Identifiants » → Créer → ID client OAuth → Application Web.</li><li>Origine JavaScript autorisée : <code>' + esc(location.origin) + '</code></li><li>Copier l\'ID client ici. (Au premier accès, Google affiche « application non vérifiée » : Paramètres avancés → Continuer.)</li></ol></details>' +
     '<details><summary>Comment obtenir l\'ID Microsoft (Outlook / Hotmail) ?</summary><ol><li>Ouvrir <code>portal.azure.com</code> → Microsoft Entra ID → Inscriptions d\'applications → Nouvelle inscription.</li><li>Types de comptes : « …annuaire organisationnel <b>et comptes Microsoft personnels</b> ».</li><li>URI de redirection, type <b>Application monopage (SPA)</b> : <code>' + esc(redirectUri()) + '</code></li><li>Autorisations API → Microsoft Graph (déléguées) : <code>Mail.ReadWrite</code>, <code>Mail.Send</code>, <code>User.Read</code>.</li><li>Copier l\'« ID d\'application (client) » ici.</li></ol></details>';
 }
 function readCfgInputs() {
   var g = $('#cfgG'), m = $('#cfgM');
-  if (g) S.cfg.google = g.value.trim(); if (m) S.cfg.ms = m.value.trim();
+  if (g) S.cfg.google = g.value.split(/[\s,;]+/).filter(Boolean).join('\n'); if (m) S.cfg.ms = m.value.trim();
   msalApp = null; saveCfg();
 }
 function openWelcome() {
@@ -692,7 +695,7 @@ function openAccounts() {
   var h = '';
   if (S.dbWarn) h += '<div class="warnbox">Les tables Supabase <code>mesmails_accounts</code> / <code>mesmails_unsubs</code> sont introuvables : les comptes sont mémorisés localement uniquement.</div>';
   S.accounts.forEach(function (a) {
-    h += '<div class="acc-row"><div class="g"><b>' + esc(a.email) + '</b><small>' + (a.provider === 'google' ? 'Gmail' : 'Outlook / Hotmail') + ' · ' + (S.last[a.id] ? 'synchro ' + fmtDate(S.last[a.id]) : 'jamais synchronisé') + ' · ' + nf(S.mails.filter(function (m) { return m.acct === a.id; }).length) + ' mails</small></div><button class="btn sm" data-act="rm-acct" data-id="' + esc(a.id) + '">Retirer</button></div>';
+    h += '<div class="acc-row"><div class="g"><b>' + esc(a.email) + '</b><small>' + (a.provider === 'google' ? 'Gmail' + (gids().length > 1 ? ' (client …' + (a.cid || gid()).slice(-24, -20) + ')' : '') : 'Outlook / Hotmail') + ' · ' + (S.last[a.id] ? 'synchro ' + fmtDate(S.last[a.id]) : 'jamais synchronisé') + ' · ' + nf(S.mails.filter(function (m) { return m.acct === a.id; }).length) + ' mails</small></div><button class="btn sm" data-act="rm-acct" data-id="' + esc(a.id) + '">Retirer</button></div>';
   });
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="btn pri" data-act="add-g">+ Gmail</button><button class="btn pri" data-act="add-ms">+ Outlook / Hotmail</button></div>';
   h += '<h4>Profondeur de synchronisation</h4><select data-sel="depth" class="btn">' + [500, 1000, 2000, 5000, 10000].map(function (n) { return '<option value="' + n + '"' + (Number(S.cfg.depth) === n ? ' selected' : '') + '>' + nf(n) + ' mails les plus récents par boîte</option>'; }).join('') + '</select>';
@@ -703,16 +706,17 @@ function openAccounts() {
 }
 
 /* ===== Ajout / retrait de compte ===== */
-async function addAccount(provider) {
+async function addAccount(provider, cid) {
   readCfgInputs();
   try {
     var email, a;
     if (provider === 'google') {
-      var r = await gisToken('', 'select_account');
+      cid = cid || gid();
+      var r = await gisToken('', 'select_account', cid);
       var pr = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', { headers: { Authorization: 'Bearer ' + r.access_token } });
       if (!pr.ok) throw new Error('Profil Gmail inaccessible (HTTP ' + pr.status + ') — l\'API Gmail est-elle activée ?');
       email = (await pr.json()).emailAddress.toLowerCase();
-      a = { id: 'google:' + email, provider: 'google', email: email };
+      a = { id: 'google:' + email, provider: 'google', email: email, cid: cid };
       tokens[a.id] = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
     } else {
       var m = await getMsal();
@@ -722,7 +726,7 @@ async function addAccount(provider) {
       tokens[a.id] = { token: res.accessToken, exp: res.expiresOn ? res.expiresOn.getTime() : Date.now() + 3000000 };
     }
     saveTok();
-    if (!acctById(a.id)) S.accounts.push(a);
+    var ex = acctById(a.id); if (!ex) S.accounts.push(a); else if (a.cid) ex.cid = a.cid;
     await saveAccount(a);
     closeModal('m1'); $('#app').hidden = false; refresh();
     toast(email + ' connecté — synchronisation…');
@@ -1012,7 +1016,12 @@ document.addEventListener('click', function (e) {
     case 'close': closeModal('m1'); break;
     case 'close2': closeModal('m2'); pending.planToken = null; break;
     case 'save-cfg': readCfgInputs(); toast('Configuration enregistrée'); break;
-    case 'add-g': addAccount('google'); break;
+    case 'add-g':
+      if (gids().length > 1) {
+        showModal('m2', modalHtml('Quel ID client Google ?', '<p>Choisissez l\'ID client à utiliser pour cette adresse Gmail :</p>' + gids().map(function (c, i) { return '<p><button class="btn" style="width:100%;text-align:left" data-act="add-g-cid" data-cid="' + esc(c) + '">ID client ' + (i + 1) + ' — ' + esc(c.slice(0, 12)) + '…' + esc(c.slice(-30)) + '</button></p>'; }).join(''), '<button class="btn" data-act="close2">Annuler</button>'));
+      } else addAccount('google');
+      break;
+    case 'add-g-cid': closeModal('m2'); addAccount('google', t.dataset.cid); break;
     case 'add-ms': addAccount('microsoft'); break;
     case 'rm-acct': if (confirm('Retirer ce compte de MesMails ? (vos mails ne sont pas touchés, seul le cache local est effacé)')) removeAccount(t.dataset.id); break;
     case 'acct': S.f.acct = t.dataset.v; S.active = null; refresh(); break;
