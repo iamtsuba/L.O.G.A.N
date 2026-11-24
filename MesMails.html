@@ -175,7 +175,7 @@ if (window.opener && window.opener !== window && /[#?&](code|error|id_token|acce
 
 /* ===== Configuration ===== */
 var APP_FILE = 'MesMails.html';
-var VERSION  = '26.11.24.2236';
+var VERSION  = '26.11.24.2316';
 var LOGAN_URL = 'https://iamtsuba.github.io/L.O.G.A.N';
 var SB_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
@@ -411,6 +411,7 @@ async function gisToken(hint, prompt, cid) {
 async function getToken(a) {
   var t = tokens[a.id];
   if (t && t.exp > Date.now() + 60000) return t.token;
+  if (!a.cid && clientsOf(a.provider).length > 1) throw new Error('client non choisi pour ce compte — ouvrez Comptes et choisissez-le dans le menu du compte');
   if (a.provider === 'google') {
     var r = await gisToken(a.email, '', a.cid);
     tokens[a.id] = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
@@ -744,11 +745,16 @@ function openWelcome() {
     cfgBlock(),
     '<button class="btn" data-act="add-ms">Outlook / Hotmail</button><button class="btn pri" data-act="add-g">Connecter Gmail</button>', '', true));
 }
+function clientSelect(a) {
+  var l = clientsOf(a.provider); if (!l.length) return '';
+  var cur = a.cid || (l.length === 1 ? l[0].cid : '');
+  return '<select class="btn sm" data-sel="acct-client" data-id="' + esc(a.id) + '" title="Client OAuth utilisé pour ce compte">' + (cur ? '' : '<option value="" selected>Choisir le client…</option>') + l.map(function (c) { return '<option value="' + esc(c.cid) + '"' + (c.cid === cur ? ' selected' : '') + '>' + esc(c.name || c.cid.slice(0, 12) + '…') + '</option>'; }).join('') + '</select>';
+}
 function openAccounts() {
   var h = '';
   if (S.dbWarn) h += '<div class="warnbox">Les tables Supabase <code>mesmails_accounts</code> / <code>mesmails_unsubs</code> sont introuvables : les comptes sont mémorisés localement uniquement.</div>';
   S.accounts.forEach(function (a) {
-    h += '<div class="acc-row"><div class="g"><b>' + esc(a.email) + '</b><small>' + (a.provider === 'google' ? 'Gmail' : 'Outlook / Hotmail') + (clientName(a) ? ' · client « ' + esc(clientName(a)) + ' »' : '') + ' · ' + (S.last[a.id] ? 'synchro ' + fmtDate(S.last[a.id]) : 'jamais synchronisé') + ' · ' + nf(S.mails.filter(function (m) { return m.acct === a.id; }).length) + ' mails</small></div><button class="btn sm" data-act="rm-acct" data-id="' + esc(a.id) + '">Retirer</button></div>';
+    h += '<div class="acc-row"><div class="g"><b>' + esc(a.email) + '</b><small>' + (a.provider === 'google' ? 'Gmail' : 'Outlook / Hotmail') + ' · ' + (S.last[a.id] ? 'synchro ' + fmtDate(S.last[a.id]) : 'jamais synchronisé') + ' · ' + nf(S.mails.filter(function (m) { return m.acct === a.id; }).length) + ' mails</small></div>' + clientSelect(a) + '<button class="btn sm" data-act="rm-acct" data-id="' + esc(a.id) + '">Retirer</button></div>';
   });
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="btn pri" data-act="add-g">+ Gmail</button><button class="btn pri" data-act="add-ms">+ Outlook / Hotmail</button></div>';
   h += '<h4>Profondeur de synchronisation</h4><select data-sel="depth" class="btn">' + [500, 1000, 2000, 5000, 10000].map(function (n) { return '<option value="' + n + '"' + (Number(S.cfg.depth) === n ? ' selected' : '') + '>' + nf(n) + ' mails les plus récents par boîte</option>'; }).join('') + '</select>';
@@ -1159,6 +1165,11 @@ document.addEventListener('click', function (e) {
 });
 document.addEventListener('change', function (e) {
   var s = e.target.dataset && e.target.dataset.sel; if (!s) return;
+  if (s === 'acct-client') {
+    var ac = acctById(e.target.dataset.id); if (!ac || !e.target.value) return;
+    ac.cid = e.target.value; delete tokens[ac.id]; saveTok(); saveAccount(ac);
+    toast('Client « ' + (clientName(ac) || '?') + ' » associé à ' + ac.email + ' — cliquez sur Synchroniser'); return;
+  }
   if (s === 'depth') { S.cfg.depth = Number(e.target.value); saveCfg(); return; }
   S.f[s] = e.target.value; refresh();
 });
