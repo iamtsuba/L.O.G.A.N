@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MesMails — L.O.G.A.N</title>
+<meta name="theme-color" content="#1c2236">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f2ea;--card:#fffdf8;--ink:#1c2236;--mut:#6b7285;--line:#e3ded2;--acc:#c2410c;--acc-ink:#fff;--acc2:#1f4e5f;--ok:#2f7d4f;--warn:#a8650d;--bad:#b42318;--sel:#fdeede;--hover:#f0ece1;--r:12px;--shadow:0 10px 40px rgba(20,24,40,.18)}
+@media(prefers-color-scheme:dark){:root{--bg:#12151d;--card:#1b1f2a;--ink:#ecebe6;--mut:#9aa1b3;--line:#2b3040;--acc:#f08a5d;--acc-ink:#1b1210;--acc2:#7cc0d3;--sel:#2c2724;--hover:#232837;--ok:#5fc08a;--warn:#e0a04a;--bad:#f2806f;--shadow:0 10px 40px rgba(0,0,0,.5)}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:'DM Sans',system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.4;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+mark{background:#ffe08a;color:#222;border-radius:3px;padding:0 1px}
+.boot,.fatal{display:flex;align-items:center;justify-content:center;height:100dvh;padding:24px;text-align:center;color:var(--mut)}
+.fatal{flex-direction:column;gap:16px;color:var(--ink)}
+.fatal h2{font-family:'DM Serif Display',serif;font-weight:400;font-size:28px;margin:0}
+#app{display:flex;flex-direction:column;height:100dvh}
+.top{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--line)}
+.brand{font-family:'DM Serif Display',serif;font-size:24px;letter-spacing:.2px;white-space:nowrap}
+.brand b{color:var(--acc);font-weight:400}
+.search{flex:1;position:relative;max-width:640px}
+.search input{width:100%;padding:9px 12px 9px 36px;border:1px solid var(--line);border-radius:999px;background:var(--bg);outline:none}
+.search input:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--mut)}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.btn{border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:10px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.btn.pri:hover{filter:brightness(1.07)}
+.btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.sm{padding:5px 10px;font-size:13px;border-radius:8px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.logan-btn{display:flex;align-items:center;justify-content:center;width:52px;height:52px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);font-size:9px;font-weight:700;letter-spacing:.4px;text-decoration:none;border-radius:6px;flex:none}
+.logan-btn:hover{filter:brightness(1.2)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
+.chip{border:1px solid var(--line);background:var(--card);padding:4px 11px;border-radius:999px;font-size:13px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filters select{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:4px 8px;font-size:13px}
+.filters .sep{width:1px;height:20px;background:var(--line)}
+.filters .grow{flex:1}
+.status{font-size:12px;color:var(--mut)}
+#prog{height:3px;background:transparent;position:relative;overflow:hidden}
+#prog i{position:absolute;inset:0 auto 0 0;background:var(--acc);width:0;transition:width .2s}
+#progTxt{font-size:12px;color:var(--mut);padding:2px 14px;background:var(--bg)}
+.cols{flex:1;min-height:0;display:grid;grid-template-columns:minmax(320px,400px) 1fr}
+.pane{overflow:auto;min-height:0;position:relative}
+#sPane{border-right:1px solid var(--line);background:var(--card)}
+.phead{position:sticky;top:0;z-index:2;background:var(--card);border-bottom:1px solid var(--line);padding:8px 12px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--mut)}
+.phead .t{flex:1}
+.phead h3{margin:0;font-size:16px;color:var(--ink);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb{width:18px;height:18px;accent-color:var(--acc);flex:none;cursor:pointer}
+.srow{display:grid;grid-template-columns:22px 38px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.srow:hover{background:var(--hover)}
+.srow.act{background:var(--sel);box-shadow:inset 3px 0 0 var(--acc)}
+.av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex:none}
+.sname{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smail{font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smeta{text-align:right;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.pill{background:var(--ink);color:var(--bg);border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.tag.news{background:color-mix(in srgb,var(--acc2) 16%,transparent);color:var(--acc2)}
+.tag.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.tag.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.tag.acct{background:var(--hover);color:var(--mut);text-transform:none;font-weight:500}
+.mrow{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:start;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;background:var(--card)}
+.mrow:hover{background:var(--hover)}
+.mrow.unread .msub{font-weight:700}
+.mrow.unread::before{content:'';position:absolute}
+.msub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msnip{font-size:12.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mfrom{font-size:12px;color:var(--acc2);font-weight:500}
+.mdate{font-size:12px;color:var(--mut);white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-right:6px}
+.month{position:sticky;top:45px;background:var(--bg);padding:5px 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);border-bottom:1px solid var(--line);z-index:1}
+.empty{padding:60px 24px;text-align:center;color:var(--mut)}
+.empty h3{font-family:'DM Serif Display',serif;font-weight:400;font-size:24px;color:var(--ink);margin:0 0 6px}
+.more{padding:14px;text-align:center}
+#bulk{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);z-index:20;max-width:calc(100vw - 20px);flex-wrap:wrap;justify-content:center}
+#bulk .btn{background:transparent;color:var(--bg);border-color:color-mix(in srgb,var(--bg) 35%,transparent)}
+#bulk .btn:hover{background:color-mix(in srgb,var(--bg) 15%,transparent)}
+#bulk .btn.bad{background:var(--bad);color:#fff;border-color:var(--bad)}
+.ov{position:fixed;inset:0;background:rgba(10,12,20,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:14px}
+.modal{background:var(--card);border-radius:16px;box-shadow:var(--shadow);width:min(560px,100%);max-height:92dvh;display:flex;flex-direction:column;overflow:hidden}
+.modal.wide{width:min(980px,100%);height:92dvh}
+.mh{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.mh h2{margin:0;font-family:'DM Serif Display',serif;font-weight:400;font-size:22px;flex:1;overflow:hidden;text-overflow:ellipsis}
+.mb{padding:16px 18px;overflow:auto;flex:1;min-height:0}
+.mf{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.x{border:0;background:transparent;font-size:22px;line-height:1;color:var(--mut);padding:2px 8px}
+.mb p{margin:0 0 10px}
+.mb label.row{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
+.mb input[type=text]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.mb h4{margin:16px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut)}
+.acc-row{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.acc-row .g{flex:1;min-width:0}
+.acc-row .g b{display:block;overflow:hidden;text-overflow:ellipsis}
+.acc-row small{color:var(--mut)}
+.note{font-size:12.5px;color:var(--mut);background:var(--bg);border-radius:8px;padding:8px 10px;margin:8px 0}
+.warnbox{font-size:13px;background:color-mix(in srgb,var(--warn) 14%,transparent);border-radius:8px;padding:8px 10px;margin:8px 0}
+details{margin:8px 0}
+summary{cursor:pointer;font-weight:500}
+details ol{margin:8px 0 0;padding-left:20px;color:var(--mut)}
+code{background:var(--bg);border-radius:4px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+.rh{padding:10px 18px;border-bottom:1px solid var(--line);font-size:13px;color:var(--mut)}
+.rh b{color:var(--ink)}
+.rbody{flex:1;min-height:0;background:#fff}
+.rbody iframe{width:100%;height:100%;border:0;background:#fff;display:block}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+.tt{background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:10px;box-shadow:var(--shadow);max-width:90vw;font-size:13px}
+.tt.err{background:var(--bad);color:#fff}
+.res li{margin:4px 0}
+.res a{color:var(--acc2);font-weight:700}
+#backBtn{display:none}
+@media(max-width:820px){
+  .cols{grid-template-columns:1fr}
+  #dPane{display:none}
+  #app.show-detail #sPane{display:none}
+  #app.show-detail #dPane{display:block}
+  #backBtn{display:inline-block}
+  .brand{font-size:20px}
+  .top{flex-wrap:wrap}
+  .search{order:5;flex-basis:100%;max-width:none}
+  .btn .lbl{display:none}
+}
+</style>
+</head>
+<body>
+<div class="boot" id="boot"><span><span class="spin"></span>Chargement de MesMails…</span></div>
+<div class="fatal" id="fatal" hidden></div>
+
+<div id="app" hidden>
+  <header class="top">
+    <div class="brand">Mes<b>Mails</b></div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Rechercher un expéditeur, un objet, un mot…" autocomplete="off">
+    </div>
+    <div class="top-actions">
+      <button class="btn pri" data-act="sync" id="btnSync">Synchroniser</button>
+      <button class="btn" data-act="accounts">Comptes</button>
+      <a class="logan-btn" href="https://iamtsuba.github.io/L.O.G.A.N" title="Retour au catalogue">L.O.G.A.N</a>
+    </div>
+  </header>
+  <div class="filters" id="filters"></div>
+  <div id="prog"><i></i></div>
+  <div id="progTxt" hidden></div>
+  <main class="cols">
+    <section class="pane" id="sPane"></section>
+    <section class="pane" id="dPane"></section>
+  </main>
+</div>
+
+<div id="bulk" hidden></div>
+<div id="toast"></div>
+<div class="ov" id="m1" hidden></div>
+<div class="ov" id="m2" hidden style="z-index:60"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== Popup OAuth Microsoft : ne pas démarrer l'app dans la fenêtre popup ===== */
+if (window.opener && window.opener !== window && /[#?&](code|error|id_token|access_token)=/.test(location.hash + location.search)) { return; }
+
+/* ===== Configuration ===== */
+var APP_FILE = 'MesMails.html';
+var VERSION  = '26.11.24.1853';
+var LOGAN_URL = 'https://iamtsuba.github.io/L.O.G.A.N';
+var SB_URL = 'https://tkimdlsokrqdfpkfapgc.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRraW1kbHNva3JxZGZwa2ZhcGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzODAwMjIsImV4cCI6MjA5NTk1NjAyMn0.WRHXtuRXkcgqJuUqrfVAHlk6grSJzo13sJ7101yPLl8';
+/* Identifiants OAuth : à renseigner ici OU dans Comptes > Configuration (stockés dans le navigateur) */
+var GOOGLE_CLIENT_ID = '';
+var MS_CLIENT_ID = '';
+var G_SCOPES = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send';
+var MS_SCOPES = ['User.Read', 'Mail.ReadWrite', 'Mail.Send'];
+var GIS_URL = 'https://accounts.google.com/gsi/client';
+var MSAL_URL = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js';
+
+/* ===== Utilitaires ===== */
+var $ = function (s, r) { return (r || document).querySelector(s); };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function nf(n) { return Number(n).toLocaleString('fr-FR'); }
+function plural(n, a, b) { return n > 1 ? b : a; }
+function hue(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
+function fmtDate(ms) {
+  var d = new Date(ms), n = new Date();
+  if (d.toDateString() === n.toDateString()) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  var o = { day: 'numeric', month: 'short' };
+  if (d.getFullYear() !== n.getFullYear()) o.year = 'numeric';
+  return d.toLocaleDateString('fr-FR', o);
+}
+function fmtFull(ms) { return new Date(ms).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' }); }
+function monthKey(ms) { var d = new Date(ms); return d.getFullYear() + '-' + d.getMonth(); }
+function monthLabel(ms) { return new Date(ms).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }); }
+function hl(text, terms) {
+  text = String(text || '');
+  if (!terms.length) return esc(text);
+  var ns = '', map = [], i, k;
+  for (i = 0; i < text.length; i++) {
+    var n = text[i].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    for (k = 0; k < n.length; k++) { ns += n[k]; map.push(i); }
+  }
+  var marks = new Array(text.length).fill(false);
+  terms.forEach(function (t) {
+    if (!t) return; var p = 0;
+    while ((p = ns.indexOf(t, p)) > -1) { for (k = p; k < p + t.length; k++) marks[map[k]] = true; p += t.length; }
+  });
+  var out = '', cur = false, buf = '';
+  for (i = 0; i < text.length; i++) {
+    if (marks[i] !== cur) { out += cur ? '<mark>' + esc(buf) + '</mark>' : esc(buf); buf = ''; cur = marks[i]; }
+    buf += text[i];
+  }
+  return out + (cur ? '<mark>' + esc(buf) + '</mark>' : esc(buf));
+}
+var loaded = {};
+function loadScript(u) {
+  if (loaded[u]) return loaded[u];
+  loaded[u] = new Promise(function (res, rej) {
+    var s = document.createElement('script'); s.src = u; s.onload = res;
+    s.onerror = function () { delete loaded[u]; rej(new Error('Chargement impossible : ' + u)); };
+    document.head.appendChild(s);
+  });
+  return loaded[u];
+}
+async function pool(items, n, fn) {
+  var i = 0;
+  async function w() { while (i < items.length) { var k = i++; await fn(items[k], k); } }
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, w));
+}
+function toast(msg, err) {
+  var el = document.createElement('div'); el.className = 'tt' + (err ? ' err' : ''); el.textContent = msg;
+  $('#toast').appendChild(el); setTimeout(function () { el.remove(); }, err ? 6500 : 3800);
+}
+
+/* ===== État ===== */
+var currentUserId = null;
+var S = {
+  accounts: [], mails: [], byId: new Map(), byKey: new Map(),
+  groups: [], view: [], selS: new Set(), selM: new Set(), active: null,
+  unsubs: {}, sLimit: 150, mLimit: 150, terms: [],
+  f: { q: '', acct: 'all', news: false, unread: false, date: 'all', sort: 'recent' },
+  cfg: { google: '', ms: '', depth: 1000 }, syncing: false, last: {}
+};
+var tokens = {}; try { tokens = JSON.parse(sessionStorage.getItem('mm_tok') || '{}'); } catch (e) { }
+function saveTok() { try { sessionStorage.setItem('mm_tok', JSON.stringify(tokens)); } catch (e) { } }
+function loadCfg() { try { Object.assign(S.cfg, JSON.parse(localStorage.getItem('mm_cfg') || '{}')); } catch (e) { } }
+function saveCfg() { try { localStorage.setItem('mm_cfg', JSON.stringify(S.cfg)); } catch (e) { } }
+function gid() { return S.cfg.google || GOOGLE_CLIENT_ID; }
+function mid_() { return S.cfg.ms || MS_CLIENT_ID; }
+function acctById(id) { return S.accounts.find(function (a) { return a.id === id; }); }
+
+/* ===== Supabase (REST brut) ===== */
+function sb(path, opts) {
+  opts = opts || {};
+  return fetch(SB_URL + '/rest/v1/' + path, Object.assign({}, opts, {
+    headers: Object.assign({ apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, opts.headers || {})
+  }));
+}
+async function resolveUser() {
+  if (window.LOGAN_USER_ID) { currentUserId = window.LOGAN_USER_ID; return; }
+  var r = await sb('user_apps?select=user_id&app_ids=cs.' + encodeURIComponent('{"' + APP_FILE + '"}') + '&limit=1');
+  if (!r.ok) throw new Error('user_apps : HTTP ' + r.status);
+  var rows = await r.json();
+  if (!rows.length) throw new Error('NOUSER');
+  currentUserId = rows[0].user_id;
+}
+async function loadAccounts() {
+  var lk = 'mm_acc_' + currentUserId;
+  try {
+    var r = await sb('mesmails_accounts?select=provider,email&user_id=eq.' + currentUserId + '&order=created_at');
+    if (!r.ok) throw new Error(r.status);
+    S.accounts = (await r.json()).map(function (x) { return { id: x.provider + ':' + x.email, provider: x.provider, email: x.email }; });
+    localStorage.setItem(lk, JSON.stringify(S.accounts));
+  } catch (e) {
+    try { S.accounts = JSON.parse(localStorage.getItem(lk) || '[]'); } catch (e2) { S.accounts = []; }
+    S.dbWarn = true;
+  }
+}
+async function saveAccount(a) {
+  try { localStorage.setItem('mm_acc_' + currentUserId, JSON.stringify(S.accounts)); } catch (e) { }
+  try {
+    await sb('mesmails_accounts?on_conflict=user_id,provider,email', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ user_id: currentUserId, provider: a.provider, email: a.email }) });
+  } catch (e) { }
+}
+async function loadUnsubs() {
+  var lk = 'mm_uns_' + currentUserId;
+  try {
+    var r = await sb('mesmails_unsubs?select=sender_email,method,status,created_at&user_id=eq.' + currentUserId);
+    if (!r.ok) throw new Error(r.status);
+    S.unsubs = {}; (await r.json()).forEach(function (x) { S.unsubs[x.sender_email] = { method: x.method, status: x.status, at: x.created_at }; });
+    localStorage.setItem(lk, JSON.stringify(S.unsubs));
+  } catch (e) { try { S.unsubs = JSON.parse(localStorage.getItem(lk) || '{}'); } catch (e2) { S.unsubs = {}; } }
+}
+async function saveUnsub(email, method, status) {
+  S.unsubs[email] = { method: method, status: status, at: new Date().toISOString() };
+  try { localStorage.setItem('mm_uns_' + currentUserId, JSON.stringify(S.unsubs)); } catch (e) { }
+  try {
+    await sb('mesmails_unsubs?on_conflict=user_id,sender_email', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ user_id: currentUserId, sender_email: email, method: method, status: status }) });
+  } catch (e) { }
+}
+
+/* ===== Cache IndexedDB ===== */
+var idb;
+function idbOpen() {
+  return new Promise(function (res, rej) {
+    var r = indexedDB.open('mesmails_' + currentUserId, 1);
+    r.onupgradeneeded = function () { var s = r.result.createObjectStore('mails', { keyPath: 'id' }); s.createIndex('acct', 'acct'); };
+    r.onsuccess = function () { idb = r.result; res(); };
+    r.onerror = function () { rej(r.error); };
+  });
+}
+function idbAll() { return new Promise(function (res, rej) { var q = idb.transaction('mails').objectStore('mails').getAll(); q.onsuccess = function () { res(q.result); }; q.onerror = function () { rej(q.error); }; }); }
+function idbPut(arr) { return new Promise(function (res, rej) { var tx = idb.transaction('mails', 'readwrite'), s = tx.objectStore('mails'); arr.forEach(function (m) { var c = Object.assign({}, m); delete c.hay; s.put(c); }); tx.oncomplete = res; tx.onerror = function () { rej(tx.error); }; }); }
+function idbDel(ids) { return new Promise(function (res, rej) { var tx = idb.transaction('mails', 'readwrite'), s = tx.objectStore('mails'); ids.forEach(function (i) { s.delete(i); }); tx.oncomplete = res; tx.onerror = function () { rej(tx.error); }; }); }
+function prep(m) { m.hay = norm(m.fn + ' ' + m.fe + ' ' + m.sub + ' ' + m.snip); return m; }
+function reindex() {
+  S.byId = new Map(); S.byKey = new Map();
+  S.mails.forEach(function (m) { S.byId.set(m.id, m); var a = S.byKey.get(m.fe); if (!a) { a = []; S.byKey.set(m.fe, a); } a.push(m); });
+  S.byKey.forEach(function (a) { a.sort(function (x, y) { return y.date - x.date; }); });
+}
+function removeLocal(idSet) {
+  S.mails = S.mails.filter(function (m) { return !idSet.has(m.id); });
+  idbDel(Array.from(idSet)).catch(function () { });
+  idSet.forEach(function (i) { S.selM.delete(i); });
+  reindex();
+}
+
+/* ===== Décodage en-têtes ===== */
+function decodeMime(s) {
+  if (!s || s.indexOf('=?') < 0) return s || '';
+  s = s.replace(/(\?=)\s+(=\?)/g, '$1$2');
+  return s.replace(/=\?([^?]+)\?([bBqQ])\?([^?]*)\?=/g, function (_, cs, enc, txt) {
+    try {
+      var bytes;
+      if (enc.toUpperCase() === 'B') { bytes = Uint8Array.from(atob(txt), function (c) { return c.charCodeAt(0); }); }
+      else {
+        txt = txt.replace(/_/g, ' '); var arr = [];
+        for (var i = 0; i < txt.length; i++) {
+          if (txt[i] === '=' && /^[0-9a-fA-F]{2}$/.test(txt.substr(i + 1, 2))) { arr.push(parseInt(txt.substr(i + 1, 2), 16)); i += 2; } else arr.push(txt.charCodeAt(i));
+        }
+        bytes = new Uint8Array(arr);
+      }
+      return new TextDecoder(cs.toLowerCase()).decode(bytes);
+    } catch (e) { return txt; }
+  });
+}
+function parseFrom(s) {
+  s = decodeMime(s || '');
+  var m = s.match(/^\s*(?:"?([^"<]*?)"?\s*)?<([^>]+)>\s*$/), name = '', email = '';
+  if (m) { name = (m[1] || '').trim(); email = m[2].trim(); }
+  else { var e = s.match(/[^\s<>"']+@[^\s<>"']+/); email = e ? e[0] : s.trim(); }
+  return { name: name.replace(/^"|"$/g, ''), email: email.toLowerCase() };
+}
+function parseUnsub(h, post) {
+  if (!h) return null;
+  var urls = [], m, re = /<([^>]+)>/g;
+  while ((m = re.exec(h))) urls.push(m[1].trim());
+  var https = urls.find(function (u) { return /^https?:/i.test(u); }) || null;
+  var mailto = urls.find(function (u) { return /^mailto:/i.test(u); }) || null;
+  if (!https && !mailto) return null;
+  return { https: https, mailto: mailto, one: !!(https && post && /one-click/i.test(post)) };
+}
+
+/* ===== Authentification fournisseurs ===== */
+var msalApp = null;
+async function getMsal() {
+  if (msalApp) return msalApp;
+  if (!mid_()) throw new Error("ID client Microsoft manquant (Comptes > Configuration).");
+  await loadScript(MSAL_URL);
+  msalApp = new window.msal.PublicClientApplication({
+    auth: { clientId: mid_(), authority: 'https://login.microsoftonline.com/common', redirectUri: location.origin + location.pathname },
+    cache: { cacheLocation: 'localStorage' }
+  });
+  if (msalApp.initialize) await msalApp.initialize();
+  return msalApp;
+}
+async function gisToken(hint, prompt) {
+  if (!gid()) throw new Error("ID client Google manquant (Comptes > Configuration).");
+  await loadScript(GIS_URL);
+  return new Promise(function (res, rej) {
+    var tc = window.google.accounts.oauth2.initTokenClient({
+      client_id: gid(), scope: G_SCOPES, hint: hint || undefined,
+      callback: function (r) { if (r.error) rej(new Error(r.error_description || r.error)); else res(r); },
+      error_callback: function (e) { rej(new Error(e && e.type === 'popup_closed' ? 'Fenêtre de connexion fermée' : 'Connexion Google impossible (' + (e && e.type || '?') + ')')); }
+    });
+    tc.requestAccessToken({ prompt: prompt === undefined ? '' : prompt });
+  });
+}
+async function getToken(a) {
+  var t = tokens[a.id];
+  if (t && t.exp > Date.now() + 60000) return t.token;
+  if (a.provider === 'google') {
+    var r = await gisToken(a.email, '');
+    tokens[a.id] = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
+  } else {
+    var m = await getMsal();
+    var acc = m.getAllAccounts().find(function (x) { return x.username.toLowerCase() === a.email.toLowerCase(); });
+    var res;
+    try { if (!acc) throw new Error('no-account'); res = await m.acquireTokenSilent({ scopes: MS_SCOPES, account: acc }); }
+    catch (e) {
+      if (S.auto) throw new Error('reconnexion requise (cliquez sur Synchroniser)');
+      res = await m.acquireTokenPopup({ scopes: MS_SCOPES, loginHint: a.email });
+    }
+    tokens[a.id] = { token: res.accessToken, exp: res.expiresOn ? res.expiresOn.getTime() : Date.now() + 3000000 };
+  }
+  saveTok();
+  return tokens[a.id].token;
+}
+function hasLiveToken(a) { var t = tokens[a.id]; return a.provider === 'microsoft' || (t && t.exp > Date.now() + 60000); }
+
+async function api(a, url, opts, n) {
+  n = n || 0; opts = opts || {};
+  var tok = await getToken(a);
+  var r = await fetch(url, Object.assign({}, opts, { headers: Object.assign({ Authorization: 'Bearer ' + tok }, opts.headers || {}) }));
+  if (r.status === 401 && n < 1) { delete tokens[a.id]; saveTok(); return api(a, url, opts, n + 1); }
+  var retryable = [429, 500, 502, 503, 504].indexOf(r.status) >= 0;
+  if (!retryable && r.status === 403 && a.provider === 'google') { try { retryable = /rateLimit/i.test(await r.clone().text()); } catch (e) { } }
+  if (retryable && n < 4) { await sleep(900 * Math.pow(2, n)); return api(a, url, opts, n + 1); }
+  return r;
+}
+async function apiJson(a, url, opts) {
+  var r = await api(a, url, opts);
+  if (!r.ok) { var t = ''; try { t = (await r.text()).slice(0, 200); } catch (e) { } var er = new Error('HTTP ' + r.status + ' ' + t); er.status = r.status; throw er; }
+  return r.json();
+}
+async function apiOk(a, url, opts) {
+  var r = await api(a, url, opts);
+  if (!r.ok) { var t = ''; try { t = (await r.text()).slice(0, 200); } catch (e) { } var er = new Error('HTTP ' + r.status + ' ' + t); er.status = r.status; throw er; }
+  return r;
+}
+
+/* ===== Synchronisation ===== */
+function setProg(txt, done, total) {
+  var p = $('#prog i'), t = $('#progTxt');
+  if (txt == null) { p.style.width = '0'; t.hidden = true; return; }
+  t.hidden = false; t.textContent = txt;
+  p.style.width = total ? Math.min(100, Math.round(done / total * 100)) + '%' : '15%';
+}
+function mkGmail(a, j) {
+  var h = {}; ((j.payload && j.payload.headers) || []).forEach(function (x) { h[x.name.toLowerCase()] = x.value; });
+  var f = parseFrom(h.from);
+  return {
+    id: a.id + '|' + j.id, mid: j.id, acct: a.id, fn: f.name, fe: f.email || '(inconnu)',
+    sub: decodeMime(h.subject || '') || '(sans objet)', snip: j.snippet || '', date: Number(j.internalDate) || Date.parse(h.date) || 0,
+    unread: (j.labelIds || []).indexOf('UNREAD') >= 0, unsub: parseUnsub(h['list-unsubscribe'], h['list-unsubscribe-post'])
+  };
+}
+function mkGraph(a, j, hasHdr) {
+  var f = (j.from && j.from.emailAddress) || {}, un;
+  if (hasHdr) {
+    var h = {}; (j.internetMessageHeaders || []).forEach(function (x) { h[x.name.toLowerCase()] = x.value; });
+    un = parseUnsub(h['list-unsubscribe'], h['list-unsubscribe-post']);
+  }
+  return {
+    id: a.id + '|' + j.id, mid: j.id, acct: a.id, fn: f.name && f.name !== f.address ? f.name : '', fe: String(f.address || '(inconnu)').toLowerCase(),
+    sub: j.subject || '(sans objet)', snip: j.bodyPreview || '', date: Date.parse(j.receivedDateTime) || 0, unread: j.isRead === false, unsub: un
+  };
+}
+async function syncGoogle(a, depth) {
+  var ids = [], pt = '';
+  do {
+    var j = await apiJson(a, 'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=' + Math.min(500, depth - ids.length) + '&q=' + encodeURIComponent('-in:sent -in:drafts') + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''));
+    (j.messages || []).forEach(function (m) { ids.push(m.id); });
+    pt = j.nextPageToken || ''; setProg(a.email + ' — liste des mails : ' + nf(ids.length), 0, 0);
+  } while (pt && ids.length < depth);
+  var have = new Set(S.mails.filter(function (m) { return m.acct === a.id; }).map(function (m) { return m.mid; }));
+  var need = ids.filter(function (i) { return !have.has(i); }), out = [], done = 0, lastErr = null;
+  var base = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/';
+  var qs = '?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=List-Unsubscribe&metadataHeaders=List-Unsubscribe-Post&fields=id,labelIds,snippet,internalDate,payload/headers';
+  await pool(need, 12, async function (id) {
+    try { out.push(mkGmail(a, await apiJson(a, base + id + qs))); } catch (e) { if (e.status !== 404) lastErr = e; }
+    done++; if (done % 8 === 0 || done === need.length) setProg(a.email + ' — lecture des mails : ' + nf(done) + ' / ' + nf(need.length), done, need.length);
+  });
+  if (need.length && !out.length && lastErr) throw lastErr;
+  return { listed: ids, fresh: out, truncated: ids.length >= depth };
+}
+async function syncGraph(a, depth) {
+  var all = [], hasHdr = true;
+  for (var fi = 0; fi < 2; fi++) {
+    var folder = fi ? 'archive' : 'inbox', got = 0;
+    var sel = function () { return '$select=id,subject,from,receivedDateTime,bodyPreview,isRead' + (hasHdr ? ',internetMessageHeaders' : ''); };
+    var url = 'https://graph.microsoft.com/v1.0/me/mailFolders/' + folder + '/messages?$top=100&$orderby=receivedDateTime desc&' + sel();
+    while (url && got < depth) {
+      var j;
+      try { j = await apiJson(a, url); }
+      catch (e) {
+        if (e.status === 404 && fi) { url = null; break; }
+        if (e.status === 400 && hasHdr) { hasHdr = false; url = 'https://graph.microsoft.com/v1.0/me/mailFolders/' + folder + '/messages?$top=100&$orderby=receivedDateTime desc&' + sel(); continue; }
+        throw e;
+      }
+      j.value.forEach(function (m) { all.push(mkGraph(a, m, hasHdr)); });
+      got += j.value.length; url = j['@odata.nextLink'] || null;
+      setProg(a.email + ' — ' + folder + ' : ' + nf(got) + ' mails', 0, 0);
+    }
+  }
+  all.sort(function (x, y) { return y.date - x.date; });
+  var trunc = all.length >= depth; if (trunc) all = all.slice(0, depth);
+  return { listed: all.map(function (m) { return m.mid; }), fresh: all, truncated: trunc, replace: true };
+}
+async function syncAccount(a) {
+  var depth = Number(S.cfg.depth) || 1000;
+  var r = a.provider === 'google' ? await syncGoogle(a, depth) : await syncGraph(a, depth);
+  var cached = S.mails.filter(function (m) { return m.acct === a.id; });
+  var listed = new Set(r.listed), dates = {};
+  cached.forEach(function (m) { dates[m.mid] = m.date; }); r.fresh.forEach(function (m) { dates[m.mid] = m.date; });
+  var cutoff = 0;
+  if (r.truncated) { var ds = r.listed.map(function (i) { return dates[i]; }).filter(Boolean); cutoff = ds.length ? Math.min.apply(null, ds) : 0; }
+  var gone = cached.filter(function (m) { return !listed.has(m.mid) && (!r.truncated || m.date > cutoff); }).map(function (m) { return m.id; });
+  if (gone.length) { var gs = new Set(gone); S.mails = S.mails.filter(function (m) { return !gs.has(m.id); }); await idbDel(gone); }
+  var fresh = r.fresh.map(prep);
+  if (fresh.length) {
+    var fid = new Set(fresh.map(function (m) { return m.id; }));
+    S.mails = S.mails.filter(function (m) { return !fid.has(m.id); }).concat(fresh);
+    await idbPut(fresh);
+  }
+  S.last[a.id] = Date.now(); try { localStorage.setItem('mm_last', JSON.stringify(S.last)); } catch (e) { }
+  reindex();
+  return { added: fresh.length, removed: gone.length };
+}
+async function syncAll(auto) {
+  if (S.syncing) return;
+  var list = S.accounts.filter(function (a) { return !auto || hasLiveToken(a); });
+  if (!list.length) { if (auto && S.accounts.length) { renderFilters(); } return; }
+  S.syncing = true; S.auto = !!auto; $('#btnSync').disabled = true;
+  var errs = [];
+  for (var i = 0; i < list.length; i++) {
+    try { await syncAccount(list[i]); refresh(true); }
+    catch (e) { errs.push(list[i].email + ' : ' + e.message); }
+  }
+  S.auto = false; setProg(null); S.syncing = false; $('#btnSync').disabled = false;
+  refresh();
+  if (errs.length) toast('Erreur de synchronisation — ' + errs.join(' · '), true); else if (!auto) toast('Synchronisation terminée');
+}
+
+/* ===== Filtrage, regroupement ===== */
+function rebuild() {
+  var f = S.f, terms = norm(f.q).split(/\s+/).filter(Boolean), now = Date.now(), DAY = 864e5;
+  S.terms = terms;
+  var list = S.mails.filter(function (m) {
+    if (f.acct !== 'all' && m.acct !== f.acct) return false;
+    if (f.news && !m.unsub) return false;
+    if (f.unread && !m.unread) return false;
+    if (f.date === '7' && now - m.date > 7 * DAY) return false;
+    if (f.date === '30' && now - m.date > 30 * DAY) return false;
+    if (f.date === '365' && now - m.date > 365 * DAY) return false;
+    if (f.date === 'old' && now - m.date <= 365 * DAY) return false;
+    for (var i = 0; i < terms.length; i++) if (m.hay.indexOf(terms[i]) < 0) return false;
+    return true;
+  });
+  list.sort(function (a, b) { return b.date - a.date; });
+  S.view = list;
+  var map = new Map();
+  list.forEach(function (m) {
+    var g = map.get(m.fe);
+    if (!g) { g = { key: m.fe, email: m.fe, name: m.fn || '', mails: [], latest: 0, unread: 0, news: false, accts: {} }; map.set(m.fe, g); }
+    g.mails.push(m); if (!g.name && m.fn) g.name = m.fn;
+    if (m.date > g.latest) { g.latest = m.date; if (m.fn) g.name = m.fn; }
+    if (m.unread) g.unread++; if (m.unsub) g.news = true; g.accts[m.acct] = 1;
+  });
+  var gs = Array.from(map.values());
+  if (f.sort === 'count') gs.sort(function (a, b) { return b.mails.length - a.mails.length || b.latest - a.latest; });
+  else if (f.sort === 'name') gs.sort(function (a, b) { return norm(a.name || a.email).localeCompare(norm(b.name || b.email)); });
+  else gs.sort(function (a, b) { return b.latest - a.latest; });
+  S.groups = gs;
+  if (S.active && !map.has(S.active)) S.active = null;
+}
+function gOf(key) { return S.groups.find(function (g) { return g.key === key; }); }
+function refresh(keepScroll) {
+  rebuild(); renderFilters(); renderSenders(keepScroll); renderDetail(); renderBulk();
+}
+
+/* ===== Rendu ===== */
+function renderFilters() {
+  var f = S.f, h = '';
+  h += '<button class="chip' + (f.acct === 'all' ? ' on' : '') + '" data-act="acct" data-v="all">Toutes les boîtes</button>';
+  S.accounts.forEach(function (a) { h += '<button class="chip' + (f.acct === a.id ? ' on' : '') + '" data-act="acct" data-v="' + esc(a.id) + '">' + (a.provider === 'google' ? 'Gmail' : 'Outlook') + ' · ' + esc(a.email) + (hasLiveToken(a) ? '' : ' ⟳') + '</button>'; });
+  h += '<span class="sep"></span>';
+  h += '<button class="chip' + (f.news ? ' on' : '') + '" data-act="tgl" data-v="news">Newsletters</button>';
+  h += '<button class="chip' + (f.unread ? ' on' : '') + '" data-act="tgl" data-v="unread">Non lus</button>';
+  h += '<select data-sel="date">' + [['all', 'Toutes les dates'], ['7', '7 derniers jours'], ['30', '30 derniers jours'], ['365', 'Dernière année'], ['old', 'Plus de 1 an']].map(function (o) { return '<option value="' + o[0] + '"' + (f.date === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>';
+  h += '<select data-sel="sort">' + [['recent', 'Tri : plus récent'], ['count', 'Tri : plus de mails'], ['name', 'Tri : A → Z']].map(function (o) { return '<option value="' + o[0] + '"' + (f.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>';
+  var last = Math.max.apply(null, [0].concat(S.accounts.map(function (a) { return S.last[a.id] || 0; })));
+  h += '<span class="grow"></span><span class="status">' + nf(S.mails.length) + ' mails en cache' + (last ? ' · synchro ' + fmtDate(last) : '') + '</span>';
+  $('#filters').innerHTML = h;
+}
+function senderRow(g, i) {
+  var u = S.unsubs[g.key], nm = g.name || g.email, accs = Object.keys(g.accts);
+  var tags = '';
+  if (g.news) tags += '<span class="tag news">News</span>';
+  if (u) tags += u.status === 'done' ? '<span class="tag ok">Désabonné</span>' : '<span class="tag warn">À finaliser</span>';
+  return '<div class="srow' + (S.active === g.key ? ' act' : '') + '" data-act="open-sender" data-i="' + i + '">' +
+    '<input type="checkbox" class="cb" data-act="sel-sender" data-i="' + i + '"' + (S.selS.has(g.key) ? ' checked' : '') + '>' +
+    '<div class="av" style="background:hsl(' + hue(g.key) + ',42%,40%)">' + esc((nm.replace(/[^\p{L}\p{N}]/gu, '').charAt(0) || '?').toUpperCase()) + '</div>' +
+    '<div style="min-width:0"><div class="sname">' + hl(nm, S.terms) + tags + '</div><div class="smail">' + hl(g.email, S.terms) + '</div></div>' +
+    '<div class="smeta"><span>' + fmtDate(g.latest) + '</span><span class="pill">' + nf(g.mails.length) + '</span></div></div>';
+}
+function renderSenders(keep) {
+  var pane = $('#sPane'), top = pane.scrollTop, gs = S.groups;
+  var total = gs.reduce(function (n, g) { return n + g.mails.length; }, 0);
+  var allSel = gs.length && gs.every(function (g) { return S.selS.has(g.key); });
+  var h = '<div class="phead"><input type="checkbox" class="cb" data-act="sel-all"' + (allSel ? ' checked' : '') + ' title="Tout sélectionner"><span class="t">' + nf(gs.length) + ' ' + plural(gs.length, 'expéditeur', 'expéditeurs') + ' · ' + nf(total) + ' ' + plural(total, 'mail', 'mails') + '</span></div>';
+  if (!gs.length) h += '<div class="empty"><h3>' + (S.mails.length ? 'Aucun résultat' : 'Aucun mail') + '</h3><p>' + (S.mails.length ? 'Modifiez la recherche ou les filtres.' : 'Lancez une synchronisation pour récupérer vos mails.') + '</p></div>';
+  gs.slice(0, S.sLimit).forEach(function (g, i) { h += senderRow(g, i); });
+  if (gs.length > S.sLimit) h += '<div class="more"><button class="btn" data-act="more-senders">Afficher plus (' + nf(gs.length - S.sLimit) + ')</button></div>';
+  pane.innerHTML = h; if (keep) pane.scrollTop = top;
+}
+function mailRow(m, showFrom, i) {
+  var a = S.accounts.length > 1 ? acctById(m.acct) : null;
+  return '<div class="mrow' + (m.unread ? ' unread' : '') + '" data-act="open-mail" data-id="' + esc(m.id) + '">' +
+    '<input type="checkbox" class="cb" data-act="sel-mail" data-id="' + esc(m.id) + '"' + (S.selM.has(m.id) ? ' checked' : '') + '>' +
+    '<div style="min-width:0">' + (showFrom ? '<div class="mfrom">' + hl(m.fn || m.fe, S.terms) + '</div>' : '') +
+    '<div class="msub">' + (m.unread ? '<span class="dot"></span>' : '') + hl(m.sub, S.terms) + (m.unsub ? '<span class="tag news">News</span>' : '') + (a ? '<span class="tag acct">' + esc(a.email) + '</span>' : '') + '</div>' +
+    '<div class="msnip">' + hl(m.snip, S.terms) + '</div></div><div class="mdate">' + fmtDate(m.date) + '</div></div>';
+}
+function renderDetail() {
+  var pane = $('#dPane'), app = $('#app'), h = '', g = S.active && gOf(S.active);
+  if (g) {
+    var u = S.unsubs[g.key], all = S.byKey.get(g.key) || [], info = pickUnsub(g.key);
+    h += '<div class="phead"><button class="btn sm" id="backBtn" data-act="back">←</button><h3>' + esc(g.name || g.email) + '</h3><span class="t" style="flex:none">' + nf(g.mails.length) + (g.mails.length !== all.length ? ' / ' + nf(all.length) : '') + ' mails</span>' +
+      (info && !(u && u.status === 'done') ? '<button class="btn sm" data-act="unsub-sender">Se désabonner</button>' : '') +
+      '<button class="btn sm bad" data-act="del-sender">Tout supprimer</button></div>';
+    h += '<div class="rh" style="background:var(--card)"><b>' + esc(g.email) + '</b>' + (u ? ' · ' + (u.status === 'done' ? 'désabonnement envoyé' : 'désabonnement à finaliser') + ' le ' + new Date(u.at).toLocaleDateString('fr-FR') : '') + (!info ? ' · pas de lien de désabonnement détecté' : '') + '</div>';
+    var lim = S.mLimit, shown = g.mails.slice(0, lim), lastM = '';
+    shown.forEach(function (m) { var mk = monthKey(m.date); if (mk !== lastM) { h += '<div class="month">' + esc(monthLabel(m.date)) + '</div>'; lastM = mk; } h += mailRow(m, false); });
+    if (g.mails.length > lim) h += '<div class="more"><button class="btn" data-act="more-mails">Afficher plus (' + nf(g.mails.length - lim) + ')</button></div>';
+    app.classList.add('show-detail');
+  } else if (S.f.q.trim() && S.view.length) {
+    h += '<div class="phead"><button class="btn sm" id="backBtn" data-act="back">←</button><h3>Résultats</h3><span class="t" style="flex:none">' + nf(S.view.length) + ' ' + plural(S.view.length, 'mail', 'mails') + '</span></div>';
+    var lim2 = S.mLimit, lm = '';
+    S.view.slice(0, lim2).forEach(function (m) { var mk = monthKey(m.date); if (mk !== lm) { h += '<div class="month">' + esc(monthLabel(m.date)) + '</div>'; lm = mk; } h += mailRow(m, true); });
+    if (S.view.length > lim2) h += '<div class="more"><button class="btn" data-act="more-mails">Afficher plus (' + nf(S.view.length - lim2) + ')</button></div>';
+    app.classList.remove('show-detail'); if (window.matchMedia('(max-width:820px)').matches) { /* mobile : reste sur la liste */ }
+  } else {
+    h = '<div class="empty"><h3>Choisissez un expéditeur</h3><p>Cochez des expéditeurs pour supprimer leurs mails ou vous désabonner en masse,<br>ou cliquez sur l\'un d\'eux pour lire ses mails.</p></div>';
+    app.classList.remove('show-detail');
+  }
+  pane.innerHTML = h;
+}
+function renderBulk() {
+  var el = $('#bulk');
+  if (S.selS.size) {
+    var n = 0; S.selS.forEach(function (k) { n += (S.byKey.get(k) || []).length; });
+    el.innerHTML = '<b>' + S.selS.size + ' ' + plural(S.selS.size, 'expéditeur', 'expéditeurs') + '</b><span>· ' + nf(n) + ' mails</span><button class="btn sm" data-act="unsub-selected">Se désabonner</button><button class="btn sm bad" data-act="del-selected">Supprimer</button><button class="btn sm" data-act="clear-sel">Annuler</button>';
+    el.hidden = false;
+  } else if (S.selM.size) {
+    el.innerHTML = '<b>' + S.selM.size + ' ' + plural(S.selM.size, 'mail sélectionné', 'mails sélectionnés') + '</b><button class="btn sm bad" data-act="del-mails">Supprimer</button><button class="btn sm" data-act="clear-sel">Annuler</button>';
+    el.hidden = false;
+  } else el.hidden = true;
+}
+
+/* ===== Modales ===== */
+function showModal(id, html) { var el = $('#' + id); el.innerHTML = html; el.hidden = false; }
+function closeModal(id) { var el = $('#' + id); el.hidden = true; el.innerHTML = ''; }
+var pending = {};
+function modalHtml(title, body, foot, cls, noClose) {
+  return '<div class="modal ' + (cls || '') + '"><div class="mh"><h2>' + title + '</h2>' + (noClose ? '' : '<button class="x" data-act="close" title="Fermer">×</button>') + '</div><div class="mb">' + body + '</div>' + (foot ? '<div class="mf">' + foot + '</div>' : '') + '</div>';
+}
+function redirectUri() { return location.origin + location.pathname; }
+function cfgBlock() {
+  return '<h4>Configuration OAuth</h4>' +
+    '<p class="note">Ces identifiants ne sont pas secrets. Ils sont enregistrés uniquement dans ce navigateur. Les mails ne quittent jamais votre appareil : ils vont directement de Gmail/Outlook vers cette page.</p>' +
+    '<label>ID client Google<input type="text" id="cfgG" value="' + esc(S.cfg.google || GOOGLE_CLIENT_ID) + '" placeholder="xxxxxxxx.apps.googleusercontent.com"></label>' +
+    '<label style="display:block;margin-top:8px">ID d\'application Microsoft (client)<input type="text" id="cfgM" value="' + esc(S.cfg.ms || MS_CLIENT_ID) + '" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>' +
+    '<details><summary>Comment obtenir l\'ID Google ?</summary><ol><li>Ouvrir <code>console.cloud.google.com</code> → créer un projet.</li><li>« API et services » → activer <b>Gmail API</b>.</li><li>« Écran de consentement OAuth » → type Externe, mode Test, ajouter votre adresse Gmail comme utilisateur test.</li><li>« Identifiants » → Créer → ID client OAuth → Application Web.</li><li>Origine JavaScript autorisée : <code>' + esc(location.origin) + '</code></li><li>Copier l\'ID client ici. (Au premier accès, Google affiche « application non vérifiée » : Paramètres avancés → Continuer.)</li></ol></details>' +
+    '<details><summary>Comment obtenir l\'ID Microsoft (Outlook / Hotmail) ?</summary><ol><li>Ouvrir <code>portal.azure.com</code> → Microsoft Entra ID → Inscriptions d\'applications → Nouvelle inscription.</li><li>Types de comptes : « …annuaire organisationnel <b>et comptes Microsoft personnels</b> ».</li><li>URI de redirection, type <b>Application monopage (SPA)</b> : <code>' + esc(redirectUri()) + '</code></li><li>Autorisations API → Microsoft Graph (déléguées) : <code>Mail.ReadWrite</code>, <code>Mail.Send</code>, <code>User.Read</code>.</li><li>Copier l\'« ID d\'application (client) » ici.</li></ol></details>';
+}
+function readCfgInputs() {
+  var g = $('#cfgG'), m = $('#cfgM');
+  if (g) S.cfg.google = g.value.trim(); if (m) S.cfg.ms = m.value.trim();
+  msalApp = null; saveCfg();
+}
+function openWelcome() {
+  var miss = !gid() && !mid_();
+  showModal('m1', modalHtml('Bienvenue sur MesMails',
+    '<p>Aucune boîte mail n\'est encore connectée. Ajoutez votre première boîte pour regrouper vos mails par expéditeur, les supprimer en masse et vous désabonner des newsletters.</p>' +
+    (miss ? '<div class="warnbox">Pour se connecter, MesMails a besoin d\'un identifiant OAuth Google et/ou Microsoft (gratuit). Renseignez-les ci-dessous.</div>' : '') +
+    cfgBlock(),
+    '<button class="btn" data-act="add-ms">Outlook / Hotmail</button><button class="btn pri" data-act="add-g">Connecter Gmail</button>', '', true));
+}
+function openAccounts() {
+  var h = '';
+  if (S.dbWarn) h += '<div class="warnbox">Les tables Supabase <code>mesmails_accounts</code> / <code>mesmails_unsubs</code> sont introuvables : les comptes sont mémorisés localement uniquement.</div>';
+  S.accounts.forEach(function (a) {
+    h += '<div class="acc-row"><div class="g"><b>' + esc(a.email) + '</b><small>' + (a.provider === 'google' ? 'Gmail' : 'Outlook / Hotmail') + ' · ' + (S.last[a.id] ? 'synchro ' + fmtDate(S.last[a.id]) : 'jamais synchronisé') + ' · ' + nf(S.mails.filter(function (m) { return m.acct === a.id; }).length) + ' mails</small></div><button class="btn sm" data-act="rm-acct" data-id="' + esc(a.id) + '">Retirer</button></div>';
+  });
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="btn pri" data-act="add-g">+ Gmail</button><button class="btn pri" data-act="add-ms">+ Outlook / Hotmail</button></div>';
+  h += '<h4>Profondeur de synchronisation</h4><select data-sel="depth" class="btn">' + [500, 1000, 2000, 5000, 10000].map(function (n) { return '<option value="' + n + '"' + (Number(S.cfg.depth) === n ? ' selected' : '') + '>' + nf(n) + ' mails les plus récents par boîte</option>'; }).join('') + '</select>';
+  h += '<p class="note">Le nombre de mails chargés est limité pour rester rapide. La suppression par expéditeur interroge toutefois le serveur pour retrouver aussi les mails plus anciens.</p>';
+  h += cfgBlock();
+  h += '<p class="note">MesMails v' + esc(VERSION) + '</p>';
+  showModal('m1', modalHtml('Comptes', h, '<button class="btn" data-act="close">Fermer</button><button class="btn pri" data-act="save-cfg">Enregistrer la configuration</button>'));
+}
+
+/* ===== Ajout / retrait de compte ===== */
+async function addAccount(provider) {
+  readCfgInputs();
+  try {
+    var email, a;
+    if (provider === 'google') {
+      var r = await gisToken('', 'select_account');
+      var pr = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', { headers: { Authorization: 'Bearer ' + r.access_token } });
+      if (!pr.ok) throw new Error('Profil Gmail inaccessible (HTTP ' + pr.status + ') — l\'API Gmail est-elle activée ?');
+      email = (await pr.json()).emailAddress.toLowerCase();
+      a = { id: 'google:' + email, provider: 'google', email: email };
+      tokens[a.id] = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
+    } else {
+      var m = await getMsal();
+      var res = await m.loginPopup({ scopes: MS_SCOPES, prompt: 'select_account' });
+      email = res.account.username.toLowerCase();
+      a = { id: 'microsoft:' + email, provider: 'microsoft', email: email };
+      tokens[a.id] = { token: res.accessToken, exp: res.expiresOn ? res.expiresOn.getTime() : Date.now() + 3000000 };
+    }
+    saveTok();
+    if (!acctById(a.id)) S.accounts.push(a);
+    await saveAccount(a);
+    closeModal('m1'); $('#app').hidden = false; refresh();
+    toast(email + ' connecté — synchronisation…');
+    S.syncing = true; $('#btnSync').disabled = true;
+    try { await syncAccount(a); } catch (e) { toast('Synchronisation : ' + e.message, true); }
+    S.syncing = false; $('#btnSync').disabled = false; setProg(null); refresh();
+  } catch (e) { toast(e.message || String(e), true); }
+}
+async function removeAccount(id) {
+  var a = acctById(id); if (!a) return;
+  S.accounts = S.accounts.filter(function (x) { return x.id !== id; });
+  var ids = new Set(S.mails.filter(function (m) { return m.acct === id; }).map(function (m) { return m.id; }));
+  removeLocal(ids);
+  try { await sb('mesmails_accounts?user_id=eq.' + currentUserId + '&provider=eq.' + a.provider + '&email=eq.' + encodeURIComponent(a.email), { method: 'DELETE' }); } catch (e) { }
+  try { localStorage.setItem('mm_acc_' + currentUserId, JSON.stringify(S.accounts)); } catch (e) { }
+  if (a.provider === 'google' && tokens[id] && window.google && google.accounts) { try { google.accounts.oauth2.revoke(tokens[id].token); } catch (e) { } }
+  delete tokens[id]; saveTok();
+  if (S.f.acct === id) S.f.acct = 'all';
+  refresh(); closeModal('m1'); if (S.accounts.length) openAccounts(); else openWelcome();
+}
+
+/* ===== Suppression ===== */
+var delDeletedCache = {};
+async function msDeletedId(a) {
+  if (delDeletedCache[a.id]) return delDeletedCache[a.id];
+  try { var j = await apiJson(a, 'https://graph.microsoft.com/v1.0/me/mailFolders/deleteditems?$select=id'); delDeletedCache[a.id] = j.id; } catch (e) { delDeletedCache[a.id] = ''; }
+  return delDeletedCache[a.id];
+}
+async function serverIdsBySender(a, email) {
+  var ids = [], j;
+  if (a.provider === 'google') {
+    var pt = '';
+    do {
+      j = await apiJson(a, 'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500&q=' + encodeURIComponent('from:' + email) + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''));
+      (j.messages || []).forEach(function (m) { ids.push(m.id); }); pt = j.nextPageToken || '';
+    } while (pt && ids.length < 20000);
+  } else {
+    var del = await msDeletedId(a);
+    var url = 'https://graph.microsoft.com/v1.0/me/messages?$select=id,parentFolderId&$top=100&$filter=' + encodeURIComponent("from/emailAddress/address eq '" + email.replace(/'/g, "''") + "'");
+    while (url && ids.length < 20000) {
+      j = await apiJson(a, url);
+      j.value.forEach(function (m) { if (!del || m.parentFolderId !== del) ids.push(m.id); });
+      url = j['@odata.nextLink'] || null;
+    }
+  }
+  return ids;
+}
+function filtersActive() { var f = S.f; return !!(f.q.trim() || f.news || f.unread || f.date !== 'all' || f.acct !== 'all'); }
+async function planSenders(keys, scopeAll, onProg) {
+  var by = {}, n = 0;
+  function add(aid, mid) { (by[aid] = by[aid] || new Set()).add(mid); }
+  keys.forEach(function (k) {
+    (scopeAll ? (S.byKey.get(k) || []) : (gOf(k) ? gOf(k).mails : [])).forEach(function (m) { add(m.acct, m.mid); });
+  });
+  if (scopeAll) {
+    var jobs = []; keys.forEach(function (k) { S.accounts.forEach(function (a) { jobs.push([k, a]); }); });
+    var done = 0, fail = [];
+    await pool(jobs, 4, async function (j) {
+      try { (await serverIdsBySender(j[1], j[0])).forEach(function (id) { add(j[1].id, id); }); } catch (e) { fail.push(j[1].email); }
+      done++; onProg && onProg(done, jobs.length);
+    });
+    if (fail.length) by._fail = Array.from(new Set(fail));
+  }
+  var out = { byAcct: {}, total: 0, fail: by._fail || [] };
+  Object.keys(by).forEach(function (aid) { if (aid === '_fail') return; out.byAcct[aid] = Array.from(by[aid]); out.total += by[aid].size; });
+  return out;
+}
+function planMails(ids) {
+  var out = { byAcct: {}, total: 0, fail: [] };
+  ids.forEach(function (id) { var m = S.byId.get(id); if (!m) return; (out.byAcct[m.acct] = out.byAcct[m.acct] || []).push(m.mid); out.total++; });
+  return out;
+}
+async function execDelete(plan, onProg) {
+  var removed = new Set(), errs = [], done = 0;
+  var accts = Object.keys(plan.byAcct);
+  for (var ai = 0; ai < accts.length; ai++) {
+    var a = acctById(accts[ai]), ids = plan.byAcct[a.id], i;
+    try {
+      if (a.provider === 'google') {
+        for (i = 0; i < ids.length; i += 1000) {
+          var ch = ids.slice(i, i + 1000);
+          await apiOk(a, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: ch, addLabelIds: ['TRASH'], removeLabelIds: ['INBOX', 'UNREAD'] }) });
+          ch.forEach(function (x) { removed.add(a.id + '|' + x); }); done += ch.length; onProg(done);
+        }
+      } else {
+        var chunks = []; for (i = 0; i < ids.length; i += 20) chunks.push(ids.slice(i, i + 20));
+        await pool(chunks, 3, async function (c) {
+          var body = { requests: c.map(function (id, k) { return { id: String(k), method: 'POST', url: '/me/messages/' + encodeURIComponent(id) + '/move', headers: { 'Content-Type': 'application/json' }, body: { destinationId: 'deleteditems' } }; }) };
+          var j = await apiJson(a, 'https://graph.microsoft.com/v1.0/$batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          (j.responses || []).forEach(function (rp) { if (rp.status < 300 || rp.status === 404) removed.add(a.id + '|' + c[Number(rp.id)]); });
+          done += c.length; onProg(done);
+        });
+      }
+    } catch (e) { errs.push(a.email + ' : ' + e.message); }
+  }
+  return { removed: removed, errs: errs };
+}
+function confirmDeleteModal(title, plan, withScope) {
+  var per = Object.keys(plan.byAcct).map(function (aid) { var a = acctById(aid); return '<li>' + esc(a ? a.email : aid) + ' : <b>' + nf(plan.byAcct[aid].length) + '</b></li>'; }).join('');
+  var trash = Object.keys(plan.byAcct).some(function (aid) { var a = acctById(aid); return a && a.provider === 'microsoft'; }) ? 'corbeille / éléments supprimés' : 'corbeille';
+  showModal('m2', modalHtml(title,
+    '<p><b>' + nf(plan.total) + '</b> ' + plural(plan.total, 'mail sera déplacé', 'mails seront déplacés') + ' dans la ' + trash + '.</p><ul>' + per + '</ul>' +
+    (plan.fail.length ? '<div class="warnbox">Recherche serveur impossible pour : ' + esc(plan.fail.join(', ')) + '. Seuls les mails déjà chargés sont comptés pour cette boîte.</div>' : '') +
+    '<p class="note">Rien n\'est supprimé définitivement : les mails restent récupérables dans la corbeille de votre messagerie (environ 30 jours).</p>',
+    '<button class="btn" data-act="close2">Annuler</button><button class="btn bad" data-act="confirm-del"' + (plan.total ? '' : ' disabled') + '>Supprimer ' + nf(plan.total) + '</button>'));
+}
+async function startSenderDelete(keys) {
+  if (!keys.length) return;
+  var scopeAll = true;
+  var fa = filtersActive();
+  var mkScope = function (checked) {
+    return fa ? '<label class="row"><input type="radio" name="scope" value="all"' + (checked ? ' checked' : '') + '> <span>Tous les mails de ' + (keys.length > 1 ? 'ces expéditeurs' : 'cet expéditeur') + ' (y compris plus anciens, via le serveur)</span></label><label class="row"><input type="radio" name="scope" value="view"' + (!checked ? ' checked' : '') + '> <span>Seulement les mails affichés avec les filtres actuels</span></label>' : '';
+  };
+  async function run() {
+    showModal('m2', modalHtml('Préparation…', mkScope(scopeAll) + '<p id="plp"><span class="spin"></span>Recherche des mails sur le serveur…</p>', '<button class="btn" data-act="close2">Annuler</button>'));
+    bindScope();
+    var token = {}; pending.planToken = token;
+    var plan = await planSenders(keys, scopeAll, function (d, t) { var el = $('#plp'); if (el) el.innerHTML = '<span class="spin"></span>Recherche sur le serveur : ' + d + ' / ' + t; });
+    if (pending.planToken !== token) return;
+    pending.plan = plan; pending.after = 'senders';
+    confirmDeleteModal(keys.length === 1 ? 'Supprimer tous les mails de ' + esc((gOf(keys[0]) || {}).name || keys[0]) : 'Supprimer les mails de ' + keys.length + ' expéditeurs', plan);
+    if (fa) { var body = $('#m2 .mb'); body.insertAdjacentHTML('afterbegin', mkScope(scopeAll)); bindScope(); }
+  }
+  function bindScope() { document.querySelectorAll('#m2 input[name=scope]').forEach(function (r) { r.onchange = function () { scopeAll = r.value === 'all'; run(); }; }); }
+  run();
+}
+async function startMailDelete(ids) {
+  var plan = planMails(ids); pending.plan = plan; pending.after = 'mails';
+  confirmDeleteModal(plan.total === 1 ? 'Supprimer ce mail' : 'Supprimer ' + plan.total + ' mails', plan);
+}
+async function doConfirmDelete() {
+  var plan = pending.plan; if (!plan) return;
+  showModal('m2', modalHtml('Suppression…', '<p id="dp"><span class="spin"></span>0 / ' + nf(plan.total) + '</p>', ''));
+  var r = await execDelete(plan, function (d) { var el = $('#dp'); if (el) el.innerHTML = '<span class="spin"></span>' + nf(d) + ' / ' + nf(plan.total); });
+  var local = new Set(); r.removed.forEach(function (k) { if (S.byId.has(k)) local.add(k); });
+  removeLocal(local);
+  S.selS.forEach(function (k) { if (!S.byKey.has(k)) S.selS.delete(k); });
+  closeModal('m2'); closeModal('m1');
+  refresh();
+  if (r.errs.length) toast('Erreurs : ' + r.errs.join(' · '), true); else toast(nf(r.removed.size) + ' ' + plural(r.removed.size, 'mail déplacé', 'mails déplacés') + ' dans la corbeille');
+}
+
+/* ===== Désabonnement ===== */
+function pickUnsub(key) {
+  var ms = S.byKey.get(key) || [];
+  for (var i = 0; i < ms.length; i++) if (ms[i].unsub) return { u: ms[i].unsub, m: ms[i] };
+  return null;
+}
+function methodOf(u) { return u.one ? 'one-click' : u.mailto ? 'mailto' : 'link'; }
+function methodLabel(u) { return u.one ? 'désabonnement automatique en un clic' : u.mailto ? 'envoi automatique d\'un e-mail de désabonnement' : 'page de désabonnement à confirmer (s\'ouvre dans un nouvel onglet)'; }
+async function sendMailto(a, mailto) {
+  var url = new URL(mailto), to = decodeURIComponent(url.pathname), subj = url.searchParams.get('subject') || 'unsubscribe', body = url.searchParams.get('body') || 'unsubscribe';
+  if (a.provider === 'google') {
+    var raw = 'To: ' + to + '\r\nSubject: ' + subj.replace(/[\r\n]/g, ' ') + '\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n' + body;
+    var b64 = btoa(String.fromCharCode.apply(null, new TextEncoder().encode(raw))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    await apiOk(a, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ raw: b64 }) });
+  } else {
+    await apiOk(a, 'https://graph.microsoft.com/v1.0/me/sendMail', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: { subject: subj, body: { contentType: 'Text', content: body }, toRecipients: [{ emailAddress: { address: to } }] }, saveToSentItems: false }) });
+  }
+}
+async function runUnsub(key) {
+  var p = pickUnsub(key); if (!p) return { key: key, status: 'none' };
+  var u = p.u, a = acctById(p.m.acct), meth = methodOf(u);
+  if (meth === 'one-click') {
+    try { await fetch(u.https, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'List-Unsubscribe=One-Click' }); await saveUnsub(key, meth, 'done'); return { key: key, status: 'done', method: meth }; }
+    catch (e) { if (!u.mailto && !u.https) return { key: key, status: 'error', err: e.message }; }
+  }
+  if (u.mailto && a) {
+    try { await sendMailto(a, u.mailto); await saveUnsub(key, 'mailto', 'done'); return { key: key, status: 'done', method: 'mailto' }; }
+    catch (e) { if (!u.https) return { key: key, status: 'error', err: e.message }; }
+  }
+  if (u.https) { await saveUnsub(key, 'link', 'pending'); return { key: key, status: 'link', url: u.https }; }
+  return { key: key, status: 'none' };
+}
+function startUnsub(keys, alsoDeleteDefault) {
+  var rows = keys.map(function (k) { var p = pickUnsub(k), g = (S.groups.find(function (x) { return x.key === k; }) || {}); return { k: k, name: g.name || k, p: p }; });
+  var ok = rows.filter(function (r) { return r.p; }), no = rows.filter(function (r) { return !r.p; });
+  var single = rows.length === 1 && ok.length === 1 && methodOf(ok[0].p.u) === 'link';
+  var h = '';
+  if (ok.length) h += '<p>Désabonnement de <b>' + ok.length + '</b> ' + plural(ok.length, 'expéditeur', 'expéditeurs') + ' :</p><ul>' + ok.map(function (r) { return '<li><b>' + esc(r.name) + '</b> — ' + methodLabel(r.p.u) + '</li>'; }).join('') + '</ul>';
+  if (no.length) h += '<div class="warnbox">Aucun lien de désabonnement détecté pour : ' + no.map(function (r) { return esc(r.name); }).join(', ') + '. Ils seront ignorés.</div>';
+  if (ok.length) h += '<label class="row"><input type="checkbox" id="alsoDel"' + (alsoDeleteDefault ? ' checked' : '') + '> <span>Supprimer aussi tous leurs mails</span></label><p class="note">Les liens « page à confirmer » s\'ouvrent dans un nouvel onglet : le désabonnement n\'est effectif qu\'après validation sur cette page.</p>';
+  pending.unsub = { keys: ok.map(function (r) { return r.k; }), single: single, url: single ? ok[0].p.u.https : null };
+  showModal('m2', modalHtml('Se désabonner', h, '<button class="btn" data-act="close2">Annuler</button><button class="btn pri" data-act="confirm-unsub"' + (ok.length ? '' : ' disabled') + '>Se désabonner</button>'));
+}
+async function doConfirmUnsub() {
+  var P = pending.unsub; if (!P) return;
+  var also = $('#alsoDel') && $('#alsoDel').checked;
+  if (P.single && P.url) { window.open(P.url, '_blank', 'noopener'); }
+  showModal('m2', modalHtml('Désabonnement…', '<p id="up"><span class="spin"></span>0 / ' + P.keys.length + '</p>', ''));
+  var res = [], i = 0;
+  await pool(P.keys, 3, async function (k) { res.push(await runUnsub(k)); i++; var el = $('#up'); if (el) el.innerHTML = '<span class="spin"></span>' + i + ' / ' + P.keys.length; });
+  var links = res.filter(function (r) { return r.status === 'link'; });
+  var done = res.filter(function (r) { return r.status === 'done'; });
+  var err = res.filter(function (r) { return r.status === 'error'; });
+  var h = '<ul class="res">';
+  if (done.length) h += '<li>✅ <b>' + done.length + '</b> ' + plural(done.length, 'demande envoyée', 'demandes envoyées') + ' automatiquement.</li>';
+  if (links.length) h += '<li>⚠️ <b>' + links.length + '</b> à finaliser sur le site de l\'expéditeur :<ul>' + links.map(function (r) { var g = S.byKey.get(r.key); return '<li>' + esc((g && g[0].fn) || r.key) + (P.single ? ' (onglet ouvert)' : ' — <a href="' + esc(r.url) + '" target="_blank" rel="noopener">ouvrir la page</a>') + '</li>'; }).join('') + '</ul></li>';
+  if (err.length) h += '<li>❌ ' + err.length + ' en erreur : ' + err.map(function (r) { return esc(r.key + ' (' + r.err + ')'); }).join(', ') + '</li>';
+  h += '</ul>';
+  var fin = '<button class="btn" data-act="close2">Fermer</button>';
+  if (also) {
+    h += '<p class="note">Suppression de leurs mails à l\'étape suivante.</p>';
+    fin = '<button class="btn bad" data-act="unsub-then-delete">Continuer : supprimer leurs mails</button>';
+    pending.afterUnsub = P.keys;
+  }
+  refresh(true);
+  showModal('m2', modalHtml('Désabonnement', h, fin));
+}
+
+/* ===== Lecture d'un mail ===== */
+function b64u(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '=';
+  return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); });
+}
+function dec(bytes, ct) {
+  var cs = (/charset="?([\w-]+)"?/i.exec(ct || '') || [])[1] || 'utf-8';
+  try { return new TextDecoder(cs).decode(bytes); } catch (e) { return new TextDecoder('utf-8').decode(bytes); }
+}
+function walkGmail(p, out) {
+  var h = {}; (p.headers || []).forEach(function (x) { h[x.name.toLowerCase()] = x.value; });
+  if (p.filename) out.files.push(p.filename);
+  else if (p.body && p.body.data) {
+    var t = dec(b64u(p.body.data), h['content-type']);
+    if (/^text\/html/i.test(p.mimeType)) out.html += t; else if (/^text\/plain/i.test(p.mimeType)) out.text += t;
+  }
+  (p.parts || []).forEach(function (c) { walkGmail(c, out); });
+}
+async function fetchBody(m) {
+  var a = acctById(m.acct);
+  if (a.provider === 'google') {
+    var j = await apiJson(a, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/' + m.mid + '?format=full');
+    var out = { html: '', text: '', files: [], to: '' };
+    walkGmail(j.payload || {}, out);
+    ((j.payload && j.payload.headers) || []).forEach(function (x) { if (x.name.toLowerCase() === 'to') out.to = decodeMime(x.value); });
+    return out;
+  }
+  var g = await apiJson(a, 'https://graph.microsoft.com/v1.0/me/messages/' + encodeURIComponent(m.mid) + '?$select=body,toRecipients,hasAttachments', { headers: { Prefer: 'outlook.body-content-type="html"' } });
+  var isHtml = g.body && /html/i.test(g.body.contentType);
+  return { html: isHtml ? g.body.content : '', text: isHtml ? '' : (g.body && g.body.content) || '', files: g.hasAttachments ? ['(pièces jointes)'] : [], to: (g.toRecipients || []).map(function (r) { return r.emailAddress.address; }).join(', ') };
+}
+function frameDoc(b, imgs) {
+  var csp = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data: cid:" + (imgs ? ' https: http:' : '');
+  var css = 'body{font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;margin:14px;color:#111;background:#fff;word-wrap:break-word;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{max-width:100%}pre.t{white-space:pre-wrap;font:inherit}';
+  var inner = b.html || '<pre class="t">' + esc(b.text || '(mail vide)') + '</pre>';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' + csp + '"><base target="_blank"><style>' + css + '</style></head><body>' + inner + '</body></html>';
+}
+async function openMail(id) {
+  var m = S.byId.get(id); if (!m) return;
+  var a = acctById(m.acct), imgs = false, body = null;
+  var head = function () {
+    return '<div class="rh"><div><b>' + esc(m.fn || m.fe) + '</b> &lt;' + esc(m.fe) + '&gt;</div><div>' + esc(fmtFull(m.date)) + ' · ' + esc(a ? a.email : '') + (body && body.to ? ' · à : ' + esc(body.to) : '') + (body && body.files.length ? ' · 📎 ' + esc(body.files.join(', ')) : '') + '</div></div>';
+  };
+  var foot = function () {
+    return '<button class="btn" data-act="r-imgs" id="rImgs">Afficher les images</button>' + (m.unsub ? '<button class="btn" data-act="r-unsub">Se désabonner</button>' : '') + '<button class="btn" data-act="r-sender">Tous les mails de l\'expéditeur</button><button class="btn bad" data-act="r-del">Supprimer</button>';
+  };
+  pending.reader = { m: m };
+  showModal('m1', '<div class="modal wide"><div class="mh"><h2>' + esc(m.sub) + '</h2><button class="x" data-act="close" title="Fermer">×</button></div>' + head() + '<div class="rbody" id="rBody"><p class="empty"><span class="spin"></span>Chargement du mail…</p></div><div class="mf">' + foot() + '</div></div>');
+  try {
+    body = await fetchBody(m);
+    if (pending.reader.m !== m) return;
+    pending.reader.body = body;
+    var rb = $('#rBody'); if (!rb) return;
+    $('#m1 .rh').outerHTML = head();
+    rb.innerHTML = '<iframe sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"></iframe>';
+    rb.firstChild.srcdoc = frameDoc(body, false);
+    pending.reader.show = function () { imgs = !imgs; rb.firstChild.srcdoc = frameDoc(body, imgs); var bt = $('#rImgs'); if (bt) bt.textContent = imgs ? 'Masquer les images' : 'Afficher les images'; };
+    if (m.unread) {
+      m.unread = false; idbPut([m]).catch(function () { });
+      (a.provider === 'google'
+        ? apiOk(a, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/' + m.mid + '/modify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ removeLabelIds: ['UNREAD'] }) })
+        : apiOk(a, 'https://graph.microsoft.com/v1.0/me/messages/' + encodeURIComponent(m.mid), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isRead: true }) })
+      ).catch(function () { });
+      refresh(true);
+    }
+  } catch (e) { var r2 = $('#rBody'); if (r2) r2.innerHTML = '<p class="empty">Impossible de charger ce mail.<br><small>' + esc(e.message) + '</small></p>'; }
+}
+
+/* ===== Événements ===== */
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-act]'); if (!t) { if (e.target.classList && e.target.classList.contains('ov') && (S.accounts.length || e.target.id === 'm2')) { closeModal(e.target.id); } return; }
+  var act = t.dataset.act, k;
+  if (t.classList.contains('cb')) { e.stopPropagation(); }
+  switch (act) {
+    case 'sync': syncAll(false); break;
+    case 'accounts': openAccounts(); break;
+    case 'close': closeModal('m1'); break;
+    case 'close2': closeModal('m2'); pending.planToken = null; break;
+    case 'save-cfg': readCfgInputs(); toast('Configuration enregistrée'); break;
+    case 'add-g': addAccount('google'); break;
+    case 'add-ms': addAccount('microsoft'); break;
+    case 'rm-acct': if (confirm('Retirer ce compte de MesMails ? (vos mails ne sont pas touchés, seul le cache local est effacé)')) removeAccount(t.dataset.id); break;
+    case 'acct': S.f.acct = t.dataset.v; S.active = null; refresh(); break;
+    case 'tgl': S.f[t.dataset.v] = !S.f[t.dataset.v]; refresh(); break;
+    case 'back': S.active = null; $('#app').classList.remove('show-detail'); renderDetail(); renderSenders(true); break;
+    case 'sel-all':
+      if (t.checked) S.groups.forEach(function (g) { S.selS.add(g.key); }); else S.selS.clear();
+      renderSenders(true); renderBulk(); break;
+    case 'sel-sender': k = S.groups[t.dataset.i].key; if (t.checked) S.selS.add(k); else S.selS.delete(k); S.selM.clear(); renderSenders(true); renderBulk(); break;
+    case 'open-sender': S.active = S.groups[t.dataset.i].key; S.mLimit = 150; S.selM.clear(); renderSenders(true); renderDetail(); renderBulk(); $('#dPane').scrollTop = 0; break;
+    case 'sel-mail': if (t.checked) S.selM.add(t.dataset.id); else S.selM.delete(t.dataset.id); S.selS.clear(); renderSenders(true); renderBulk(); break;
+    case 'open-mail': openMail(t.dataset.id); break;
+    case 'more-senders': S.sLimit += 200; renderSenders(true); break;
+    case 'more-mails': S.mLimit += 200; renderDetail(); break;
+    case 'clear-sel': S.selS.clear(); S.selM.clear(); renderSenders(true); renderDetail(); renderBulk(); break;
+    case 'del-selected': startSenderDelete(Array.from(S.selS)); break;
+    case 'del-sender': startSenderDelete([S.active]); break;
+    case 'del-mails': startMailDelete(Array.from(S.selM)); break;
+    case 'confirm-del': doConfirmDelete(); break;
+    case 'unsub-selected': startUnsub(Array.from(S.selS), false); break;
+    case 'unsub-sender': startUnsub([S.active], false); break;
+    case 'confirm-unsub': doConfirmUnsub(); break;
+    case 'unsub-then-delete': closeModal('m2'); startSenderDelete(pending.afterUnsub || []); break;
+    case 'r-imgs': pending.reader && pending.reader.show && pending.reader.show(); break;
+    case 'r-unsub': var rm = pending.reader.m; closeModal('m1'); startUnsub([rm.fe], false); break;
+    case 'r-sender': var rs = pending.reader.m; closeModal('m1'); S.f.q = ''; $('#q').value = ''; refresh(); S.active = rs.fe; renderSenders(true); renderDetail(); break;
+    case 'r-del': var rd = pending.reader.m; closeModal('m1'); startMailDelete([rd.id]); break;
+  }
+});
+document.addEventListener('change', function (e) {
+  var s = e.target.dataset && e.target.dataset.sel; if (!s) return;
+  if (s === 'depth') { S.cfg.depth = Number(e.target.value); saveCfg(); return; }
+  S.f[s] = e.target.value; refresh();
+});
+var qTimer;
+$('#q').addEventListener('input', function (e) { clearTimeout(qTimer); qTimer = setTimeout(function () { S.f.q = e.target.value; S.mLimit = 150; S.sLimit = 150; if (S.f.q.trim()) S.active = null; refresh(); }, 160); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (!$('#m2').hidden) closeModal('m2'); else if (!$('#m1').hidden && !(S.accounts.length === 0)) closeModal('m1'); } });
+
+/* ===== PWA : manifeste dynamique par app (voir technical-patterns) ===== */
+(function pwa() {
+  try {
+    var url = location.origin + location.pathname;
+    var icon = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#1c2236"/><rect x="96" y="136" width="320" height="240" rx="28" fill="none" stroke="#f5f2ea" stroke-width="28"/><path d="M110 160l146 112 146-112" fill="none" stroke="#e8672f" stroke-width="28" stroke-linejoin="round"/></svg>');
+    var man = { name: 'MesMails', short_name: 'MesMails', start_url: url, scope: url, id: url, display: 'standalone', background_color: '#f5f2ea', theme_color: '#1c2236', icons: [{ src: icon, sizes: 'any', type: 'image/svg+xml', purpose: 'any' }] };
+    var l = document.createElement('link'); l.rel = 'manifest'; l.href = URL.createObjectURL(new Blob([JSON.stringify(man)], { type: 'application/manifest+json' })); document.head.appendChild(l);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register(location.pathname.replace(/[^/]*$/, '') + 'sw.js', { scope: location.pathname }).catch(function () { });
+  } catch (e) { }
+})();
+
+/* ===== Démarrage ===== */
+function fatal(html) { $('#boot').hidden = true; var f = $('#fatal'); f.innerHTML = html + '<a class="logan-btn" href="' + LOGAN_URL + '">L.O.G.A.N</a>'; f.hidden = false; }
+async function init() {
+  loadCfg(); try { S.last = JSON.parse(localStorage.getItem('mm_last') || '{}'); } catch (e) { }
+  try { await resolveUser(); }
+  catch (e) {
+    return fatal(e.message === 'NOUSER'
+      ? '<h2>Accès non configuré</h2><p>Aucun utilisateur n\'a <code>' + APP_FILE + '</code> dans <code>user_apps.app_ids</code>.<br>Ajoutez-le depuis le catalogue L.O.G.A.N.</p>'
+      : '<h2>Connexion impossible</h2><p>' + esc(e.message) + '</p>');
+  }
+  try { await idbOpen(); S.mails = (await idbAll()).map(prep); } catch (e) { S.mails = []; toast('Cache local indisponible', true); }
+  await Promise.all([loadAccounts(), loadUnsubs()]);
+  reindex();
+  $('#boot').hidden = true;
+  if (!S.accounts.length) { openWelcome(); return; }     /* premier lancement : pas d'interface vide */
+  $('#app').hidden = false; refresh();
+  syncAll(true);
+}
+init();
+})();
+</script>
+</body>
+</html>
